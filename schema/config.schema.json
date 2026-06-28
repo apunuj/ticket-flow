@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://ticketflow.dev/config.schema.json",
-  "title": "TicketFlow config",
+  "$id": "https://ticket-flow.dev/config.schema.json",
+  "title": "Ticket-Flow config",
   "type": "object",
   "additionalProperties": false,
   "required": ["project", "backend", "git", "test", "tools"],

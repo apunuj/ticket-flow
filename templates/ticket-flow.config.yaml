@@ -1,4 +1,4 @@
-# TicketFlow configuration — edit these values for YOUR project, then run `ticketflow build`.
+# Ticket-Flow configuration — edit these values for YOUR project, then run `ticket-flow build`.
 # Every project-specific value lives here; the generated skills carry none of it hardcoded.
 # Full schema: schema/config.schema.json   ·   Fuller example: examples/example.config.yaml
 

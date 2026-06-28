@@ -3,7 +3,7 @@ import { loadConfig } from '../config.js';
 import { build } from '../build.js';
 
 export function runBuild({ configPath, out } = {}) {
-  const cfgPath = path.resolve(configPath || 'ticketflow.config.yaml');
+  const cfgPath = path.resolve(configPath || 'ticket-flow.config.yaml');
   const config = loadConfig(cfgPath);
   const written = build(config, { outputDir: out });
 

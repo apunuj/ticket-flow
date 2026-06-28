@@ -3,12 +3,12 @@ import { init } from '../src/cli/init.js';
 import { runBuild } from '../src/cli/build.js';
 import { check } from '../src/cli/check.js';
 
-const HELP = `ticketflow — portable ticket-driven workflow skills for Claude Code, Copilot, and opencode
+const HELP = `ticket-flow — portable ticket-driven workflow skills for Claude Code, Copilot, and opencode
 
 Usage:
-  ticketflow init [--force]              Write a ticketflow.config.yaml to start from
-  ticketflow build [--config <p>] [--out <dir>]   Generate the skills for your configured tools
-  ticketflow check [--config <p>]        Validate config + report backend/tool requirements
+  ticket-flow init [--force]              Write a ticket-flow.config.yaml to start from
+  ticket-flow build [--config <p>] [--out <dir>]   Generate the skills for your configured tools
+  ticket-flow check [--config <p>]        Validate config + report backend/tool requirements
 
 Lifecycle the generated skills drive:
   next-ticket → describe-ticket → execute-ticket → review-ticket → merge-ticket

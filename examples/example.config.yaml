@@ -1,6 +1,6 @@
 # Example: a fuller, fictional configuration showing every knob populated.
 # "XYZ" is a made-up project — replace all values with your own (or start from
-# templates/ticketflow.config.yaml). Also used as the fixture for the render tests.
+# templates/ticket-flow.config.yaml). Also used as the fixture for the render tests.
 
 project:
   name: XYZ App

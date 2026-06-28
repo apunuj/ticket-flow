@@ -15,7 +15,7 @@ function has(cmd) {
 }
 
 export function check({ configPath } = {}) {
-  const cfgPath = path.resolve(configPath || 'ticketflow.config.yaml');
+  const cfgPath = path.resolve(configPath || 'ticket-flow.config.yaml');
   const config = loadConfig(cfgPath); // throws with readable errors if invalid
   console.log(`✓ Config valid: ${path.relative(process.cwd(), cfgPath)}`);
 

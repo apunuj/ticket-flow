@@ -1,8 +1,8 @@
-# TicketFlow
+# Ticket-Flow
 
 Generate a portable, **ticket-driven development** workflow for [Claude Code](https://claude.com/claude-code), [GitHub Copilot](https://github.com/features/copilot), and [opencode](https://opencode.ai) — from one canonical source.
 
-You write your project's values once in a config file; `ticketflow` renders five lifecycle skills into each tool's native format, wired to your ticket backend (Linear or Jira).
+You write your project's values once in a config file; `ticket-flow` renders five lifecycle skills into each tool's native format, wired to your ticket backend (Linear or Jira).
 
 ```
 next-ticket → describe-ticket → execute-ticket → review-ticket → merge-ticket
@@ -18,15 +18,15 @@ next-ticket → describe-ticket → execute-ticket → review-ticket → merge-t
 
 ## Why
 
-These started as five Claude-Code-only skills hardcoded to one project and one backend. TicketFlow makes the same workflow **portable** (three tools) and **reusable** (any project, any supported backend) without maintaining three hand-edited copies — one canonical source, rendered.
+These started as five Claude-Code-only skills hardcoded to one project and one backend. Ticket-Flow makes the same workflow **portable** (three tools) and **reusable** (any project, any supported backend) without maintaining three hand-edited copies — one canonical source, rendered.
 
 ## Quick start
 
 ```bash
-npx ticketflow init      # write a ticketflow.config.yaml to start from
-# edit ticketflow.config.yaml for your project
-npx ticketflow build     # generate the skills into .claude / .github / .opencode
-npx ticketflow check     # validate config + report what each backend needs
+npx ticket-flow init      # write a ticket-flow.config.yaml to start from
+# edit ticket-flow.config.yaml for your project
+npx ticket-flow build     # generate the skills into .claude / .github / .opencode
+npx ticket-flow check     # validate config + report what each backend needs
 ```
 
 `build` writes, for each configured tool:
@@ -39,7 +39,7 @@ Commit those generated files to your repo so the skills travel with it.
 
 ## Configuration
 
-Everything project-specific lives in `ticketflow.config.yaml` — the generated skills carry none of it hardcoded. See [`templates/ticketflow.config.yaml`](templates/ticketflow.config.yaml) for the starting point and [`examples/example.config.yaml`](examples/example.config.yaml) for a fuller one.
+Everything project-specific lives in `ticket-flow.config.yaml` — the generated skills carry none of it hardcoded. See [`templates/ticket-flow.config.yaml`](templates/ticket-flow.config.yaml) for the starting point and [`examples/example.config.yaml`](examples/example.config.yaml) for a fuller one.
 
 ```yaml
 project:  { name: My Project, ticketPrefix: PROJ }

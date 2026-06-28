@@ -46,7 +46,7 @@ export function parseConfig(text) {
 
 export function loadConfig(file) {
   if (!fs.existsSync(file)) {
-    throw new Error(`Config not found: ${file}. Run \`ticketflow init\` to create one.`);
+    throw new Error(`Config not found: ${file}. Run \`ticket-flow init\` to create one.`);
   }
   return parseConfig(fs.readFileSync(file, 'utf8'));
 }

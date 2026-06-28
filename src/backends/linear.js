@@ -13,7 +13,7 @@ export default {
   groupingNoun: 'milestone',
   groupingNounPlural: 'milestones',
   capabilities: { groups: true, attachments: true, groupTargetDates: true },
-  // surfaced by `ticketflow check` and in generated docs
+  // surfaced by `ticket-flow check` and in generated docs
   requires:
     'a Linear MCP server connected in your tool (Claude Code, Copilot, or opencode), exposing get_issue / list_issues / list_milestones / save_issue / create_attachment / save_comment.',
 
