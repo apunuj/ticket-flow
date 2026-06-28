@@ -28,8 +28,8 @@ Ensure the branch (primary owner is `/describe-ticket`; this is the fallback). I
 
 Work the plan from the artifact, task by task:
 
-- Implement one `T-N` / `US-N` at a time, smallest coherent step first.
-- Run the test gate as you go: `{{test.command}}`. Keep the loop green.
+- Work **test-first (TDD)**, following the plan's test→implementation task pairs: for each `US-N`, write the failing test that encodes its acceptance criterion, watch it fail (red), implement the smallest change to make it pass (green), then refactor. (No plan? Derive the criteria from the ticket and still go test-first.)
+- Run the test gate as you go: `{{test.command}}`. Keep it green before moving to the next `US-N`.
 - **Commit incrementally, scoped to {{arg}}.** Each commit references {{arg}} in the title and matches the repo's recent commit style (`git log -3 --format='%H%n%s%n%b'`). End the body with your agent's standard co-author footer.
 {{#each conventions}}  - {{this}}.
 {{/each}}- After each meaningful step, tick the matching `US-N` / `T-N` checkbox: {{> artifact-write}}
