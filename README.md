@@ -14,6 +14,7 @@ next-ticket → describe-ticket → execute-ticket → review-ticket → merge-t
 | **describe-ticket** | Turn a ticket into user stories + acceptance criteria + an execution plan, record it as the **work artifact**, and cut the ticket branch. |
 | **execute-ticket** | Implement the plan with an incremental test-and-commit loop, then ship it: test gate → push → PR → attach to the ticket → move to *In Review*. |
 | **review-ticket** | Review the PR at a chosen depth, then check the diff delivers every acceptance criterion. |
+| **fix-ticket** | Address a PR's open feedback — failing CI, review comments, change requests — by triaging, confirming scope + a plan, then fixing and updating the PR. Loops back from review or merge. |
 | **merge-ticket** | Gate on the review, merge, close the ticket, clean up branches, and surface the next priority. |
 
 ## Why

@@ -1,0 +1,72 @@
+---
+name: fix-ticket
+description: Address the open feedback on a {{backend.displayName}} ticket's PR — failing CI checks, unresolved review comments, change requests, merge conflicts — by triaging what's fixable, confirming the scope and a plan with you, then fixing and updating the PR. PR-only. Use when the user wants to act on review comments or fix a red/blocked PR — e.g. "fix the review comments on {{upper project.ticketPrefix}}-312", "address the PR feedback", "fix the failing CI", "fix {{upper project.ticketPrefix}}-312".
+argument-hint: "{{upper project.ticketPrefix}}-NNN"
+---
+
+Address the open feedback on ticket {{arg}}'s PR — review comments and failing checks — then update the PR. This skill works **only** on top of a PR. It *fixes* feedback; it does not review (that's `/review-ticket`) or merge (that's `/merge-ticket`).
+
+## 1. Resolve the PR
+
+- {{op "getAttachedPR"}}.
+- If no PR is found, ask the user for the PR number or URL.
+- If none can be supplied — **hard stop**: "No PR found for {{arg}}. Run `/execute-ticket {{arg}}` first; fix-ticket only works on top of a PR."
+
+## 2. Gather everything that needs fixing — in parallel
+
+- **Failing / pending CI:** `gh pr checks <PR#>` — list each failing or pending check; for failures, pull enough detail to know the cause (`gh run view <run-id> --log-failed`, or the check's output).
+- **Review comments & threads:** `gh pr view <PR#> --json reviews,reviewDecision,comments,mergeable` plus the inline threads (`gh api repos/{owner}/{repo}/pulls/<PR#>/comments`). Note any `CHANGES_REQUESTED` and which threads are still unresolved.
+- **Recorded verdict:** {{> artifact-read}} Read the `Review verdict` (blocking findings / uncovered criteria) and scan the ticket comments for the latest `/review-ticket {{arg}}` verdict.
+- **Merge state:** note `mergeable: CONFLICTING` — a rebase/merge of `{{git.baseBranch}}` will be needed.
+
+## 3. Triage — tell me what can be fixed
+
+Present a grouped, deduplicated list; for each item a one-line **proposed fix**:
+
+- **Failing checks** — job → likely cause → fix.
+- **Blocking review findings / change requests** — `file:line` → fix.
+- **Unresolved threads** — the ask → fix.
+- **Uncovered acceptance criteria** (from the verdict) → fix.
+- **Merge conflicts** — the branches involved.
+
+Flag anything **not** auto-fixable — needs a product decision, is out of scope (name the owning ticket), or contradicts the confirmed plan. Those become questions, never silent skips.
+
+## 4. Confirm scope — STOP
+
+{{ask "which of the above to fix now (default: all failing checks + all blocking findings/threads); call out anything to skip or defer"}}. Wait for the answer. Do not start fixing before the scope is confirmed.
+
+## 5. Execution plan — STOP
+
+For the confirmed scope, produce a short ordered task list, **test-driven by default** (consistent with describe/execute-ticket): for each fix that's testable, first add or adjust the failing test that reproduces the problem, then the change that makes it pass. Cite `file:line` and the review item / check each task closes. STOP for confirmation unless the fixes are trivial.
+
+## 6. Fix and update the PR
+
+Ensure you're on the ticket branch (fallback if you're not):
+
+{{> branch-checkout}}
+
+Then work the confirmed plan:
+
+- Fix one item at a time, **test-first**; keep the gate green: `{{test.command}}`.
+- For a `CONFLICTING` PR, merge/rebase the latest `{{git.baseBranch}}` and resolve before continuing.
+- **Commit incrementally, scoped to {{arg}}** — each commit references {{arg}}, matches the repo's recent commit style, and ends with your agent's co-author footer.
+{{#each conventions}}  - {{this}}.
+{{/each}}- Push to the **existing PR branch** (`git push`) — never open a new PR.
+- Reply to / resolve each addressed review thread where the tool allows (`gh api`), citing the commit that fixed it.
+
+## 7. Record + hand off
+
+- {{op "addComment"}}: a short note — what was fixed (mapped to each review item / check), what was deliberately skipped and why, and the new commit(s).
+- {{> artifact-write}} — tick the fixed items, keep `status: in-review`, and set the `Review verdict` to "fixes applied for <items> — re-review needed", so `/merge-ticket` does not treat the stale verdict as a pass.
+- Confirm CI is re-running on the new push. End by suggesting: re-run `/review-ticket {{arg}}` to confirm, then `/merge-ticket {{arg}}`.
+
+## Stop and ask
+
+- A review comment needs a product decision or is out of scope (step 3).
+- A check fails for an environmental/flaky reason you can't fix in-repo — surface it, don't fake a fix.
+- The PR contains commits that don't reference {{arg}} — they may belong to another ticket.
+
+## Resume / idempotency
+
+- If a fix was already pushed (the item is green/resolved), skip it.
+- Re-running after a partial fix picks up only the still-open items from step 2.

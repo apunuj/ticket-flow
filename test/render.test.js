@@ -121,6 +121,22 @@ test('build() wires opencode.json instructions (create, idempotent, and merge)',
   }
 });
 
+test('fix-ticket renders as a PR-feedback remediation skill', () => {
+  const fix = renderFor('linear').find((f) => f.tool === 'claude' && f.path.includes('fix-ticket'));
+  assert.ok(fix, 'fix-ticket is rendered');
+  assert.match(fix.content, /gh pr checks/, 'inspects CI');
+  assert.match(fix.content, /review comments|review threads/i, 'inspects review feedback');
+  assert.match(fix.content, /Confirm scope/i, 'gates on confirmed scope');
+});
+
+test('review and merge hand off to fix-ticket', () => {
+  const files = renderFor('linear');
+  const review = files.find((f) => f.tool === 'claude' && f.path.includes('review-ticket'));
+  const merge = files.find((f) => f.tool === 'claude' && f.path.includes('merge-ticket'));
+  assert.match(review.content, /fix-ticket/, 'review-ticket suggests fix-ticket on needs-changes');
+  assert.match(merge.content, /fix-ticket/, 'merge-ticket offers the fix-ticket hand-off');
+});
+
 test('[linear] groups by milestone; [jira] groups by sprint + transitions', () => {
   const linNext = renderFor('linear').find((f) => f.path.includes('next-ticket') && f.tool === 'claude');
   const jiraNext = renderFor('jira').find((f) => f.path.includes('next-ticket') && f.tool === 'claude');

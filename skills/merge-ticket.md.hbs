@@ -17,8 +17,8 @@ Merging requires that a review happened **and** its findings are addressed.
 
 - **Infer first.** {{> artifact-read}} Read the `Review verdict`. Also scan the conversation and the ticket comments for a `/review-ticket {{arg}}` verdict.
   - Clear `✅ Ready to merge` with nothing outstanding → state the inference and proceed.
-  - `🟡 Needs changes` with no evidence the findings were addressed → list them and **stop**.
-- **If inconclusive,** {{ask "has this PR been reviewed, and are all review comments addressed?"}} If no/unsure — **stop**; suggest `/review-ticket {{arg}}`.
+  - `🟡 Needs changes` with no evidence the findings were addressed → list them, then {{ask "these review findings aren't addressed yet — run /fix-ticket to fix them now, or stop?"}}. On confirm, hand off to `/fix-ticket {{arg}}` and do **not** merge; otherwise **stop**.
+- **If inconclusive,** {{ask "has this PR been reviewed, and are all review comments addressed?"}} If no/unsure — **stop**; suggest `/review-ticket {{arg}}`, or `/fix-ticket {{arg}}` if comments are already on the PR.
 
 Never merge on ambiguous evidence — when in doubt, ask.
 
@@ -26,9 +26,9 @@ Never merge on ambiguous evidence — when in doubt, ask.
 
 `gh pr view <PR#> --json state,mergeable,reviewDecision,statusCheckRollup,reviews` plus `gh pr checks <PR#>`:
 
-- Failing or pending required checks → surface and stop.
-- Unresolved review threads or a `CHANGES_REQUESTED` decision → surface and stop.
-- `mergeable: CONFLICTING` → surface and stop; offer to rebase the branch.
+- Failing or pending required checks → surface them, then {{ask "CI isn't green — run /fix-ticket to address the failures, or stop?"}}. On confirm, hand off to `/fix-ticket {{arg}}`; otherwise stop.
+- Unresolved review threads or a `CHANGES_REQUESTED` decision → surface them and offer the same `/fix-ticket {{arg}}` hand-off; otherwise stop.
+- `mergeable: CONFLICTING` → surface and stop; `/fix-ticket {{arg}}` can rebase and resolve, or offer to rebase here.
 
 ## 4. Merge
 

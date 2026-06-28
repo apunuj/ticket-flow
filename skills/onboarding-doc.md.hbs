@@ -4,6 +4,8 @@ This repo uses **Ticket-Flow** — a five-phase, ticket-driven workflow backed b
 
 ```
 next-ticket → describe-ticket → execute-ticket → review-ticket → merge-ticket
+                                              ↑                ↓
+                                              └──── fix-ticket ←┘   (when a PR has open comments or red CI)
 ```
 
 ## What each phase does
@@ -14,6 +16,7 @@ next-ticket → describe-ticket → execute-ticket → review-ticket → merge-t
 | **describe-ticket** | Turns a ticket into user stories + acceptance criteria + a **test-driven** execution plan, records it on the ticket, and cuts the branch. |
 | **execute-ticket** | Builds the plan test-first, then ships it: test gate → push → PR → move to **{{state "inReview"}}**. |
 | **review-ticket** | Reviews the PR at a depth you choose, checks it delivers every acceptance criterion, and logs the full review on the ticket. |
+| **fix-ticket** | Triages a PR's review comments + failing CI, confirms the scope and a plan with you, then fixes and updates the PR. |
 | **merge-ticket** | Gates on the review, merges, closes the ticket, cleans up branches, and surfaces the next priority. |
 
 ## How to use it
@@ -26,6 +29,7 @@ Just say what you want — the matching phase runs (no slash command needed):
 | "plan {{upper project.ticketPrefix}}-123" / "break this ticket down" | describe-ticket |
 | "build it and open a PR" / "ship it" | execute-ticket |
 | "review the PR" / "is it ready?" | review-ticket |
+| "fix the review comments" / "fix the failing CI" | fix-ticket |
 | "merge it" / "close out the ticket" | merge-ticket |
 
 Prefer explicit control? Invoke a phase directly: {{skillRef "next-ticket"}}, {{skillRef "describe-ticket"}}, {{skillRef "execute-ticket"}}, {{skillRef "review-ticket"}}, {{skillRef "merge-ticket"}} — the slash command runs the same procedure.

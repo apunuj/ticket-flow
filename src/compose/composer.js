@@ -27,6 +27,7 @@ export const SKILLS = [
   'describe-ticket',
   'execute-ticket',
   'review-ticket',
+  'fix-ticket',
   'merge-ticket',
 ];
 

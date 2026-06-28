@@ -14,6 +14,7 @@ Usage:
 
 Lifecycle the generated skills drive:
   next-ticket → describe-ticket → execute-ticket → review-ticket → merge-ticket
+  (fix-ticket addresses review comments / failing CI; loops back from review or merge)
 `;
 
 function parseFlags(argv) {
