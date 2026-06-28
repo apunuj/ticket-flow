@@ -59,6 +59,20 @@ test('init creates the config and reports it', () => {
   }
 });
 
+test('init --defaults writes a detected config without prompts', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tf-bin-'));
+  try {
+    const { code, out } = run(['init', '--defaults'], { cwd: dir });
+    assert.equal(code, 0);
+    assert.match(out, /Created ticket-flow\.config\.yaml/);
+    const cfg = fs.readFileSync(path.join(dir, 'ticket-flow.config.yaml'), 'utf8');
+    assert.match(cfg, /ticketPrefix:/);
+    assert.match(cfg, /backend:/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('build renders from --config to --out end to end', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tf-bin-'));
   try {

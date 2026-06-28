@@ -4,9 +4,10 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { init } from '../src/cli/init.js';
+import { init, detectDefaults, assembleConfig, configToYaml } from '../src/cli/init.js';
 import { check } from '../src/cli/check.js';
 import { runBuild } from '../src/cli/build.js';
+import { parseConfig } from '../src/config.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const TEMPLATE = fs.readFileSync(path.join(ROOT, 'templates', 'ticket-flow.config.yaml'), 'utf8');
@@ -60,6 +61,48 @@ test('init --force overwrites with the template', () => {
     silence(() => init({ force: true }));
     assert.equal(fs.readFileSync('ticket-flow.config.yaml', 'utf8'), TEMPLATE);
   });
+});
+
+test('detectDefaults returns sane, schema-compatible defaults', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tf-detect-'));
+  try {
+    const d = detectDefaults(dir);
+    assert.match(d.ticketPrefix, /^[A-Z][A-Z0-9]*$/, 'prefix matches the schema pattern');
+    assert.ok(d.projectName.length > 0);
+    assert.ok(d.baseBranch.length > 0);
+    assert.equal(typeof d.testCommand, 'string');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('detectDefaults picks up a Make test target (no package.json)', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tf-detect-'));
+  try {
+    fs.writeFileSync(path.join(dir, 'Makefile'), 'test:\n\techo hi\n');
+    assert.equal(detectDefaults(dir).testCommand, 'make test');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('assembleConfig + configToYaml produce a schema-valid config', () => {
+  const yaml = configToYaml(
+    assembleConfig({
+      projectName: 'Acme',
+      ticketPrefix: 'ACME',
+      backendType: 'jira',
+      backendProject: 'ACME',
+      baseBranch: 'develop',
+      testCommand: 'make test',
+      tools: ['claude', 'opencode'],
+    }),
+  );
+  const cfg = parseConfig(yaml);
+  assert.equal(cfg.project.ticketPrefix, 'ACME');
+  assert.equal(cfg.backend.type, 'jira');
+  assert.deepEqual(cfg.tools, ['claude', 'opencode']);
+  assert.equal(cfg.git.mergeStrategy, 'merge', 'normalize fills the omitted defaults');
 });
 
 test('check returns the parsed config for a valid file', () => {

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { init } from '../src/cli/init.js';
+import { runInit } from '../src/cli/init.js';
 import { runBuild } from '../src/cli/build.js';
 import { check } from '../src/cli/check.js';
 import { doctor } from '../src/cli/doctor.js';
@@ -7,7 +7,7 @@ import { doctor } from '../src/cli/doctor.js';
 const HELP = `ticket-flow — portable ticket-driven workflow skills for Claude Code, Copilot, and opencode
 
 Usage:
-  ticket-flow init [--force]              Write a ticket-flow.config.yaml to start from
+  ticket-flow init [--force] [--defaults]  Set up ticket-flow.config.yaml (interactive; --defaults to skip prompts)
   ticket-flow build [--config <p>] [--out <dir>]   Generate the skills for your configured tools
   ticket-flow doctor [--config <p>] [--out <dir>]  Preflight checklist: config, git, gh, generated files, MCP
   ticket-flow check [--config <p>]        Validate config + report backend/tool requirements
@@ -21,6 +21,7 @@ function parseFlags(argv) {
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--force') flags.force = true;
+    else if (a === '--defaults' || a === '--yes' || a === '-y') flags.defaults = true;
     else if (a === '--config') flags.configPath = argv[++i];
     else if (a === '--out') flags.out = argv[++i];
     else if (a === '-h' || a === '--help') flags.help = true;
@@ -31,11 +32,11 @@ function parseFlags(argv) {
 const [cmd, ...rest] = process.argv.slice(2);
 const flags = parseFlags(rest);
 
-try {
+async function main() {
   if (flags.help || !cmd || cmd === 'help' || cmd === '--help' || cmd === '-h') {
     console.log(HELP);
   } else if (cmd === 'init') {
-    init(flags);
+    await runInit(flags);
   } else if (cmd === 'build') {
     runBuild(flags);
   } else if (cmd === 'check') {
@@ -47,7 +48,9 @@ try {
     console.log(HELP);
     process.exit(1);
   }
-} catch (err) {
+}
+
+main().catch((err) => {
   console.error(`Error: ${err.message}`);
   process.exit(1);
-}
+});
