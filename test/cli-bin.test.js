@@ -64,9 +64,11 @@ test('build renders from --config to --out end to end', () => {
   try {
     const { code, out } = run(['build', '--config', EXAMPLE, '--out', dir]);
     assert.equal(code, 0);
-    assert.match(out, /Built 18 files/);
+    assert.match(out, /Built 20 files/);
     assert.match(out, /always-on guide/);
+    assert.match(out, /Try it now/);
     assert.ok(fs.existsSync(path.join(dir, '.claude/skills/merge-ticket/SKILL.md')));
+    assert.ok(fs.existsSync(path.join(dir, 'TICKET-FLOW.md')));
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }

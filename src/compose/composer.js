@@ -49,6 +49,7 @@ function buildContext(config, backend, tool, rawMeta) {
       groupingNoun: backend.groupingNoun,
       groupingNounPlural: backend.groupingNounPlural,
       capabilities: backend.capabilities,
+      requires: backend.requires,
     },
   };
 }
@@ -128,6 +129,19 @@ export function renderExtras({ config, backend, tool }) {
   if (typeof tool.extras !== 'function') return [];
   const guide = renderGuide({ config, backend, tool });
   return tool.extras({ guide, config, backend }) || [];
+}
+
+// A neutral pseudo-tool so the tool-agnostic onboarding doc can use the shared helpers.
+const DOC_TOOL = { id: 'doc', argToken: () => '<ticket>', skillRef: (name) => `\`/${name}\`` };
+
+// Render the repo-level team onboarding reference (TICKET-FLOW.md) — backend-aware,
+// tool-agnostic. One file per repo, not per tool.
+export function renderDoc({ config, backend }) {
+  const file = path.join(SKILLS_DIR, 'onboarding-doc.md.hbs');
+  const tpl = fs.readFileSync(file, 'utf8');
+  const hb = makeEnv(config, backend, DOC_TOOL, {});
+  const ctx = buildContext(config, backend, DOC_TOOL, {});
+  return hb.compile(tpl, { noEscape: true })(ctx).trim() + '\n';
 }
 
 // Render every configured skill (kind 'skill') plus any tool-level extras (kind 'guide')

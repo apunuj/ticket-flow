@@ -39,6 +39,7 @@ export default {
       {
         path: '.opencode/ticket-flow.md',
         content: guide,
+        note: 'always-on guide',
       },
     ];
   },

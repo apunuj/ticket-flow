@@ -48,10 +48,9 @@ test('renderer argToken differs (positional vs named input)', () => {
   assert.equal(getTool('copilot').argToken({ argName: 'project' }), '${input:project}');
 });
 
-test('only copilot + opencode define the conversational hooks', () => {
-  assert.equal(typeof getTool('copilot').extras, 'function');
-  assert.equal(typeof getTool('opencode').extras, 'function');
-  assert.equal(typeof getTool('claude').extras, 'undefined', 'claude needs no guide file');
-  assert.equal(typeof getTool('copilot').skillRef, 'function');
-  assert.equal(typeof getTool('opencode').skillRef, 'function');
+test('every renderer defines the conversational hooks', () => {
+  for (const id of ['claude', 'copilot', 'opencode']) {
+    assert.equal(typeof getTool(id).extras, 'function', `${id} should define extras()`);
+    assert.equal(typeof getTool(id).skillRef, 'function', `${id} should define skillRef()`);
+  }
 });

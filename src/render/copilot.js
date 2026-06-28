@@ -39,6 +39,7 @@ export default {
       {
         path: '.github/instructions/ticket-flow.instructions.md',
         content: fm + '\n' + guide,
+        note: 'always-on guide',
       },
     ];
   },

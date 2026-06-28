@@ -10,6 +10,7 @@ import {
   SKILLS,
   renderSkill,
   renderGuide,
+  renderDoc,
   renderForTool,
   renderExtras,
 } from '../src/compose/composer.js';
@@ -39,22 +40,34 @@ test('renderSkill threads the tool-specific arg token', () => {
   assert.match(renderSkill('execute-ticket', env('copilot')).content, /\$\{input:ticket\}/);
 });
 
-test('renderForTool tags skills, and only copilot/opencode get a guide', () => {
+test('renderForTool tags skills plus each tool extra', () => {
   const claude = renderForTool(env('claude'));
-  assert.equal(claude.length, SKILLS.length);
-  assert.ok(claude.every((f) => f.kind === 'skill'), 'claude emits skills only');
+  assert.equal(claude.filter((f) => f.kind === 'skill').length, SKILLS.length);
+  const overview = claude.filter((f) => f.kind === 'overview');
+  assert.equal(overview.length, 1, 'claude gets one overview skill');
+  assert.equal(overview[0].path, '.claude/skills/ticket-flow/SKILL.md');
 
   for (const toolId of ['copilot', 'opencode']) {
     const files = renderForTool(env(toolId));
-    const skills = files.filter((f) => f.kind === 'skill');
-    const guides = files.filter((f) => f.kind === 'guide');
-    assert.equal(skills.length, SKILLS.length);
-    assert.equal(guides.length, 1, `${toolId} emits exactly one guide`);
+    assert.equal(files.filter((f) => f.kind === 'skill').length, SKILLS.length);
+    assert.equal(files.filter((f) => f.kind === 'guide').length, 1, `${toolId} emits one guide`);
   }
 });
 
-test('renderExtras is empty for a tool with no extras hook', () => {
-  assert.deepEqual(renderExtras(env('claude')), []);
+test('renderExtras yields the claude overview skill', () => {
+  const extras = renderExtras(env('claude'));
+  assert.equal(extras.length, 1);
+  assert.equal(extras[0].kind, 'overview');
+  assert.match(extras[0].content, /name: ticket-flow/);
+});
+
+test('renderDoc produces a backend-aware team reference', () => {
+  const doc = renderDoc({ config, backend: getBackend(config.backend.type) });
+  assert.match(doc, /Ticket-Flow/);
+  assert.match(doc, /Linear/, 'backend display name');
+  assert.match(doc, /work artifact/, 'explains where state lives');
+  assert.match(doc, /gh auth login/, 'lists the contributor prerequisites');
+  for (const skill of SKILLS) assert.ok(doc.includes(skill), `doc mentions ${skill}`);
 });
 
 test('renderGuide maps every phase with a tool-specific pointer', () => {

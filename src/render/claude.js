@@ -22,6 +22,30 @@ export default {
     ].join(' ');
   },
 
+  // pointer used by the overview skill — Claude resolves /name to the skill
+  skillRef(name) {
+    return `\`/${name}\``;
+  },
+
+  // Claude auto-invokes the five skills from their description, so it needs no always-on
+  // guide. But for DISCOVERY + EDUCATION it gets an overview skill: it shows in the `/`
+  // menu as `/ticket-flow` and auto-invokes when someone asks how the workflow works.
+  extras({ guide }) {
+    const fm = frontmatter({
+      name: 'ticket-flow',
+      description:
+        "Overview of this repo's ticket-driven workflow (next → describe → execute → review → merge) and how to drive it. Use when the user asks how the ticket workflow works, how to get started with tickets, what these skills do, or wants help using ticket-flow.",
+    });
+    return [
+      {
+        kind: 'overview',
+        path: '.claude/skills/ticket-flow/SKILL.md',
+        content: fm + '\n' + guide,
+        note: 'overview skill (/ticket-flow)',
+      },
+    ];
+  },
+
   wrap({ meta, body }) {
     const fm = frontmatter({
       name: meta.name,

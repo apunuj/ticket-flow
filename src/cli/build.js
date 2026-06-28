@@ -15,12 +15,15 @@ export function runBuild({ configPath, out } = {}) {
   for (const tool of Object.keys(byTool)) {
     console.log(`  ${tool}:`);
     for (const f of byTool[tool]) {
-      const tag = f.kind === 'guide' ? '  (always-on guide)' : f.note ? `  (${f.note})` : '';
-      console.log(`    ${f.path}${tag}`);
+      console.log(`    ${f.path}${f.note ? `  (${f.note})` : ''}`);
     }
   }
-  console.log(
-    `\nThe guide files make the workflow conversational (no slash command needed). Commit all generated files.`,
-  );
+  console.log(`
+Next steps:
+  1. Commit the generated files so the skills travel with the repo.
+  2. Connect your ${config.backend.type} MCP server + run \`gh auth login\` (see TICKET-FLOW.md).
+  3. Try it now — ask your assistant: "what should I work on next?"  (or run /next-ticket)
+
+Run \`ticket-flow check\` anytime to validate your setup.`);
   return written;
 }

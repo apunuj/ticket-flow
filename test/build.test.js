@@ -23,7 +23,8 @@ function withTmp(fn) {
 test('renderAll tags every file with a kind', () => {
   const files = renderAll(baseConfig());
   assert.ok(files.length > 0);
-  for (const f of files) assert.ok(['skill', 'guide'].includes(f.kind), `unexpected kind ${f.kind}`);
+  for (const f of files)
+    assert.ok(['skill', 'guide', 'overview'].includes(f.kind), `unexpected kind ${f.kind}`);
 });
 
 test('build writes the full file set for all three tools', () => {
@@ -31,11 +32,13 @@ test('build writes the full file set for all three tools', () => {
     build(baseConfig(), { outputDir: dir });
     const expect = [
       '.claude/skills/execute-ticket/SKILL.md',
+      '.claude/skills/ticket-flow/SKILL.md',
       '.github/prompts/execute-ticket.prompt.md',
       '.github/instructions/ticket-flow.instructions.md',
       '.opencode/command/execute-ticket.md',
       '.opencode/ticket-flow.md',
       'opencode.json',
+      'TICKET-FLOW.md',
     ];
     for (const rel of expect) assert.ok(fs.existsSync(path.join(dir, rel)), `missing ${rel}`);
   });

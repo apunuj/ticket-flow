@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { getBackend } from './backends/index.js';
 import { getTool } from './render/index.js';
-import { renderForTool } from './compose/composer.js';
+import { renderForTool, renderDoc } from './compose/composer.js';
 
 // Render every configured skill for every configured tool, against the configured backend.
 // Returns [{ tool, kind, path, content }] without touching disk.
@@ -12,7 +12,7 @@ export function renderAll(config) {
   for (const toolId of config.tools) {
     const tool = getTool(toolId);
     for (const file of renderForTool({ config, backend, tool })) {
-      out.push({ tool: toolId, kind: file.kind, path: file.path, content: file.content });
+      out.push({ tool: toolId, kind: file.kind, path: file.path, content: file.content, note: file.note });
     }
   }
   return out;
@@ -63,12 +63,18 @@ export function build(config, { outputDir } = {}) {
     fs.mkdirSync(path.dirname(dest), { recursive: true });
     fs.writeFileSync(dest, f.content);
   }
-  const written = files.map((f) => ({ tool: f.tool, kind: f.kind, path: f.path }));
+  const written = files.map((f) => ({ tool: f.tool, kind: f.kind, path: f.path, note: f.note }));
 
   // opencode's always-on guide needs a config reference; wire it in (create-or-merge).
   if (config.tools.includes('opencode')) {
     const w = wireOpencodeInstructions(root);
     if (w) written.push({ tool: 'opencode', kind: 'config', path: w.path, note: w.action });
   }
+
+  // Team onboarding reference at the repo root — tool-agnostic, one per repo.
+  const doc = renderDoc({ config, backend: getBackend(config.backend.type) });
+  fs.writeFileSync(path.join(root, 'TICKET-FLOW.md'), doc);
+  written.push({ tool: '(repo)', kind: 'doc', path: 'TICKET-FLOW.md', note: 'team onboarding reference' });
+
   return written;
 }

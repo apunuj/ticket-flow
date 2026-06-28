@@ -39,9 +39,13 @@ for (const backend of ['linear', 'jira']) {
     assert.equal(opencodeGuide.path, '.opencode/ticket-flow.md');
     assert.match(opencodeGuide.content, /\.opencode\/command\/next-ticket\.md/, 'points at the command file');
 
+    const claudeOverview = files.find((f) => f.tool === 'claude' && f.kind === 'overview');
+    assert.ok(claudeOverview, 'claude gets an overview skill for discovery/education');
+    assert.equal(claudeOverview.path, '.claude/skills/ticket-flow/SKILL.md');
+    assert.match(claudeOverview.content, /name: ticket-flow/);
     assert.ok(
       !files.some((f) => f.tool === 'claude' && f.kind === 'guide'),
-      'claude needs no guide file — skills auto-invoke from their description',
+      'claude has no always-on guide file — its skills auto-invoke from their description',
     );
   });
 
