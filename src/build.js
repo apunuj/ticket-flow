@@ -5,17 +5,53 @@ import { getTool } from './render/index.js';
 import { renderForTool } from './compose/composer.js';
 
 // Render every configured skill for every configured tool, against the configured backend.
-// Returns [{ tool, path, content }] without touching disk.
+// Returns [{ tool, kind, path, content }] without touching disk.
 export function renderAll(config) {
   const backend = getBackend(config.backend.type);
   const out = [];
   for (const toolId of config.tools) {
     const tool = getTool(toolId);
     for (const file of renderForTool({ config, backend, tool })) {
-      out.push({ tool: toolId, path: file.path, content: file.content });
+      out.push({ tool: toolId, kind: file.kind, path: file.path, content: file.content });
     }
   }
   return out;
+}
+
+const OPENCODE_INSTRUCTION = './.opencode/ticket-flow.md';
+
+// Wire the opencode workflow guide into opencode's always-on context via the `instructions`
+// array in opencode.json — create-or-merge so an existing user config is never clobbered.
+// Returns { path, action } describing what happened (or null if nothing to do).
+export function wireOpencodeInstructions(root) {
+  const jsonPath = path.join(root, 'opencode.json');
+  const jsoncPath = path.join(root, 'opencode.jsonc');
+
+  // Avoid creating a second, conflicting config next to an existing .jsonc.
+  if (!fs.existsSync(jsonPath) && fs.existsSync(jsoncPath)) {
+    return { path: 'opencode.jsonc', action: 'manual: add "' + OPENCODE_INSTRUCTION + '" to instructions' };
+  }
+
+  if (fs.existsSync(jsonPath)) {
+    let cfg;
+    try {
+      cfg = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+    } catch {
+      return { path: 'opencode.json', action: 'manual: unparseable — add "' + OPENCODE_INSTRUCTION + '" to instructions' };
+    }
+    const list = Array.isArray(cfg.instructions) ? cfg.instructions : [];
+    if (list.includes(OPENCODE_INSTRUCTION)) return { path: 'opencode.json', action: 'already wired' };
+    cfg.instructions = [...list, OPENCODE_INSTRUCTION];
+    fs.writeFileSync(jsonPath, JSON.stringify(cfg, null, 2) + '\n');
+    return { path: 'opencode.json', action: 'merged' };
+  }
+
+  const fresh = {
+    $schema: 'https://opencode.ai/config.json',
+    instructions: [OPENCODE_INSTRUCTION],
+  };
+  fs.writeFileSync(jsonPath, JSON.stringify(fresh, null, 2) + '\n');
+  return { path: 'opencode.json', action: 'created' };
 }
 
 // Render and write to disk under outputDir (defaults to config.output.dir).
@@ -27,5 +63,12 @@ export function build(config, { outputDir } = {}) {
     fs.mkdirSync(path.dirname(dest), { recursive: true });
     fs.writeFileSync(dest, f.content);
   }
-  return files.map((f) => ({ tool: f.tool, path: f.path }));
+  const written = files.map((f) => ({ tool: f.tool, kind: f.kind, path: f.path }));
+
+  // opencode's always-on guide needs a config reference; wire it in (create-or-merge).
+  if (config.tools.includes('opencode')) {
+    const w = wireOpencodeInstructions(root);
+    if (w) written.push({ tool: 'opencode', kind: 'config', path: w.path, note: w.action });
+  }
+  return written;
 }

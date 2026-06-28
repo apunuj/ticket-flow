@@ -22,6 +22,27 @@ export default {
     ].join(' ');
   },
 
+  // pointer used by the workflow guide: slash shortcut + the prompt file with the full steps
+  skillRef(name) {
+    return `\`/${name}\` (steps in \`.github/prompts/${name}.prompt.md\`)`;
+  },
+
+  // Prompt files are slash-only. This always-on instructions file (auto-loaded by Copilot
+  // Chat/agent on every request, scoped to '**') makes the workflow conversational. A
+  // dedicated file under .github/instructions/ — never clobbers a user's copilot-instructions.md.
+  extras({ guide }) {
+    const fm = frontmatter({
+      description: 'Ticket-driven workflow: recognize the intent and run the matching phase.',
+      applyTo: '**',
+    });
+    return [
+      {
+        path: '.github/instructions/ticket-flow.instructions.md',
+        content: fm + '\n' + guide,
+      },
+    ];
+  },
+
   wrap({ meta, body }) {
     const fm = frontmatter({
       description: meta.description,

@@ -1,6 +1,6 @@
 ---
 name: execute-ticket
-description: Execute a {{backend.displayName}} ticket end to end — implement the planned work with an incremental test-and-commit loop, then ship it by running the test gate, pushing, opening a PR to {{git.baseBranch}}, attaching it to the ticket, and moving the ticket to {{state "inReview"}}. Use when a planned ticket is ready to build, or when built work is ready to go up for review.
+description: Execute a {{backend.displayName}} ticket end to end — implement the planned work with an incremental test-and-commit loop, then ship it by running the test gate, pushing, opening a PR to {{git.baseBranch}}, attaching it to the ticket, and moving the ticket to {{state "inReview"}}. Use when a planned ticket is ready to build, or when built work is ready to go up for review — e.g. "build {{upper project.ticketPrefix}}-312", "implement this ticket", "start coding it", "ship it", "open a PR".
 argument-hint: "{{upper project.ticketPrefix}}-NNN"
 ---
 

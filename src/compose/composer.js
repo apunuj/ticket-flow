@@ -30,6 +30,11 @@ export const SKILLS = [
   'merge-ticket',
 ];
 
+// The always-on "trigger map" template, rendered once per tool into that tool's
+// auto-loaded instructions location so the workflow is invocable conversationally,
+// not only via slash commands. Body-only (no skill frontmatter).
+const GUIDE_TEMPLATE = 'workflow-guide.md.hbs';
+
 function buildContext(config, backend, tool, rawMeta) {
   return {
     ...config,
@@ -72,6 +77,11 @@ function makeEnv(config, backend, tool, rawMeta) {
   hb.registerHelper('codeReview', (options) =>
     new Handlebars.SafeString(tool.codeReview((options && options.hash) || {}, { config })),
   );
+  // {{skillRef "execute-ticket"}} -> tool-specific pointer (slash command + procedure file)
+  // used by the workflow guide. Falls back to a bare slash command for tools that don't define it.
+  hb.registerHelper('skillRef', (name) =>
+    new Handlebars.SafeString(tool.skillRef ? tool.skillRef(name) : `\`/${name}\``),
+  );
 
   // partials may themselves use the helpers above + the shared context
   for (const file of fs.readdirSync(PARTIALS_DIR)) {
@@ -101,7 +111,32 @@ export function renderSkill(skill, { config, backend, tool }) {
   return tool.wrap({ meta, body, config, backend });
 }
 
-// Render every configured skill for one (backend, tool) pair.
+// Render the canonical workflow guide (the conversational trigger map) for one tool.
+// Returns the rendered markdown body; the tool renderer wraps it with the right
+// frontmatter and output path via tool.extras().
+export function renderGuide({ config, backend, tool }) {
+  const file = path.join(SKILLS_DIR, GUIDE_TEMPLATE);
+  const bodyTpl = fs.readFileSync(file, 'utf8');
+  const hb = makeEnv(config, backend, tool, {});
+  const ctx = buildContext(config, backend, tool, {});
+  return hb.compile(bodyTpl, { noEscape: true })(ctx).trim() + '\n';
+}
+
+// Tool-level "extra" files beyond the per-skill commands — currently the always-on
+// workflow guide. A tool opts in by implementing tool.extras({ guide, config, backend }).
+export function renderExtras({ config, backend, tool }) {
+  if (typeof tool.extras !== 'function') return [];
+  const guide = renderGuide({ config, backend, tool });
+  return tool.extras({ guide, config, backend }) || [];
+}
+
+// Render every configured skill (kind 'skill') plus any tool-level extras (kind 'guide')
+// for one (backend, tool) pair.
 export function renderForTool({ config, backend, tool }) {
-  return SKILLS.map((skill) => renderSkill(skill, { config, backend, tool }));
+  const skills = SKILLS.map((skill) => ({
+    kind: 'skill',
+    ...renderSkill(skill, { config, backend, tool }),
+  }));
+  const extras = renderExtras({ config, backend, tool }).map((f) => ({ kind: 'guide', ...f }));
+  return [...skills, ...extras];
 }

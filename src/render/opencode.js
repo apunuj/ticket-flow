@@ -26,6 +26,23 @@ export default {
     ].join('');
   },
 
+  // pointer used by the workflow guide: slash shortcut + the command file with the full steps
+  skillRef(name) {
+    return `\`/${name}\` (steps in \`.opencode/command/${name}.md\`)`;
+  },
+
+  // Commands are slash-only. The guide is written to a dedicated file that is wired into
+  // opencode's always-on context via the `instructions` array in opencode.json (handled in
+  // build.js with create-or-merge so a user's existing config is never clobbered).
+  extras({ guide }) {
+    return [
+      {
+        path: '.opencode/ticket-flow.md',
+        content: guide,
+      },
+    ];
+  },
+
   wrap({ meta, body }) {
     const fm = frontmatter({ description: meta.description });
     return {

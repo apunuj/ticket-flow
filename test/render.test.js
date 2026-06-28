@@ -1,10 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseConfig } from '../src/config.js';
-import { renderAll } from '../src/build.js';
+import { renderAll, build, wireOpencodeInstructions } from '../src/build.js';
 import { SKILLS } from '../src/compose/composer.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -19,8 +20,29 @@ function renderFor(backendType) {
 
 for (const backend of ['linear', 'jira']) {
   test(`[${backend}] renders all skills for all tools`, () => {
+    const skills = renderFor(backend).filter((f) => f.kind === 'skill');
+    assert.equal(skills.length, SKILLS.length * 3, 'expect 5 skills × 3 tools');
+  });
+
+  test(`[${backend}] emits an always-on conversational guide for copilot and opencode (not claude)`, () => {
     const files = renderFor(backend);
-    assert.equal(files.length, SKILLS.length * 3, 'expect 5 skills × 3 tools');
+
+    const copilotGuide = files.find((f) => f.tool === 'copilot' && f.kind === 'guide');
+    assert.ok(copilotGuide, 'copilot has an always-on guide');
+    assert.equal(copilotGuide.path, '.github/instructions/ticket-flow.instructions.md');
+    assert.match(copilotGuide.content, /applyTo:\s*["']\*\*["']/, "copilot guide is always-on (applyTo: '**')");
+    assert.match(copilotGuide.content, /do _not_ need to type the slash command/);
+    for (const skill of SKILLS) assert.ok(copilotGuide.content.includes(skill), `guide maps ${skill}`);
+
+    const opencodeGuide = files.find((f) => f.tool === 'opencode' && f.kind === 'guide');
+    assert.ok(opencodeGuide, 'opencode has an always-on guide');
+    assert.equal(opencodeGuide.path, '.opencode/ticket-flow.md');
+    assert.match(opencodeGuide.content, /\.opencode\/command\/next-ticket\.md/, 'points at the command file');
+
+    assert.ok(
+      !files.some((f) => f.tool === 'claude' && f.kind === 'guide'),
+      'claude needs no guide file — skills auto-invoke from their description',
+    );
   });
 
   test(`[${backend}] no host-specific or unresolved tokens leak`, () => {
@@ -56,13 +78,44 @@ for (const backend of ['linear', 'jira']) {
   });
 
   test(`[${backend}] output paths are correct per tool`, () => {
-    for (const f of renderFor(backend)) {
+    for (const f of renderFor(backend).filter((f) => f.kind === 'skill')) {
       if (f.tool === 'claude') assert.match(f.path, /^\.claude\/skills\/[\w-]+\/SKILL\.md$/);
       if (f.tool === 'copilot') assert.match(f.path, /^\.github\/prompts\/[\w-]+\.prompt\.md$/);
       if (f.tool === 'opencode') assert.match(f.path, /^\.opencode\/command\/[\w-]+\.md$/);
     }
   });
 }
+
+test('build() wires opencode.json instructions (create, idempotent, and merge)', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ticket-flow-'));
+  try {
+    const cfg = baseConfig();
+    cfg.tools = ['opencode'];
+
+    // fresh create
+    build(cfg, { outputDir: dir });
+    const jsonPath = path.join(dir, 'opencode.json');
+    assert.ok(fs.existsSync(jsonPath), 'opencode.json created');
+    assert.ok(fs.existsSync(path.join(dir, '.opencode', 'ticket-flow.md')), 'guide file written');
+    let parsed = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+    assert.deepEqual(parsed.instructions, ['./.opencode/ticket-flow.md']);
+
+    // idempotent — second build does not duplicate the entry
+    const again = wireOpencodeInstructions(dir);
+    assert.equal(again.action, 'already wired');
+    parsed = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+    assert.equal(parsed.instructions.filter((i) => i === './.opencode/ticket-flow.md').length, 1);
+
+    // merge — preserves a user's existing instructions
+    fs.writeFileSync(jsonPath, JSON.stringify({ instructions: ['./house-rules.md'] }, null, 2));
+    const merged = wireOpencodeInstructions(dir);
+    assert.equal(merged.action, 'merged');
+    parsed = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+    assert.deepEqual(parsed.instructions, ['./house-rules.md', './.opencode/ticket-flow.md']);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
 
 test('[linear] groups by milestone; [jira] groups by sprint + transitions', () => {
   const linNext = renderFor('linear').find((f) => f.path.includes('next-ticket') && f.tool === 'claude');
