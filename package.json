@@ -14,7 +14,8 @@
     "templates/"
   ],
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "test:coverage": "node --test --experimental-test-coverage"
   },
   "engines": {
     "node": ">=18"

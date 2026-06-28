@@ -1,0 +1,122 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { init } from '../src/cli/init.js';
+import { check } from '../src/cli/check.js';
+import { runBuild } from '../src/cli/build.js';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const TEMPLATE = fs.readFileSync(path.join(ROOT, 'templates', 'ticket-flow.config.yaml'), 'utf8');
+const EXAMPLE = fs.readFileSync(path.join(ROOT, 'examples', 'example.config.yaml'), 'utf8');
+
+// Swallow CLI stdout/stderr so the test reporter stays readable.
+function silence(fn) {
+  const { log, error } = console;
+  console.log = () => {};
+  console.error = () => {};
+  try {
+    return fn();
+  } finally {
+    console.log = log;
+    console.error = error;
+  }
+}
+
+// Run fn inside a throwaway dir as cwd, restoring cwd afterwards.
+function inTmp(fn) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tf-cli-'));
+  const cwd0 = process.cwd();
+  process.chdir(dir);
+  try {
+    return fn(dir);
+  } finally {
+    process.chdir(cwd0);
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+test('init writes the config template into the cwd', () => {
+  inTmp((dir) => {
+    const dest = silence(() => init());
+    assert.equal(dest, path.join(dir, 'ticket-flow.config.yaml'));
+    assert.equal(fs.readFileSync(dest, 'utf8'), TEMPLATE);
+  });
+});
+
+test('init without --force does not overwrite an existing config', () => {
+  inTmp(() => {
+    fs.writeFileSync('ticket-flow.config.yaml', '# mine, do not touch\n');
+    silence(() => init());
+    assert.equal(fs.readFileSync('ticket-flow.config.yaml', 'utf8'), '# mine, do not touch\n');
+  });
+});
+
+test('init --force overwrites with the template', () => {
+  inTmp(() => {
+    fs.writeFileSync('ticket-flow.config.yaml', '# stale\n');
+    silence(() => init({ force: true }));
+    assert.equal(fs.readFileSync('ticket-flow.config.yaml', 'utf8'), TEMPLATE);
+  });
+});
+
+test('check returns the parsed config for a valid file', () => {
+  inTmp(() => {
+    fs.writeFileSync('ticket-flow.config.yaml', EXAMPLE);
+    const cfg = silence(() => check({ configPath: 'ticket-flow.config.yaml' }));
+    assert.equal(cfg.project.name, 'XYZ App');
+    assert.equal(cfg.backend.type, 'linear');
+  });
+});
+
+test('check throws on a missing config file', () => {
+  inTmp(() => {
+    assert.throws(() => silence(() => check({ configPath: 'nope.yaml' })), /Config not found/);
+  });
+});
+
+const JIRA_CONFIG =
+  'project: { name: Acme, ticketPrefix: ACME }\n' +
+  'backend: { type: jira, project: ACME }\n' +
+  'git: { baseBranch: main }\n' +
+  'test: { command: make test }\n' +
+  'tools: [claude]\n';
+
+test('check reports the no-attachment note for a backend without PR attachments', () => {
+  inTmp(() => {
+    fs.writeFileSync('ticket-flow.config.yaml', JIRA_CONFIG);
+    const cfg = silence(() => check({ configPath: 'ticket-flow.config.yaml' }));
+    assert.equal(cfg.backend.type, 'jira');
+  });
+});
+
+test('check still returns when gh/git are absent from PATH', () => {
+  inTmp(() => {
+    fs.writeFileSync('ticket-flow.config.yaml', EXAMPLE);
+    const savedPath = process.env.PATH;
+    process.env.PATH = ''; // forces the has() lookups to fail -> "MISSING" branch
+    try {
+      const cfg = silence(() => check({ configPath: 'ticket-flow.config.yaml' }));
+      assert.equal(cfg.project.name, 'XYZ App');
+    } finally {
+      process.env.PATH = savedPath;
+    }
+  });
+});
+
+test('runBuild renders to --out and reports every written file', () => {
+  inTmp((dir) => {
+    fs.writeFileSync('ticket-flow.config.yaml', EXAMPLE);
+    const outDir = path.join(dir, 'generated');
+    const written = silence(() =>
+      runBuild({ configPath: 'ticket-flow.config.yaml', out: outDir }),
+    );
+    // 5 skills × 3 tools + 2 guides + 1 opencode.json wiring entry
+    assert.equal(written.length, 18);
+    assert.ok(fs.existsSync(path.join(outDir, '.claude/skills/next-ticket/SKILL.md')));
+    assert.ok(fs.existsSync(path.join(outDir, '.github/instructions/ticket-flow.instructions.md')));
+    assert.ok(fs.existsSync(path.join(outDir, 'opencode.json')));
+  });
+});

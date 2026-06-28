@@ -30,7 +30,7 @@ const [cmd, ...rest] = process.argv.slice(2);
 const flags = parseFlags(rest);
 
 try {
-  if (flags.help || !cmd || cmd === 'help') {
+  if (flags.help || !cmd || cmd === 'help' || cmd === '--help' || cmd === '-h') {
     console.log(HELP);
   } else if (cmd === 'init') {
     init(flags);
