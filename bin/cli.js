@@ -2,12 +2,14 @@
 import { init } from '../src/cli/init.js';
 import { runBuild } from '../src/cli/build.js';
 import { check } from '../src/cli/check.js';
+import { doctor } from '../src/cli/doctor.js';
 
 const HELP = `ticket-flow — portable ticket-driven workflow skills for Claude Code, Copilot, and opencode
 
 Usage:
   ticket-flow init [--force]              Write a ticket-flow.config.yaml to start from
   ticket-flow build [--config <p>] [--out <dir>]   Generate the skills for your configured tools
+  ticket-flow doctor [--config <p>] [--out <dir>]  Preflight checklist: config, git, gh, generated files, MCP
   ticket-flow check [--config <p>]        Validate config + report backend/tool requirements
 
 Lifecycle the generated skills drive:
@@ -38,6 +40,8 @@ try {
     runBuild(flags);
   } else if (cmd === 'check') {
     check(flags);
+  } else if (cmd === 'doctor') {
+    doctor(flags);
   } else {
     console.error(`Unknown command: ${cmd}\n`);
     console.log(HELP);

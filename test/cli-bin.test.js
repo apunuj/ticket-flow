@@ -73,3 +73,17 @@ test('build renders from --config to --out end to end', () => {
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('doctor runs the preflight checklist against built output', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tf-bin-'));
+  try {
+    run(['build', '--config', EXAMPLE, '--out', dir]);
+    const { code, out } = run(['doctor', '--config', EXAMPLE, '--out', dir]);
+    assert.equal(code, 0);
+    assert.match(out, /ticket-flow doctor/);
+    assert.match(out, /generated files/);
+    assert.match(out, /backend MCP configured/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

@@ -24,6 +24,6 @@ Next steps:
   2. On first launch, approve the scaffolded ${config.backend.type} MCP server + run \`gh auth login\` (see TICKET-FLOW.md).
   3. Try it now — ask your assistant: "what should I work on next?"  (or run /next-ticket)
 
-Run \`ticket-flow check\` anytime to validate your setup.`);
+Run \`ticket-flow doctor\` anytime to check your setup (config, git, gh, files, MCP).`);
   return written;
 }
