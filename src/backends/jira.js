@@ -18,6 +18,9 @@ export default {
   capabilities: { groups: true, attachments: false, groupTargetDates: true },
   requires:
     'an Atlassian/Jira MCP server connected in your tool, exposing get-issue, JQL search, transition-issue, add-comment, and edit-comment operations (e.g. the Atlassian Remote MCP).',
+  // Atlassian Rovo remote MCP server (streamable HTTP). OAuth on first connect. `ticket-flow
+  // build` scaffolds this into each tool's MCP config so connecting is a one-time approval.
+  mcp: { name: 'atlassian', url: 'https://mcp.atlassian.com/v1/mcp' },
 
   op(name, params, ctx) {
     const t = ctx.ticket;

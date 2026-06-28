@@ -54,9 +54,31 @@ export function wireOpencodeInstructions(root) {
   return { path: 'opencode.json', action: 'created' };
 }
 
+// Add a remote MCP server into a tool's JSON config under `key`, keyed by `name`.
+// Create-or-merge, non-clobbering: never overwrites an existing entry for that server,
+// and preserves every other key. Returns { action }.
+export function mergeMcpServer(filePath, key, name, server) {
+  const existed = fs.existsSync(filePath);
+  let cfg = {};
+  if (existed) {
+    try {
+      cfg = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    } catch {
+      return { action: `manual: unparseable — add "${name}" under "${key}"` };
+    }
+  }
+  cfg[key] = cfg[key] || {};
+  if (cfg[key][name]) return { action: 'already configured' };
+  cfg[key][name] = server;
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, JSON.stringify(cfg, null, 2) + '\n');
+  return { action: existed ? 'merged' : 'created' };
+}
+
 // Render and write to disk under outputDir (defaults to config.output.dir).
 export function build(config, { outputDir } = {}) {
   const root = path.resolve(outputDir || config.output.dir || '.');
+  const backend = getBackend(config.backend.type);
   const files = renderAll(config);
   for (const f of files) {
     const dest = path.join(root, f.path);
@@ -71,8 +93,17 @@ export function build(config, { outputDir } = {}) {
     if (w) written.push({ tool: 'opencode', kind: 'config', path: w.path, note: w.action });
   }
 
+  // Scaffold the backend's remote MCP server into each tool's MCP config (create-or-merge,
+  // non-clobbering) so connecting the backend is a one-time approval, not manual setup.
+  for (const toolId of config.tools) {
+    const spec = getTool(toolId).mcpFile?.(backend);
+    if (!spec) continue;
+    const r = mergeMcpServer(path.join(root, spec.path), spec.key, spec.name, spec.server);
+    written.push({ tool: toolId, kind: 'mcp', path: spec.path, note: `MCP: ${r.action}` });
+  }
+
   // Team onboarding reference at the repo root — tool-agnostic, one per repo.
-  const doc = renderDoc({ config, backend: getBackend(config.backend.type) });
+  const doc = renderDoc({ config, backend });
   fs.writeFileSync(path.join(root, 'TICKET-FLOW.md'), doc);
   written.push({ tool: '(repo)', kind: 'doc', path: 'TICKET-FLOW.md', note: 'team onboarding reference' });
 

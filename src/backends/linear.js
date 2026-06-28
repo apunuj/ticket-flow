@@ -16,6 +16,9 @@ export default {
   // surfaced by `ticket-flow check` and in generated docs
   requires:
     'a Linear MCP server connected in your tool (Claude Code, Copilot, or opencode), exposing get_issue / list_issues / list_milestones / save_issue / create_attachment / save_comment.',
+  // Official remote MCP server (streamable HTTP). OAuth on first connect. `ticket-flow build`
+  // scaffolds this into each tool's MCP config so connecting is a one-time approval.
+  mcp: { name: 'linear', url: 'https://mcp.linear.app/mcp' },
 
   op(name, params, ctx) {
     const t = ctx.ticket; // tool-specific arg token, e.g. $1 or ${input:ticket}

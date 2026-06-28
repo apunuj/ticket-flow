@@ -54,3 +54,22 @@ test('every renderer defines the conversational hooks', () => {
     assert.equal(typeof getTool(id).skillRef, 'function', `${id} should define skillRef()`);
   }
 });
+
+test('each renderer maps a backend to its tool-specific MCP config shape', () => {
+  const backend = { mcp: { name: 'linear', url: 'https://mcp.linear.app/mcp' } };
+
+  const c = getTool('claude').mcpFile(backend);
+  assert.equal(c.path, '.mcp.json');
+  assert.equal(c.key, 'mcpServers');
+  assert.deepEqual(c.server, { type: 'http', url: backend.mcp.url });
+
+  const g = getTool('copilot').mcpFile(backend);
+  assert.equal(g.path, '.vscode/mcp.json');
+  assert.equal(g.key, 'servers');
+  assert.equal(g.server.type, 'http');
+
+  const o = getTool('opencode').mcpFile(backend);
+  assert.equal(o.path, 'opencode.json');
+  assert.equal(o.key, 'mcp');
+  assert.deepEqual(o.server, { type: 'remote', url: backend.mcp.url, enabled: true });
+});

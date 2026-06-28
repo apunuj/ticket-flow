@@ -27,6 +27,16 @@ export default {
     return `\`/${name}\` (steps in \`.github/prompts/${name}.prompt.md\`)`;
   },
 
+  // VS Code workspace MCP config: .vscode/mcp.json, key `servers`, remote server as type:http.
+  mcpFile(backend) {
+    return {
+      path: '.vscode/mcp.json',
+      key: 'servers',
+      name: backend.mcp.name,
+      server: { type: 'http', url: backend.mcp.url },
+    };
+  },
+
   // Prompt files are slash-only. This always-on instructions file (auto-loaded by Copilot
   // Chat/agent on every request, scoped to '**') makes the workflow conversational. A
   // dedicated file under .github/instructions/ — never clobbers a user's copilot-instructions.md.

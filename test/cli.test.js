@@ -114,11 +114,13 @@ test('runBuild renders to --out and reports every written file', () => {
       runBuild({ configPath: 'ticket-flow.config.yaml', out: outDir }),
     );
     // 15 skills + 3 tool extras (claude overview, copilot + opencode guides)
-    // + opencode.json wiring + TICKET-FLOW.md
-    assert.equal(written.length, 20);
+    // + opencode.json wiring + 3 MCP configs + TICKET-FLOW.md
+    assert.equal(written.length, 23);
     assert.ok(fs.existsSync(path.join(outDir, '.claude/skills/next-ticket/SKILL.md')));
     assert.ok(fs.existsSync(path.join(outDir, '.claude/skills/ticket-flow/SKILL.md')));
     assert.ok(fs.existsSync(path.join(outDir, '.github/instructions/ticket-flow.instructions.md')));
+    assert.ok(fs.existsSync(path.join(outDir, '.mcp.json')));
+    assert.ok(fs.existsSync(path.join(outDir, '.vscode/mcp.json')));
     assert.ok(fs.existsSync(path.join(outDir, 'opencode.json')));
     assert.ok(fs.existsSync(path.join(outDir, 'TICKET-FLOW.md')));
   });

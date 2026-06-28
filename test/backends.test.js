@@ -74,3 +74,11 @@ test('op honors an explicit project override in params', () => {
   const out = getBackend('linear').op('listBacklog', { project: 'Other Project' }, ctx());
   assert.match(out, /Other Project/);
 });
+
+test('each backend declares its remote MCP server (streamable HTTP /mcp endpoint)', () => {
+  assert.equal(backends.linear.mcp.name, 'linear');
+  assert.equal(backends.linear.mcp.url, 'https://mcp.linear.app/mcp');
+  assert.equal(backends.jira.mcp.name, 'atlassian');
+  assert.equal(backends.jira.mcp.url, 'https://mcp.atlassian.com/v1/mcp');
+  for (const b of Object.values(backends)) assert.ok(!/\/sse$/.test(b.mcp.url), 'no deprecated SSE endpoint');
+});

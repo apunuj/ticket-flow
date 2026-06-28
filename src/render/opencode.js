@@ -31,6 +31,16 @@ export default {
     return `\`/${name}\` (steps in \`.opencode/command/${name}.md\`)`;
   },
 
+  // opencode MCP config: opencode.json, key `mcp`, remote server as type:remote + enabled.
+  mcpFile(backend) {
+    return {
+      path: 'opencode.json',
+      key: 'mcp',
+      name: backend.mcp.name,
+      server: { type: 'remote', url: backend.mcp.url, enabled: true },
+    };
+  },
+
   // Commands are slash-only. The guide is written to a dedicated file that is wired into
   // opencode's always-on context via the `instructions` array in opencode.json (handled in
   // build.js with create-or-merge so a user's existing config is never clobbered).

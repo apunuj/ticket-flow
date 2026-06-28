@@ -27,6 +27,16 @@ export default {
     return `\`/${name}\``;
   },
 
+  // Claude Code project MCP config: .mcp.json, key `mcpServers`, remote server as type:http.
+  mcpFile(backend) {
+    return {
+      path: '.mcp.json',
+      key: 'mcpServers',
+      name: backend.mcp.name,
+      server: { type: 'http', url: backend.mcp.url },
+    };
+  },
+
   // Claude auto-invokes the five skills from their description, so it needs no always-on
   // guide. But for DISCOVERY + EDUCATION it gets an overview skill: it shows in the `/`
   // menu as `/ticket-flow` and auto-invokes when someone asks how the workflow works.

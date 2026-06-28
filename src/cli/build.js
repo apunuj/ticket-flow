@@ -21,7 +21,7 @@ export function runBuild({ configPath, out } = {}) {
   console.log(`
 Next steps:
   1. Commit the generated files so the skills travel with the repo.
-  2. Connect your ${config.backend.type} MCP server + run \`gh auth login\` (see TICKET-FLOW.md).
+  2. On first launch, approve the scaffolded ${config.backend.type} MCP server + run \`gh auth login\` (see TICKET-FLOW.md).
   3. Try it now — ask your assistant: "what should I work on next?"  (or run /next-ticket)
 
 Run \`ticket-flow check\` anytime to validate your setup.`);
