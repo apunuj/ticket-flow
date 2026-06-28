@@ -1,0 +1,6 @@
+Put the repo on the ticket branch, cut from the latest base branch (`{{git.baseBranch}}`):
+
+- If a branch for {{arg}} already exists (`git branch --list '{{lower project.ticketPrefix}}-*'` or `git branch -r --list 'origin/{{lower project.ticketPrefix}}-*'`), check it out instead of creating one.
+- If the working tree has uncommitted changes that belong to another ticket, stop and ask — never stash silently or carry another ticket's work onto this branch.
+- Otherwise: `git fetch origin` then `git checkout -b <branch> origin/{{git.baseBranch}}`, where `<branch>` follows `{{git.branchPattern}}` — the lowercase ticket id plus a 2–4 word slug (e.g. `{{lower project.ticketPrefix}}-<number>-<slug>`).
+- Report the branch name and its base commit.

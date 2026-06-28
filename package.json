@@ -1,0 +1,39 @@
+{
+  "name": "ticketflow",
+  "version": "0.1.0",
+  "description": "Generate a portable ticket-driven development workflow (next → describe → execute → review → merge) for Claude Code, GitHub Copilot, and opencode from one canonical source.",
+  "type": "module",
+  "bin": {
+    "ticketflow": "bin/cli.js"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "skills/",
+    "schema/",
+    "templates/"
+  ],
+  "scripts": {
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "claude-code",
+    "github-copilot",
+    "opencode",
+    "linear",
+    "tickets",
+    "workflow",
+    "skills",
+    "agents"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "gray-matter": "^4.0.3",
+    "handlebars": "^4.7.8",
+    "yaml": "^2.5.1"
+  }
+}

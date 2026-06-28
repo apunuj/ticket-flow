@@ -1,0 +1,65 @@
+---
+name: merge-ticket
+description: Merge the PR attached to a {{backend.displayName}} ticket after the review gate passes, close the ticket as {{state "done"}}, run post-merge cleanup, and surface the next priority. Use when the user asks to merge a ticket/PR or close out reviewed work.
+argument-hint: "{{upper project.ticketPrefix}}-NNN"
+---
+
+Merge the PR for ticket {{arg}} and close it — **only** after the review gate passes.
+
+## 1. Resolve the PR
+
+- {{op "getAttachedPR"}}.
+- If no open PR is found, ask the user for it. No PR → stop: nothing to merge; suggest `/execute-ticket {{arg}}`.
+
+## 2. Review gate
+
+Merging requires that a review happened **and** its findings are addressed.
+
+- **Infer first.** {{> artifact-read}} Read the `Review verdict`. Also scan the conversation and the ticket comments for a `/review-ticket {{arg}}` verdict.
+  - Clear `✅ Ready to merge` with nothing outstanding → state the inference and proceed.
+  - `🟡 Needs changes` with no evidence the findings were addressed → list them and **stop**.
+- **If inconclusive,** {{ask "has this PR been reviewed, and are all review comments addressed?"}} If no/unsure — **stop**; suggest `/review-ticket {{arg}}`.
+
+Never merge on ambiguous evidence — when in doubt, ask.
+
+## 3. PR health check
+
+`gh pr view <PR#> --json state,mergeable,reviewDecision,statusCheckRollup,reviews` plus `gh pr checks <PR#>`:
+
+- Failing or pending required checks → surface and stop.
+- Unresolved review threads or a `CHANGES_REQUESTED` decision → surface and stop.
+- `mergeable: CONFLICTING` → surface and stop; offer to rebase the branch.
+
+## 4. Merge
+
+- `gh pr merge <PR#> --{{git.mergeStrategy}}` (matches this repo's history). Report the resulting commit hash.
+
+## 5. Close the ticket
+
+- Compose a closing comment in the project's style: **PR** (link + merge commit) · **Commits** (hashes + titles) · **What landed** (mapped to acceptance criteria) · **Out of scope** (deferred, with owning ticket) · optional **Smoke-test paths**.
+- {{op "addComment"}} with that body.
+- {{op "setState" state="done"}}.
+- {{> artifact-write}} — set `status: merged`.
+
+## 6. Post-merge cleanup — always confirm
+
+A merge leaves housekeeping. Surface BOTH and confirm before acting (or proceed if pre-authorized this turn) — never silently skip either, and never delete an unmerged branch without explicit per-branch confirmation:
+
+1. **Delete merged + stale branches.** The just-merged head branch (local *and* remote), plus any branch now fully merged into the base. List candidates (`git branch --merged {{git.baseBranch}}`, `git ls-remote --heads origin`) so the user confirms the set. `git branch -d` for merged locals (`-D` only for an abandoned/never-merged one); `git push origin --delete <branch>` for remotes.
+2. **Make the local base branch current.** `git checkout {{git.baseBranch}} && git merge --ff-only origin/{{git.baseBranch}}` so the next ticket's branch cuts from an up-to-date base.
+
+Report what was deleted and the new local `{{git.baseBranch}}` HEAD.
+
+## 7. Surface next priority
+
+Run the `/next-ticket` flow for the same project. Show the top 1–2 unblocked backlog tickets and a one-line recommendation.
+
+## Stop and ask
+
+- Review gate inconclusive or failed (step 2). Any failing check, unresolved thread, or conflict (step 3).
+- The PR contains commits that don't reference {{arg}} — they may belong to another ticket.
+
+## Resume / idempotency
+
+- If the PR is already merged, skip to step 5 (close) and step 6 (cleanup).
+- If the ticket is already in its done state, skip to cleanup and surfacing the next priority.

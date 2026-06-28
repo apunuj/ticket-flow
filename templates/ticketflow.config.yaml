@@ -1,0 +1,38 @@
+# TicketFlow configuration — edit these values for YOUR project, then run `ticketflow build`.
+# Every project-specific value lives here; the generated skills carry none of it hardcoded.
+# Full schema: schema/config.schema.json   ·   Fuller example: examples/example.config.yaml
+
+project:
+  name: My Project
+  ticketPrefix: PROJ           # ticket ids look like PROJ-123, branches like proj-123-...
+
+backend:
+  type: linear                 # linear | jira  (both implemented; github planned)
+  project: "My Project"        # Linear project name | GitHub owner/repo | Jira project key
+  states:                      # the display names your backend uses for each lifecycle state
+    backlog: "Backlog"
+    inProgress: "In Progress"
+    inReview: "In Review"
+    done: "Done"
+
+git:
+  baseBranch: main             # the branch feature PRs target
+  branchPattern: "{prefix-lower}-{number}-{slug}"   # -> proj-123-short-slug
+  mergeStrategy: squash        # merge | squash | rebase
+
+test:
+  command: "npm test"          # the test gate execute-ticket runs before shipping
+
+conventions:
+  - "Reference the ticket id in the commit title"
+
+review:
+  conventionChecks: []         # project-specific checks review-ticket asserts (see examples/)
+
+tools:
+  - claude
+  - copilot
+  - opencode
+
+output:
+  dir: "."                     # repo root the .claude/.github/.opencode dirs are written under

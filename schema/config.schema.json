@@ -1,0 +1,118 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ticketflow.dev/config.schema.json",
+  "title": "TicketFlow config",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["project", "backend", "git", "test", "tools"],
+  "properties": {
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "ticketPrefix"],
+      "properties": {
+        "name": { "type": "string", "description": "Human name of the project/product." },
+        "ticketPrefix": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9]*$",
+          "description": "Ticket identifier prefix, e.g. APU for APU-312."
+        }
+      }
+    },
+    "backend": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "project"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["linear", "jira"],
+          "description": "Ticket backend. linear and jira are implemented; github is planned."
+        },
+        "project": {
+          "type": "string",
+          "description": "Backend project: Linear project name, GitHub owner/repo, or Jira project key."
+        },
+        "states": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Display names for the lifecycle states this backend uses.",
+          "properties": {
+            "backlog": { "type": "string", "default": "Backlog" },
+            "inProgress": { "type": "string", "default": "In Progress" },
+            "inReview": { "type": "string", "default": "In Review" },
+            "done": { "type": "string", "default": "Done" }
+          }
+        }
+      }
+    },
+    "git": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["baseBranch"],
+      "properties": {
+        "baseBranch": {
+          "type": "string",
+          "description": "Integration branch feature PRs target, e.g. stage or main."
+        },
+        "branchPattern": {
+          "type": "string",
+          "default": "{prefix-lower}-{number}-{slug}",
+          "description": "Ticket branch name template. Tokens: {prefix-lower} {prefix} {number} {slug}."
+        },
+        "mergeStrategy": {
+          "type": "string",
+          "enum": ["merge", "squash", "rebase"],
+          "default": "merge"
+        }
+      }
+    },
+    "test": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["command"],
+      "properties": {
+        "command": {
+          "type": "string",
+          "description": "Test-gate command run before shipping, e.g. ./dev.sh test."
+        }
+      }
+    },
+    "conventions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": [],
+      "description": "Short commit/PR conventions surfaced to the skills."
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "conventionChecks": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "Project-specific checks review-ticket asserts beyond the generic code review."
+        }
+      }
+    },
+    "tools": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "enum": ["claude", "copilot", "opencode"] },
+      "description": "Which tool formats to render."
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "dir": {
+          "type": "string",
+          "default": ".",
+          "description": "Repo root the tool files are written under."
+        }
+      }
+    }
+  }
+}

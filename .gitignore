@@ -1,0 +1,7 @@
+node_modules/
+*.log
+.DS_Store
+# ticketflow per-ticket working state (when the local-file store is enabled)
+.ticketflow/
+# Claude Code local settings
+.claude/settings.local.json

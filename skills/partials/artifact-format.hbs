@@ -1,0 +1,23 @@
+A single **marked comment on the ticket** holds the shared work state (the "work artifact"). It is found by the sentinel `{{artifact.sentinel}}` and updated in place — never duplicated. Shape:
+
+```
+{{artifact.sentinel}}
+**TicketFlow** · status: planning|building|in-review|merged · branch: <branch> · updated: <YYYY-MM-DD>
+
+### User stories
+- [ ] US-1 <observable behavior>  (acceptance: <criterion>)
+- [ ] US-2 …
+
+### Acceptance criteria
+- [ ] AC-1 …
+
+### Plan
+- [ ] T1 (US-1): <path> — <task>
+- [ ] T2 (US-2): …
+
+### PR
+<filled by execute-ticket: PR url + number>
+
+### Review verdict
+<filled by review-ticket: ready | needs-changes + notes>
+```

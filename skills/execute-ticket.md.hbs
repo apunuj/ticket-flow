@@ -1,0 +1,73 @@
+---
+name: execute-ticket
+description: Execute a {{backend.displayName}} ticket end to end — implement the planned work with an incremental test-and-commit loop, then ship it by running the test gate, pushing, opening a PR to {{git.baseBranch}}, attaching it to the ticket, and moving the ticket to {{state "inReview"}}. Use when a planned ticket is ready to build, or when built work is ready to go up for review.
+argument-hint: "{{upper project.ticketPrefix}}-NNN"
+---
+
+Execute ticket {{arg}}: build it, then take it up for review. This skill owns the whole span from a planned ticket to an attached PR in **{{state "inReview"}}**. Merging and closing are **not** this skill's job — that's `/merge-ticket` after review.
+
+## 1. Setup / resume
+
+Run the opening probe and branch on what you find:
+
+- `git status --short`, `git branch --show-current`, `git log origin/{{git.baseBranch}}..HEAD --oneline`.
+- Resolve any existing PR: {{op "getAttachedPR"}}.
+- {{> artifact-read}}
+
+Decide the entry point (idempotent — do the least work needed):
+
+- **Clean tree + an open PR already exists** → the ship already happened. Skip to step 4 and just make sure the ticket reflects it.
+- **Commits ahead of `{{git.baseBranch}}` exist and the build looks complete** → skip the build loop; go to step 3 (test gate + ship).
+- **Otherwise** → ensure you're on the ticket branch, then build (step 2).
+
+Ensure the branch (primary owner is `/describe-ticket`; this is the fallback). If not already on a `{{lower project.ticketPrefix}}-*` ticket branch:
+
+{{> branch-checkout}}
+
+## 2. Implement (the build loop)
+
+Work the plan from the artifact, task by task:
+
+- Implement one `T-N` / `US-N` at a time, smallest coherent step first.
+- Run the test gate as you go: `{{test.command}}`. Keep the loop green.
+- **Commit incrementally, scoped to {{arg}}.** Each commit references {{arg}} in the title and matches the repo's recent commit style (`git log -3 --format='%H%n%s%n%b'`). End the body with your agent's standard co-author footer.
+{{#each conventions}}  - {{this}}.
+{{/each}}- After each meaningful step, tick the matching `US-N` / `T-N` checkbox: {{> artifact-write}}
+
+Resilience: if there's no artifact/plan, derive scope from the ticket description and implement against the acceptance criteria directly, recording what you build back into a fresh artifact.
+
+## 3. Test gate
+
+Run `{{test.command}}` once more as the gate.
+
+**If anything fails, abort the ship.** Report the failing output and stop — do not push or touch the ticket. Shipping resumes only after the user fixes (or explicitly waives) the failures. Never waive the gate silently.
+
+## 4. Commit remainder, push, open the PR
+
+This repo uses a PR flow — feature PRs target **`{{git.baseBranch}}`**. Never push directly to it.
+
+- If uncommitted changes remain, scope them to {{arg}} using the artifact's task→file map (fallback: read the diff and confirm which files belong to {{arg}} vs other tickets — default to staging only {{arg}}'s files). Show the proposed commit message and confirm before committing; use a heredoc so the body formats correctly.
+- Push: `git push -u origin <branch>`.
+- Open the PR with `gh pr create --base {{git.baseBranch}}`, title referencing {{arg}}, body containing:
+  - **Summary** — what landed, mapped to the ticket's acceptance criteria.
+  - **Out of scope** — items deliberately deferred, with the owning ticket.
+  - **Test plan** — note that `{{test.command}}` passed, plus any manual smoke paths.
+- If a PR for this branch already exists, push to it instead of creating a new one. Report the PR URL.
+
+## 5. Attach PR + move the ticket to {{state "inReview"}}
+
+Attaching the PR is an invariant — `/review-ticket` and `/merge-ticket` resolve the PR from here.
+
+- {{op "attachPR"}}.
+- {{op "addComment"}}: a short shipping note — PR link, what landed (mapped to acceptance criteria), what was deferred.
+- {{op "setState" state="inReview"}}.
+- {{> artifact-write}} — set `status: in-review` and fill the `PR` section.
+
+Do **not** move the ticket to its done state — that's `/merge-ticket` after the review gate.
+
+## Stop and ask
+
+- File attribution is ambiguous (a change looks like it spans multiple tickets).
+- A commit message has no obvious phrasing — propose one, get confirmation.
+- There are commits ahead of `{{git.baseBranch}}` that don't reference {{arg}} (they may belong to another ticket).
+- The test gate fails (never waive it silently).

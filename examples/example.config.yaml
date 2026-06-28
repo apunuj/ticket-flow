@@ -1,0 +1,42 @@
+# Example: a fuller, fictional configuration showing every knob populated.
+# "XYZ" is a made-up project — replace all values with your own (or start from
+# templates/ticketflow.config.yaml). Also used as the fixture for the render tests.
+
+project:
+  name: XYZ App
+  ticketPrefix: XYZ            # XYZ-312, branch xyz-312-...
+
+backend:
+  type: linear
+  project: "XYZ App"
+  states:
+    backlog: "Backlog"
+    inProgress: "In Progress"
+    inReview: "In Review"
+    done: "Done"
+
+git:
+  baseBranch: develop          # feature PRs target develop; develop -> main promotion is separate
+  branchPattern: "{prefix-lower}-{number}-{slug}"
+  mergeStrategy: squash
+
+test:
+  command: "make test"         # the test gate execute-ticket runs before shipping
+
+conventions:
+  - "Reference the ticket id in the commit title"
+  - "End commits with the Claude co-author footer"
+
+review:
+  conventionChecks:
+    - "Database migrations are backwards-compatible"
+    - "Keep handlers thin — business logic in service modules"
+    - "Both unit and integration suites updated"
+
+tools:
+  - claude
+  - copilot
+  - opencode
+
+output:
+  dir: "."

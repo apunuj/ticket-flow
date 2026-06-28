@@ -1,0 +1,52 @@
+---
+name: next-ticket
+description: List the next priority backlog tickets in a {{backend.displayName}} project, grouped by {{backend.groupingNoun}}, and recommend one to pick up. Use when the user asks what to work on next, what's in the backlog, or which ticket to pick up.
+argument-hint: "[project] (defaults to {{backend.project}})"
+argName: project
+---
+
+Surface the next priority backlog tickets{{#if backend.capabilities.groups}}, grouped by {{backend.groupingNoun}}{{/if}}.
+
+Project: {{arg}} — if no argument was given, default to **{{backend.project}}**.
+
+## Steps
+
+1. **In parallel**, fetch:
+   - {{op "listBacklog"}}.
+{{#if backend.capabilities.groups}}   - {{op "listGroups"}}.{{/if}}
+
+{{#if backend.capabilities.groups}}
+2. **Filter {{backend.groupingNounPlural}}.** Drop any {{backend.groupingNoun}} whose status is completed/cancelled, and any open one with zero backlog tickets attached.{{#if backend.capabilities.groupTargetDates}} Sort survivors by target date ascending; those without a target date sort last.{{else}} Sort survivors by name.{{/if}}
+{{/if}}
+
+3. **Sort tickets** by priority (Urgent > High > Medium > Low > None), then by last-updated descending.
+
+{{#if backend.capabilities.groups}}
+4. **Group tickets by {{backend.groupingNoun}}.** Tickets with none go to a `No {{backend.groupingNoun}}` bucket, ordered last. Bucket order: open {{backend.groupingNounPlural}}{{#if backend.capabilities.groupTargetDates}} in target-date order{{/if}}, then `No {{backend.groupingNoun}}`.
+{{/if}}
+
+5. **Filter blocked items.** A ticket is blocked if its description or relations mark it `Blocked by` an open ticket. Blocked tickets don't count toward caps and aren't eligible for the recommendation — hold them for a final "blocked, not yet actionable" list.
+
+6. **Apply caps.** Up to 3 unblocked tickets per {{#if backend.capabilities.groups}}{{backend.groupingNoun}} bucket, **and** {{/if}}no more than 8 unblocked tickets total. Trim from later buckets first; if trimming zeroes out a bucket, drop its header too.
+
+7. **Render** one section per surviving bucket. Per ticket: identifier + title; priority label; a one-sentence hook lifted from the description (the Why / first paragraph); any chain annotations (`Predecessor`, `Depends on`) parsed from the description.
+
+8. End with a single recommendation, considering in order: the earliest {{backend.groupingNoun}} with in-flight work; the ticket that unblocks the most downstream work; recent context (if the user just shipped something, prefer what it unblocks); else the top-priority unblocked ticket in the earliest {{backend.groupingNoun}}.
+
+## Output shape
+
+Under 400 words. Tight bullet lists, {{backend.groupingNoun}} headers, no per-ticket sub-headers:
+
+```
+## {{#if backend.capabilities.groups}}{{titlecase backend.groupingNoun}}: <name>{{#if backend.capabilities.groupTargetDates}} (target: YYYY-MM-DD){{/if}}{{else}}Backlog{{/if}}
+
+{{upper project.ticketPrefix}}-XXX [High] Title
+  → one-sentence hook
+  → depends on {{upper project.ticketPrefix}}-WWW (done) — ready
+
+## Blocked, not yet actionable
+
+{{upper project.ticketPrefix}}-BBB [High] Title — blocked by {{upper project.ticketPrefix}}-AAA (open)
+```
+
+Omit any empty section (including `Blocked` when nothing is blocked). End with: `Recommend: {{upper project.ticketPrefix}}-ZZZ — <one-line reason{{#if backend.capabilities.groups}}, citing the {{backend.groupingNoun}}{{/if}}>.`

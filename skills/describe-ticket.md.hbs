@@ -1,0 +1,69 @@
+---
+name: describe-ticket
+description: Describe a {{backend.displayName}} ticket — product behavior, clarifying questions, execution plan, then record the plan as the work artifact and check out the ticket branch from latest {{git.baseBranch}} (or a retrospective summary if the ticket is already closed). Use when the user wants to understand, orient on, plan, or recap a ticket.
+argument-hint: "<ticket-id> (e.g., {{upper project.ticketPrefix}}-300)"
+---
+
+Describe ticket {{arg}} and orient on it.
+
+## Steps
+
+1. {{titlecase (op "getTicket")}}.
+
+2. **Branch on status:**
+   - If the ticket is **completed or cancelled** → **Retrospective mode** (skip to step 7).
+   - Otherwise → **Prospective mode** (continue).
+
+### Prospective mode
+
+3. **Product behavior.** Three parts, in order:
+
+   **a. Summary** (≤80 words). The "why" — the problem it solves or gap it closes, lifted from the ticket's `## Why` / first paragraph (do not invent). Flag any blockers, predecessors, or hybrid pairs noted in the description.
+
+   **b. User stories.** Break the user-visible behavior into 3–6 short user stories (`US-1`..`US-N`), each one sentence, each an observable behavior the user can confirm or redirect on independently. Lift from the ticket's acceptance criteria and behavior tables; do not invent scope. Format: `- **US-1: <one-line behavior>.** <optional trigger/surface>`.
+
+   **c. Acceptance criteria** (verbatim or near-verbatim), as a checklist. If a criterion maps to a story, note it inline (`US-N`).
+
+4. **Clarifying questions.** Output 2–4 questions targeted at genuinely under-specified decisions (ambiguous scope, choices the ticket leaves open, trade-offs, sequencing). **Do not ask about anything the ticket already answers.** If everything is well-specified, say so and skip to step 5. {{ask "the clarifying questions above"}}.
+
+5. **STOP.** Wait for the user's answers. Do not include the plan in this response.
+
+   On the next turn, after answers:
+
+   **a. Restate the user-story list, refined** per the clarifications (split/merge/drop/reword; flag anything explicitly de-scoped). STOP again for confirmation unless the clarifications were trivial.
+
+   **b. Execution plan.** A short ordered task list mapped to the confirmed stories, with file/module pointers (repo-root relative, `src/.../Service.ext:42` style). Each task cites the `US-N` it implements. Tight, not exhaustive.
+
+   **c. Record the work artifact.** {{> artifact-format}}
+
+   Write it now with `status: planning`: {{> artifact-write}}
+
+   **d. Check out the ticket branch.** The confirmed plan marks the start of work.
+
+{{> branch-checkout}}
+
+   Prospective mode only — never create branches or an artifact when describing closed tickets, and never branch before the plan is confirmed (exploratory describes stay branch-free).
+
+### Retrospective mode (closed tickets)
+
+7. In parallel, gather implementation evidence:
+   - `git log --grep="{{arg}}" --oneline -20` from the repo root.
+   - Scan the ticket description, attachments, and comments for linked PR URLs.
+   - For the most relevant commit(s), `git show --stat <sha>` to see touched files; read 1–2 structurally important files if a key decision needs citing.
+
+8. Output four sections:
+   - **What it was about** (≤80 words): the problem and the behavior asked for (lift from the ticket; do not invent).
+   - **User stories.** 3–6 `US-N` items lifted from the original acceptance criteria, each marked with a shipped status inline: `✅` shipped as designed · `🟡` partial (note the gap) · `❌` cut (note where) · `📋` N/A for cancelled. If cancelled, every story is `❌` and Outcome carries the why.
+   - **Outcome** (≤80 words): what actually shipped at a system level; caveats, follow-ups, or the rationale for dropping.
+   - **Implementation** (≤120 words): key files/modules touched, the structural choice that mattered, non-obvious decisions. Cite `file_path:line_number`.
+
+## Output shape
+
+- Tight prose. Bullets and short paragraphs over walls of text.
+- File references repo-root relative, never absolute.
+- End with the ticket URL.
+
+## Resume / idempotency
+
+- If a work artifact already exists for {{arg}}, offer to resume or refresh it — do not clobber confirmed scope.
+- If a branch for {{arg}} already exists, check it out rather than creating a new one.

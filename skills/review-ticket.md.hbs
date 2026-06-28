@@ -1,0 +1,48 @@
+---
+name: review-ticket
+description: Review the PR attached to a {{backend.displayName}} ticket at a user-chosen depth, then check the diff delivers every acceptance criterion and project convention. PR-only — refuses if no PR exists. Use when the user asks to review a ticket or its PR.
+argument-hint: "{{upper project.ticketPrefix}}-NNN"
+---
+
+Review the PR attached to ticket {{arg}}. This skill works **only** on top of a PR — it never reviews a loose local diff.
+
+## 1. Resolve the PR
+
+- {{op "getAttachedPR"}}.
+- If no PR is found, ask the user for the PR number or URL.
+- If none can be supplied — **hard stop**: "No PR found for {{arg}}. Run `/execute-ticket {{arg}}` first; review-ticket only works on top of a PR." Do not fall back to reviewing the working tree.
+
+## 2. Ask for review depth — always
+
+Even if a depth seems obvious, {{ask "review depth — low (shallow, high-confidence only), medium (standard), high (broader, may include uncertain findings), or max (deepest single pass); and whether findings go to chat only or also as inline PR comments"}}.
+
+## 3. Gather ticket context
+
+- {{> artifact-read}}
+- Extract the acceptance criteria / user stories (the contracted scope) and any constraints flagged in the description.
+
+## 4. Run the code review
+
+{{codeReview}}
+
+## 5. Scope check + verdict
+
+After the review, add the ticket-scope layer the generic review doesn't know about:
+
+- **Scope check:** does the PR diff actually deliver each acceptance criterion / user story from step 3? List any criterion not covered by the diff.
+- **Convention check:** anything that violates the project conventions:
+{{#each review.conventionChecks}}  - {{this}}.
+{{/each}}{{#unless review.conventionChecks}}  - (none configured — skip).
+{{/unless}}
+
+End with a clear verdict, stated in chat AND recorded:
+
+- `✅ Ready to merge` — no blocking findings, scope delivered; or
+- `🟡 Needs changes` — list the blocking findings and uncovered criteria.
+
+Record it: {{op "addComment"}} with the verdict, and {{> artifact-write}} — fill the `Review verdict` section. `/merge-ticket` reads this verdict to decide whether review is done.
+
+## Output shape
+
+- Findings grouped: blocking vs nice-to-have. File references repo-root relative with line numbers.
+- End with the PR URL and the ticket URL.
