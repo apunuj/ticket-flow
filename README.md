@@ -25,33 +25,35 @@ These started as five Claude-Code-only skills hardcoded to one project and one b
 ### 1. Prerequisites
 
 - **Node 18+** and **git**.
-- **Your ticket backend connected to your AI tool as an MCP server** — Linear, or Jira/Atlassian. The skills call it to read and update tickets. (In Claude Code, add the Linear/Atlassian MCP server; Copilot and opencode connect the same servers their own way.)
 - **The `gh` CLI, authenticated** — run `gh auth login` against your GitHub remote. `execute`, `review`, and `merge` use it for PRs.
 
-`ticket-flow check` reports which of these are missing on your machine.
+You do **not** need to set up the ticket-backend MCP server by hand — `build` scaffolds it (see below). `ticket-flow doctor` reports anything still missing.
 
 ### 2. Generate the skills (run in your project repo)
 
 ```bash
-npx ticket-flow init      # writes ticket-flow.config.yaml
-# edit ticket-flow.config.yaml for your project
-npx ticket-flow check     # validate config + report backend/tool requirements
-npx ticket-flow build     # render the skills + always-on guide for your tools
+npx ticket-flow init      # interactive setup wizard (or `init --defaults` to skip prompts)
+npx ticket-flow build     # render the skills, guides, MCP config + TICKET-FLOW.md
+npx ticket-flow doctor    # preflight: config, git, gh, generated files, MCP
 ```
 
-`build` writes, per configured tool, the slash skills **and** an always-on guide that makes them conversational:
+`init` detects sensible defaults from your repo (project, base branch, ticket prefix, test command) and asks only what it can't infer. `build` then writes, per configured tool:
 
-| Tool | Slash skills | Always-on guide |
-|---|---|---|
-| Claude Code | `.claude/skills/<name>/SKILL.md` | *(none needed — skills auto-invoke from their `description`)* |
-| GitHub Copilot | `.github/prompts/<name>.prompt.md` | `.github/instructions/ticket-flow.instructions.md` |
-| opencode | `.opencode/command/<name>.md` | `.opencode/ticket-flow.md`, wired via `instructions` in `opencode.json` (created or merged — never clobbers your config) |
+| Tool | Slash skills | Always-on / discovery | MCP config (scaffolded) |
+|---|---|---|---|
+| Claude Code | `.claude/skills/<name>/SKILL.md` | `.claude/skills/ticket-flow/SKILL.md` (`/ticket-flow` overview; auto-invokes on "how do I use this") | `.mcp.json` |
+| GitHub Copilot | `.github/prompts/<name>.prompt.md` | `.github/instructions/ticket-flow.instructions.md` (`applyTo: '**'`) | `.vscode/mcp.json` |
+| opencode | `.opencode/command/<name>.md` | `.opencode/ticket-flow.md` (via `instructions` in `opencode.json`) | `mcp` in `opencode.json` |
+
+Plus a repo-level **`TICKET-FLOW.md`** team reference. Every generated config is created-or-merged — it never clobbers your existing files.
 
 > `review-ticket` uses Claude Code's built-in **code-review**; opencode has no built-in, so the review checklist is inlined there.
 
+The scaffolded MCP config points at the backend's official remote server (Linear / Atlassian), so on first launch your tool just prompts you to **approve the server and sign in** — no manual MCP setup.
+
 ### 3. Commit the generated files
 
-Commit them so the skills travel with the repo and teammates get them on clone.
+Commit them so the skills travel with the repo and teammates get them on clone — including `TICKET-FLOW.md`, which teaches the workflow with zero setup on their part.
 
 ### 4. Use it — conversationally or by slash command
 
@@ -89,7 +91,6 @@ tools:    [claude, copilot, opencode]
 ## Roadmap
 
 - GitHub Issues backend (the abstract interface is already in place).
-- Interactive `init`.
 
 ## License
 
