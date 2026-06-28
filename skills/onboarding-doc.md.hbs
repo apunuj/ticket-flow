@@ -4,8 +4,9 @@ This repo uses **Ticket-Flow** — a five-phase, ticket-driven workflow backed b
 
 ```
 next-ticket → describe-ticket → execute-ticket → review-ticket → merge-ticket
-                                              ↑                ↓
-                                              └──── fix-ticket ←┘   (when a PR has open comments or red CI)
+                                                     ▲                  │
+                                                     └──── fix-ticket ◀─┘
+                                            (loops back on PR feedback / red CI)
 ```
 
 ## What each phase does

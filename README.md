@@ -2,10 +2,13 @@
 
 Generate a portable, **ticket-driven development** workflow for [Claude Code](https://claude.com/claude-code), [GitHub Copilot](https://github.com/features/copilot), and [opencode](https://opencode.ai) — from one canonical source.
 
-You write your project's values once in a config file; `ticket-flow` renders five lifecycle skills into each tool's native format, wired to your ticket backend (Linear or Jira).
+You write your project's values once in a config file; `ticket-flow` renders six lifecycle skills into each tool's native format, wired to your ticket backend (Linear or Jira).
 
 ```
 next-ticket → describe-ticket → execute-ticket → review-ticket → merge-ticket
+                                                     ▲                  │
+                                                     └──── fix-ticket ◀─┘
+                                            (loops back on PR feedback / red CI)
 ```
 
 | | |
