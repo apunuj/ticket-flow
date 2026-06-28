@@ -1,5 +1,6 @@
 node_modules/
 *.log
+*.tgz
 .DS_Store
 # ticket-flow per-ticket working state (when the local-file store is enabled)
 .ticket-flow/

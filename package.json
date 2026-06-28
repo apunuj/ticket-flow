@@ -15,7 +15,8 @@
   ],
   "scripts": {
     "test": "node --test",
-    "test:coverage": "node --test --experimental-test-coverage"
+    "test:coverage": "node --test --experimental-test-coverage",
+    "prepublishOnly": "node --test"
   },
   "engines": {
     "node": ">=18"
@@ -31,6 +32,18 @@
     "agents"
   ],
   "license": "MIT",
+  "author": "apunuj",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apunuj/ticket-flow.git"
+  },
+  "homepage": "https://github.com/apunuj/ticket-flow#readme",
+  "bugs": {
+    "url": "https://github.com/apunuj/ticket-flow/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "ajv": "^8.17.1",
     "gray-matter": "^4.0.3",
