@@ -145,3 +145,12 @@ test('workflow guide covers sub-agents and multiple tickets', () => {
   assert.match(guide, /Sub-agents (&|and) multiple tickets/i);
   assert.match(guide, /per ticket/i, 'lifecycle applies per ticket regardless of who executes');
 });
+
+// APU-723: conventions render cleanly — single periods, own lead-in, no stray breaks.
+test('conventions render with single periods under their own lead-in', () => {
+  const out = renderSkill('execute-ticket', env('claude')).content;
+  assert.doesNotMatch(out, /\.\.(\s|$)/, 'no doubled periods from the conventions block (git ranges like a..b are fine)');
+  assert.match(out, /project conventions/i, 'conventions have their own lead-in');
+  const fix = renderSkill('fix-ticket', env('claude')).content;
+  assert.doesNotMatch(fix, /\.\.(\s|$)/, 'fix-ticket too');
+});

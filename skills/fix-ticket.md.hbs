@@ -54,8 +54,9 @@ Then work the confirmed plan:
 - Fix one item at a time, **test-first**; keep the gate green: `{{test.command}}`.
 - For a `CONFLICTING` PR, merge/rebase the latest `{{git.baseBranch}}` and resolve before continuing.
 - **Commit incrementally, scoped to {{arg}}** — each commit references {{arg}}, matches the repo's recent commit style, and ends with your agent's co-author footer.
-{{#each conventions}}  - {{this}}.
-{{/each}}- Push to the **existing PR branch** (`git push`) — never open a new PR.
+{{#if conventions}}- Honor the project conventions:
+{{#each conventions}}  - {{sentence this}}
+{{/each}}{{/if}}- Push to the **existing PR branch** (`git push`) — never open a new PR.
 - Reply to / resolve each addressed review thread where the tool allows (`gh api`), citing the commit that fixed it.
 
 ## 7. Record + hand off

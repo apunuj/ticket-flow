@@ -32,7 +32,7 @@ Ensure the branch (primary owner is `/describe-ticket`; this is the fallback). I
 
 **Build-start gate — before the first commit:**
 
-- Ensure the work artifact reflects the build. If no artifact exists — or the plan was supplied externally (a plan file, a chat message, an orchestrator/sub-agent hand-off) and isn't on the ticket yet — create/ingest it now: {{> artifact-write}} Include the plan and set `status: building`. (No plan anywhere? Derive user stories and acceptance criteria from the ticket description, record them in the artifact, and build against those.)
+- Ensure the work artifact reflects the build. If no artifact exists — or the plan was supplied externally (a plan file, a chat message, an orchestrator/sub-agent hand-off) and isn't on the ticket yet — create/ingest it now, including the plan and `status: building` (no plan anywhere? derive user stories and acceptance criteria from the ticket description and record those): {{> artifact-write}}
 - {{op "setState" state="inProgress"}} — idempotent: skip if the ticket is already in progress or beyond.
 - {{> checkpoint next="write code or commit" require="both writes above are receipted"}}
 
@@ -41,8 +41,9 @@ Work the plan from the artifact, task by task:
 - Work **test-first (TDD)**, following the plan's test→implementation task pairs: for each `US-N`, write the failing test that encodes its acceptance criterion, watch it fail (red), implement the smallest change to make it pass (green), then refactor. (No plan? Derive the criteria from the ticket and still go test-first.)
 - Run the test gate as you go: `{{test.command}}`. Keep it green before moving to the next `US-N`.
 - **Commit incrementally, scoped to {{arg}}.** Each commit references {{arg}} in the title and matches the repo's recent commit style (`git log -3 --format='%H%n%s%n%b'`). End the body with your agent's standard co-author footer.
-{{#each conventions}}  - {{this}}.
-{{/each}}- After each meaningful step, tick the matching `US-N` / `T-N` checkbox: {{> artifact-write}}
+{{#if conventions}}- Honor the project conventions:
+{{#each conventions}}  - {{sentence this}}
+{{/each}}{{/if}}- After each meaningful step, tick the matching `US-N` / `T-N` checkbox: {{> artifact-write}}
 
 ## 3. Test gate
 
