@@ -69,10 +69,11 @@ test('detectDefaults returns sane, schema-compatible defaults', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tf-detect-'));
   try {
     const d = detectDefaults(dir);
-    assert.match(d.ticketPrefix, /^[A-Z][A-Z0-9]*$/, 'prefix matches the schema pattern');
     assert.ok(d.projectName.length > 0);
     assert.ok(d.baseBranch.length > 0);
     assert.equal(typeof d.testCommand, 'string');
+    assert.equal(d.ticketPrefix, undefined, 'no longer guesses a ticket prefix');
+    assert.equal(d.backendProject, undefined, 'no longer guesses a backend project');
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
@@ -92,19 +93,19 @@ test('assembleConfig + configToYaml produce a schema-valid config', () => {
   const yaml = configToYaml(
     assembleConfig({
       projectName: 'Acme',
-      ticketPrefix: 'ACME',
       backendType: 'jira',
-      backendProject: 'ACME',
       baseBranch: 'develop',
       testCommand: 'make test',
       tools: ['claude', 'opencode'],
     }),
   );
   const cfg = parseConfig(yaml);
-  assert.equal(cfg.project.ticketPrefix, 'ACME');
+  assert.equal(cfg.project.name, 'Acme');
   assert.equal(cfg.backend.type, 'jira');
   assert.deepEqual(cfg.tools, ['claude', 'opencode']);
   assert.equal(cfg.git.mergeStrategy, 'merge', 'normalize fills the omitted defaults');
+  assert.equal(cfg.project.ticketPrefix, undefined, 'init omits ticketPrefix — resolved at runtime');
+  assert.equal(cfg.backend.project, undefined, 'init omits backend.project — resolved at runtime');
 });
 
 test('check returns the parsed config for a valid file', () => {

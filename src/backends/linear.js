@@ -31,10 +31,14 @@ export default {
         return `fetch the ticket with the Linear MCP **get_issue** tool (\`id: ${t}\`, \`includeRelations: true\`)`;
 
       case 'listBacklog':
-        return `list backlog issues with the Linear MCP **list_issues** tool (\`project: "${project}"\`, \`state: Backlog\`, \`limit: 30\`)`;
+        return project
+          ? `list backlog issues with the Linear MCP **list_issues** tool (\`project: "${project}"\`, \`state: Backlog\`, \`limit: 30\`)`
+          : `list backlog issues with the Linear MCP **list_issues** tool (\`state: Backlog\`, \`limit: 30\`); scope to the active Linear project for this repo (match it by name or the git remote), and if several could apply, ask which one to use`;
 
       case 'listGroups':
-        return `list milestones with the Linear MCP **list_milestones** tool for project \`"${project}"\` (each has a name and optional target date)`;
+        return project
+          ? `list milestones with the Linear MCP **list_milestones** tool for project \`"${project}"\` (each has a name and optional target date)`
+          : `list milestones with the Linear MCP **list_milestones** tool for that same active project (each has a name and optional target date)`;
 
       case 'setState': {
         const display = states[params.state] || params.state;

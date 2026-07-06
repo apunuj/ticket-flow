@@ -4,11 +4,13 @@
 
 project:
   name: My Project
-  ticketPrefix: PROJ           # ticket ids look like PROJ-123, branches like proj-123-...
+  # ticketPrefix: PROJ         # OPTIONAL. Ticket ids like PROJ-123, branches like proj-123-...
+                               # Omit and the skills read the prefix from each ticket id at runtime.
 
 backend:
   type: linear                 # linear | jira  (both implemented; github planned)
-  project: "My Project"        # Linear project name | GitHub owner/repo | Jira project key
+  # project: "My Project"      # OPTIONAL. Linear project name | Jira project key.
+                               # Omit and the skills resolve your active project at runtime.
   states:                      # the display names your backend uses for each lifecycle state
     backlog: "Backlog"
     inProgress: "In Progress"

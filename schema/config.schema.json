@@ -9,20 +9,20 @@
     "project": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "ticketPrefix"],
+      "required": ["name"],
       "properties": {
         "name": { "type": "string", "description": "Human name of the project/product." },
         "ticketPrefix": {
           "type": "string",
           "pattern": "^[A-Za-z][A-Za-z0-9]*$",
-          "description": "Ticket identifier prefix, e.g. APU for APU-312."
+          "description": "Optional ticket identifier prefix, e.g. APU for APU-312. Omit to let the skills read the prefix from each ticket id at runtime."
         }
       }
     },
     "backend": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["type", "project"],
+      "required": ["type"],
       "properties": {
         "type": {
           "type": "string",
@@ -31,7 +31,7 @@
         },
         "project": {
           "type": "string",
-          "description": "Backend project: Linear project name, GitHub owner/repo, or Jira project key."
+          "description": "Optional backend project: Linear project name, GitHub owner/repo, or Jira project key. Omit to let the skills resolve your active project at runtime."
         },
         "states": {
           "type": "object",

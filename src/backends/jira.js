@@ -34,7 +34,9 @@ export default {
 
       case 'listBacklog': {
         const backlog = states.backlog || 'Backlog';
-        return `search backlog issues with the Jira MCP **JQL search** tool: \`project = "${project}" AND status = "${backlog}" ORDER BY priority DESC, updated DESC\` (limit 30)`;
+        return project
+          ? `search backlog issues with the Jira MCP **JQL search** tool: \`project = "${project}" AND status = "${backlog}" ORDER BY priority DESC, updated DESC\` (limit 30)`
+          : `search backlog issues with the Jira MCP **JQL search** tool: \`status = "${backlog}" ORDER BY priority DESC, updated DESC\` (limit 30), scoped to the Jira project for this repo (add \`project = "<KEY>"\` once resolved); if the project is ambiguous, ask which one to use`;
       }
 
       case 'listGroups':

@@ -1,7 +1,7 @@
 ---
 name: review-ticket
-description: Review the PR attached to a {{backend.displayName}} ticket at a user-chosen depth, then check the diff delivers every acceptance criterion and project convention. PR-only — refuses if no PR exists. Use when the user asks to review a ticket or its PR — e.g. "review the PR", "is {{upper project.ticketPrefix}}-312 ready", "does this meet the acceptance criteria".
-argument-hint: "{{upper project.ticketPrefix}}-NNN"
+description: Review the PR attached to a {{backend.displayName}} ticket at a user-chosen depth, then check the diff delivers every acceptance criterion and project convention. PR-only — refuses if no PR exists. Use when the user asks to review a ticket or its PR — e.g. "review the PR", "is {{eg.prefixUpper}}-312 ready", "does this meet the acceptance criteria".
+argument-hint: "{{eg.prefixUpper}}-NNN"
 ---
 
 Review the PR attached to ticket {{arg}}. This skill works **only** on top of a PR — it never reviews a loose local diff.

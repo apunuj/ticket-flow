@@ -1,7 +1,7 @@
 ---
 name: merge-ticket
-description: Merge the PR attached to a {{backend.displayName}} ticket after the review gate passes, close the ticket as {{state "done"}}, run post-merge cleanup, and surface the next priority. Use when the user asks to merge a ticket/PR or close out reviewed work — e.g. "merge it", "land {{upper project.ticketPrefix}}-312", "close out the ticket".
-argument-hint: "{{upper project.ticketPrefix}}-NNN"
+description: Merge the PR attached to a {{backend.displayName}} ticket after the review gate passes, close the ticket as {{state "done"}}, run post-merge cleanup, and surface the next priority. Use when the user asks to merge a ticket/PR or close out reviewed work — e.g. "merge it", "land {{eg.prefixUpper}}-312", "close out the ticket".
+argument-hint: "{{eg.prefixUpper}}-NNN"
 ---
 
 Merge the PR for ticket {{arg}} and close it — **only** after the review gate passes.

@@ -1,13 +1,13 @@
 ---
 name: next-ticket
 description: List the next priority backlog tickets in a {{backend.displayName}} project, grouped by {{backend.groupingNoun}}, and recommend one to pick up. Use when the user asks what to work on next, what's in the backlog, or which ticket to pick up — e.g. "what should I work on", "what's next", "show the backlog", "pick a ticket".
-argument-hint: "[project] (defaults to {{backend.project}})"
+argument-hint: "[project]{{#if backend.project}} (defaults to {{backend.project}}){{/if}}"
 argName: project
 ---
 
 Surface the next priority backlog tickets{{#if backend.capabilities.groups}}, grouped by {{backend.groupingNoun}}{{/if}}.
 
-Project: {{arg}} — if no argument was given, default to **{{backend.project}}**.
+Project: {{arg}} — if no argument was given, {{#if backend.project}}default to **{{backend.project}}**{{else}}resolve your active {{backend.displayName}} project (the one for this repo — ask if it's ambiguous){{/if}}.
 
 ## Steps
 
@@ -40,13 +40,13 @@ Under 400 words. Tight bullet lists, {{backend.groupingNoun}} headers, no per-ti
 ```
 ## {{#if backend.capabilities.groups}}{{titlecase backend.groupingNoun}}: <name>{{#if backend.capabilities.groupTargetDates}} (target: YYYY-MM-DD){{/if}}{{else}}Backlog{{/if}}
 
-{{upper project.ticketPrefix}}-XXX [High] Title
+{{eg.prefixUpper}}-XXX [High] Title
   → one-sentence hook
-  → depends on {{upper project.ticketPrefix}}-WWW (done) — ready
+  → depends on {{eg.prefixUpper}}-WWW (done) — ready
 
 ## Blocked, not yet actionable
 
-{{upper project.ticketPrefix}}-BBB [High] Title — blocked by {{upper project.ticketPrefix}}-AAA (open)
+{{eg.prefixUpper}}-BBB [High] Title — blocked by {{eg.prefixUpper}}-AAA (open)
 ```
 
-Omit any empty section (including `Blocked` when nothing is blocked). End with: `Recommend: {{upper project.ticketPrefix}}-ZZZ — <one-line reason{{#if backend.capabilities.groups}}, citing the {{backend.groupingNoun}}{{/if}}>.`
+Omit any empty section (including `Blocked` when nothing is blocked). End with: `Recommend: {{eg.prefixUpper}}-ZZZ — <one-line reason{{#if backend.capabilities.groups}}, citing the {{backend.groupingNoun}}{{/if}}>.`

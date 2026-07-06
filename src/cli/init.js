@@ -18,10 +18,8 @@ function git(cmd, cwd) {
 export function detectDefaults(cwd) {
   const d = {
     projectName: path.basename(cwd),
-    ticketPrefix: 'PROJ',
     baseBranch: 'main',
     testCommand: 'npm test',
-    backendProject: '',
   };
 
   try {
@@ -43,9 +41,6 @@ export function detectDefaults(cwd) {
     }
   }
 
-  const letters = d.projectName.replace(/[^a-zA-Z0-9]/g, '');
-  d.ticketPrefix = (letters.match(/^[a-zA-Z][a-zA-Z0-9]*/)?.[0] || 'PROJ').slice(0, 4).toUpperCase();
-
   try {
     const pkg = JSON.parse(fs.readFileSync(path.join(cwd, 'package.json'), 'utf8'));
     if (pkg.scripts?.test && !/no test specified/.test(pkg.scripts.test)) d.testCommand = 'npm test';
@@ -57,15 +52,17 @@ export function detectDefaults(cwd) {
     }
   }
 
-  d.backendProject = d.projectName;
   return d;
 }
 
 // Pure: shape wizard answers into a minimal, schema-valid config object.
 export function assembleConfig(a) {
   return {
-    project: { name: a.projectName, ticketPrefix: a.ticketPrefix },
-    backend: { type: a.backendType, project: a.backendProject },
+    // ticketPrefix and backend.project are intentionally omitted — the generated skills
+    // resolve the active project and read the ticket prefix from ids at runtime. Both remain
+    // optional config knobs for anyone who wants to pin them.
+    project: { name: a.projectName },
+    backend: { type: a.backendType },
     git: { baseBranch: a.baseBranch },
     test: { command: a.testCommand },
     tools: a.tools,
@@ -85,9 +82,7 @@ export function configToYaml(config) {
 function answersFromDetected(d) {
   return {
     projectName: d.projectName,
-    ticketPrefix: d.ticketPrefix,
     backendType: 'linear',
-    backendProject: d.backendProject,
     baseBranch: d.baseBranch,
     testCommand: d.testCommand,
     tools: ['claude'],
@@ -99,17 +94,13 @@ async function promptAnswers(d) {
   const ask = async (q, def) => (await rl.question(`${q}${def ? ` (${def})` : ''}: `)).trim() || def;
   try {
     const projectName = await ask('Project name', d.projectName);
-    const ticketPrefix = await ask('Ticket prefix', d.ticketPrefix);
     const backendType = await ask('Backend [linear/jira]', 'linear');
-    const backendProject = await ask('Backend project key/name', projectName);
     const baseBranch = await ask('Base branch', d.baseBranch);
     const testCommand = await ask('Test command', d.testCommand);
     const toolsRaw = await ask('Tools (comma-separated: claude,copilot,opencode)', 'claude');
     return {
       projectName,
-      ticketPrefix,
       backendType,
-      backendProject,
       baseBranch,
       testCommand,
       tools: toolsRaw.split(',').map((s) => s.trim()).filter(Boolean),
@@ -167,7 +158,7 @@ export function init({ force = false } = {}) {
   fs.copyFileSync(src, dest);
   console.log(`Created ${path.relative(process.cwd(), dest)}`);
   console.log(`\nNext:`);
-  console.log(`  1. Edit ticket-flow.config.yaml for your project (name, ticketPrefix, backend, baseBranch, testCommand).`);
+  console.log(`  1. Edit ticket-flow.config.yaml for your project (name, backend, baseBranch, testCommand).`);
   console.log(`  2. Run \`ticket-flow build\` to generate the skills for your tools.`);
   return dest;
 }

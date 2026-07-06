@@ -1,7 +1,7 @@
 ---
 name: execute-ticket
-description: Execute a {{backend.displayName}} ticket end to end — implement the planned work with an incremental test-and-commit loop, then ship it by running the test gate, pushing, opening a PR to {{git.baseBranch}}, attaching it to the ticket, and moving the ticket to {{state "inReview"}}. Use when a planned ticket is ready to build, or when built work is ready to go up for review — e.g. "build {{upper project.ticketPrefix}}-312", "implement this ticket", "start coding it", "ship it", "open a PR".
-argument-hint: "{{upper project.ticketPrefix}}-NNN"
+description: Execute a {{backend.displayName}} ticket end to end — implement the planned work with an incremental test-and-commit loop, then ship it by running the test gate, pushing, opening a PR to {{git.baseBranch}}, attaching it to the ticket, and moving the ticket to {{state "inReview"}}. Use when a planned ticket is ready to build, or when built work is ready to go up for review — e.g. "build {{eg.prefixUpper}}-312", "implement this ticket", "start coding it", "ship it", "open a PR".
+argument-hint: "{{eg.prefixUpper}}-NNN"
 ---
 
 Execute ticket {{arg}}: build it, then take it up for review. This skill owns the whole span from a planned ticket to an attached PR in **{{state "inReview"}}**. Merging and closing are **not** this skill's job — that's `/merge-ticket` after review.
@@ -20,7 +20,7 @@ Decide the entry point (idempotent — do the least work needed):
 - **Commits ahead of `{{git.baseBranch}}` exist and the build looks complete** → skip the build loop; go to step 3 (test gate + ship).
 - **Otherwise** → ensure you're on the ticket branch, then build (step 2).
 
-Ensure the branch (primary owner is `/describe-ticket`; this is the fallback). If not already on a `{{lower project.ticketPrefix}}-*` ticket branch:
+Ensure the branch (primary owner is `/describe-ticket`; this is the fallback). If not already on the ticket branch for {{arg}} (a branch whose name starts with the lowercased ticket id):
 
 {{> branch-checkout}}
 

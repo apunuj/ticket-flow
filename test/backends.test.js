@@ -75,6 +75,25 @@ test('op honors an explicit project override in params', () => {
   assert.match(out, /Other Project/);
 });
 
+const ctxNoProject = () => ({
+  ticket: 'PROJ-1',
+  config: { backend: { states: { backlog: 'Backlog', inReview: 'In Review', done: 'Done' } } },
+});
+
+test('listBacklog omits an empty project filter and gives runtime guidance when none is set', () => {
+  for (const type of ['linear', 'jira']) {
+    const out = getBackend(type).op('listBacklog', {}, ctxNoProject());
+    assert.doesNotMatch(out, /""/, `[${type}] no empty-string project leaks`);
+    assert.match(out, /repo|active|ambiguous|resolve/i, `[${type}] runtime-resolution guidance`);
+  }
+});
+
+test('linear listGroups still works without a configured project', () => {
+  const out = getBackend('linear').op('listGroups', {}, ctxNoProject());
+  assert.match(out, /list_milestones/);
+  assert.doesNotMatch(out, /""/, 'no empty-string project leaks');
+});
+
 test('each backend declares its remote MCP server (streamable HTTP /mcp endpoint)', () => {
   assert.equal(backends.linear.mcp.name, 'linear');
   assert.equal(backends.linear.mcp.url, 'https://mcp.linear.app/mcp');

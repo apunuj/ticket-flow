@@ -46,6 +46,22 @@ test('merges partial states over the defaults', () => {
   assert.equal(cfg.backend.states.backlog, 'Backlog', 'unspecified default kept');
 });
 
+test('allows an omitted ticketPrefix — read from ticket ids at runtime', () => {
+  const o = valid();
+  delete o.project.ticketPrefix;
+  const cfg = parse(o);
+  assert.equal(cfg.project.ticketPrefix, undefined);
+  assert.equal(cfg.project.name, 'My Project');
+});
+
+test('allows an omitted backend.project — resolved at runtime', () => {
+  const o = valid();
+  delete o.backend.project;
+  const cfg = parse(o);
+  assert.equal(cfg.backend.project, undefined);
+  assert.equal(cfg.backend.type, 'linear');
+});
+
 const rejects = (mutate, label) =>
   test(`rejects: ${label}`, () => {
     const o = valid();

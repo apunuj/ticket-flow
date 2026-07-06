@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `init` no longer prompts for a ticket prefix or backend project. `project.ticketPrefix` and
+  `backend.project` are now optional config knobs: the generated skills resolve the active
+  project from the backend and read the ticket prefix from ticket ids at runtime. Set either in
+  `ticket-flow.config.yaml` to pin it.
+
 ## [0.1.0] - 2026-07-06
 
 Initial release.

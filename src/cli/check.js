@@ -22,8 +22,11 @@ export function check({ configPath } = {}) {
   const backend = getBackend(config.backend.type);
   config.tools.forEach((t) => getTool(t)); // validates tool ids
 
-  console.log(`\nProject:  ${config.project.name} (${config.project.ticketPrefix})`);
-  console.log(`Backend:  ${backend.displayName} — project "${config.backend.project}"`);
+  const prefix = config.project.ticketPrefix ? ` (${config.project.ticketPrefix})` : '';
+  console.log(`\nProject:  ${config.project.name}${prefix}`);
+  console.log(
+    `Backend:  ${backend.displayName} — ${config.backend.project ? `project "${config.backend.project}"` : 'project resolved at runtime'}`,
+  );
   console.log(`Grouping: by ${backend.groupingNoun}${backend.capabilities.groups ? '' : ' (flat)'}`);
   console.log(`Base:     ${config.git.baseBranch} (merge: ${config.git.mergeStrategy})`);
   console.log(`Tools:    ${config.tools.join(', ')}`);

@@ -1,7 +1,7 @@
 ---
 name: fix-ticket
-description: Address the open feedback on a {{backend.displayName}} ticket's PR — failing CI checks, unresolved review comments, change requests, merge conflicts — by triaging what's fixable, confirming the scope and a plan with you, then fixing and updating the PR. PR-only. Use when the user wants to act on review comments or fix a red/blocked PR — e.g. "fix the review comments on {{upper project.ticketPrefix}}-312", "address the PR feedback", "fix the failing CI", "fix {{upper project.ticketPrefix}}-312".
-argument-hint: "{{upper project.ticketPrefix}}-NNN"
+description: Address the open feedback on a {{backend.displayName}} ticket's PR — failing CI checks, unresolved review comments, change requests, merge conflicts — by triaging what's fixable, confirming the scope and a plan with you, then fixing and updating the PR. PR-only. Use when the user wants to act on review comments or fix a red/blocked PR — e.g. "fix the review comments on {{eg.prefixUpper}}-312", "address the PR feedback", "fix the failing CI", "fix {{eg.prefixUpper}}-312".
+argument-hint: "{{eg.prefixUpper}}-NNN"
 ---
 
 Address the open feedback on ticket {{arg}}'s PR — review comments and failing checks — then update the PR. This skill works **only** on top of a PR. It *fixes* feedback; it does not review (that's `/review-ticket`) or merge (that's `/merge-ticket`).

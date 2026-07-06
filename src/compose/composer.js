@@ -37,11 +37,16 @@ export const SKILLS = [
 const GUIDE_TEMPLATE = 'workflow-guide.md.hbs';
 
 function buildContext(config, backend, tool, rawMeta) {
+  // Illustrative ticket prefix for examples/hints. Uses the configured prefix when present,
+  // else a neutral placeholder — ticketPrefix is optional, and real ids are read at runtime.
+  const egPrefix = (config.project && config.project.ticketPrefix) || 'PROJ';
   return {
     ...config,
     // ticket/project argument token, tool-specific (e.g. $1 vs ${input:ticket})
     arg: tool.argToken(rawMeta),
     artifact: { sentinel: ARTIFACT_SENTINEL },
+    // example prefix for illustrative ticket ids in descriptions, hints, and sample output
+    eg: { prefixUpper: egPrefix.toUpperCase(), prefixLower: egPrefix.toLowerCase() },
     // merge config.backend (type/project/states) with the adapter's public facts
     backend: {
       ...config.backend,

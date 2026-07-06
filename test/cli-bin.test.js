@@ -66,8 +66,9 @@ test('init --defaults writes a detected config without prompts', () => {
     assert.equal(code, 0);
     assert.match(out, /Created ticket-flow\.config\.yaml/);
     const cfg = fs.readFileSync(path.join(dir, 'ticket-flow.config.yaml'), 'utf8');
-    assert.match(cfg, /ticketPrefix:/);
+    assert.match(cfg, /name:/);
     assert.match(cfg, /backend:/);
+    assert.doesNotMatch(cfg, /ticketPrefix:/, 'init no longer writes a ticket prefix');
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
