@@ -1,6 +1,6 @@
 {
   "name": "ticket-flow",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Generate a portable ticket-driven development workflow (next → describe → execute → review → merge) for Claude Code, GitHub Copilot, and opencode from one canonical source.",
   "type": "module",
   "bin": {
