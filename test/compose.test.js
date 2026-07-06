@@ -130,3 +130,18 @@ test('writing skills phrase their backend writes as checkpoints', () => {
     assert.match(out, /Checkpoint/, `${skill} carries a phase-gate checkpoint`);
   }
 });
+
+// APU-722: delegating a phase to a sub-agent must not drop the backend writes.
+test('phase skills carry the delegation contract', () => {
+  for (const skill of ['describe-ticket', 'execute-ticket', 'review-ticket', 'fix-ticket']) {
+    const out = renderSkill(skill, env('claude')).content;
+    assert.match(out, /Delegation contract/, `${skill} states the contract`);
+    assert.match(out, /sub-agents return data/i, `${skill}: writes stay with the orchestrator`);
+  }
+});
+
+test('workflow guide covers sub-agents and multiple tickets', () => {
+  const guide = renderGuide(env('claude'));
+  assert.match(guide, /Sub-agents (&|and) multiple tickets/i);
+  assert.match(guide, /per ticket/i, 'lifecycle applies per ticket regardless of who executes');
+});
