@@ -15,6 +15,8 @@ Project: {{arg}} — if no argument was given, {{#if backend.project}}default to
    - {{op "listBacklog"}}.
 {{#if backend.capabilities.groups}}   - {{op "listGroups"}}.{{/if}}
 
+   {{> preflight}}
+
 {{#if backend.capabilities.groups}}
 2. **Filter {{backend.groupingNounPlural}}.** Drop any {{backend.groupingNoun}} whose status is completed/cancelled, and any open one with zero backlog tickets attached.{{#if backend.capabilities.groupTargetDates}} Sort survivors by target date ascending; those without a target date sort last.{{else}} Sort survivors by name.{{/if}}
 {{/if}}

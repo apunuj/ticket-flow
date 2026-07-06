@@ -6,9 +6,11 @@ argument-hint: "{{eg.prefixUpper}}-NNN"
 
 Review the PR attached to ticket {{arg}}. This skill works **only** on top of a PR — it never reviews a loose local diff.
 
+{{> arg-guard}}
+
 ## 1. Resolve the PR
 
-- {{op "getAttachedPR"}}.
+- {{op "getAttachedPR"}}. {{> preflight}}
 - If no PR is found, ask the user for the PR number or URL.
 - If none can be supplied — **hard stop**: "No PR found for {{arg}}. Run `/execute-ticket {{arg}}` first; review-ticket only works on top of a PR." Do not fall back to reviewing the working tree.
 

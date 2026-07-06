@@ -6,9 +6,11 @@ argument-hint: "{{eg.prefixUpper}}-NNN"
 
 Address the open feedback on ticket {{arg}}'s PR — review comments and failing checks — then update the PR. This skill works **only** on top of a PR. It *fixes* feedback; it does not review (that's `/review-ticket`) or merge (that's `/merge-ticket`).
 
+{{> arg-guard}}
+
 ## 1. Resolve the PR
 
-- {{op "getAttachedPR"}}.
+- {{op "getAttachedPR"}}. {{> preflight}}
 - If no PR is found, ask the user for the PR number or URL.
 - If none can be supplied — **hard stop**: "No PR found for {{arg}}. Run `/execute-ticket {{arg}}` first; fix-ticket only works on top of a PR."
 

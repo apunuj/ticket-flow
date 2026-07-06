@@ -6,12 +6,14 @@ argument-hint: "{{eg.prefixUpper}}-NNN"
 
 Execute ticket {{arg}}: build it, then take it up for review. This skill owns the whole span from a planned ticket to an attached PR in **{{state "inReview"}}**. Merging and closing are **not** this skill's job — that's `/merge-ticket` after review.
 
+{{> arg-guard}}
+
 ## 1. Setup / resume
 
 Run the opening probe and branch on what you find:
 
 - `git status --short`, `git branch --show-current`, `git log origin/{{git.baseBranch}}..HEAD --oneline`.
-- Resolve any existing PR: {{op "getAttachedPR"}}.
+- Resolve any existing PR: {{op "getAttachedPR"}}. {{> preflight}}
 - {{> artifact-read}}
 
 Decide the entry point (idempotent — do the least work needed):
