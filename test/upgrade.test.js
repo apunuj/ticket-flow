@@ -27,7 +27,11 @@ function withTmp(fn) {
 function scaffold(dir, { yaml = exampleYaml(), git = true } = {}) {
   fs.writeFileSync(path.join(dir, 'ticket-flow.config.yaml'), yaml);
   if (git) {
-    execSync('git init -q && git add -A && git commit -qm init', { cwd: dir, stdio: 'ignore', shell: true });
+    // CI runners have no global git identity — set one locally so commits work everywhere.
+    execSync(
+      'git init -q && git config user.email tf@test && git config user.name tf && git add -A && git commit -qm init',
+      { cwd: dir, stdio: 'ignore', shell: true },
+    );
   }
 }
 
