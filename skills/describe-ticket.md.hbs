@@ -40,6 +40,8 @@ Describe ticket {{arg}} and orient on it.
 
    Write it now with `status: planning`: {{> artifact-write}}
 
+   {{> checkpoint next="check out the branch (step d)" require="the artifact comment exists on the ticket with `status: planning` (receipt in hand)"}}
+
    **d. Check out the ticket branch.** The confirmed plan marks the start of work.
 
 {{> branch-checkout}}
