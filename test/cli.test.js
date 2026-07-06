@@ -28,7 +28,9 @@ function silence(fn) {
 
 // Run fn inside a throwaway dir as cwd, restoring cwd afterwards.
 function inTmp(fn) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tf-cli-'));
+  // realpathSync canonicalizes the path so it matches process.cwd() after chdir.
+  // On macOS os.tmpdir() is /var/folders/... but cwd resolves to /private/var/folders/...
+  const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'tf-cli-')));
   const cwd0 = process.cwd();
   process.chdir(dir);
   try {
