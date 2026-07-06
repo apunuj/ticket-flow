@@ -94,6 +94,34 @@ test('linear listGroups still works without a configured project', () => {
   assert.doesNotMatch(out, /""/, 'no empty-string project leaks');
 });
 
+// APU-719: Linear's get_issue does not return comments — every comment-discovery
+// instruction must route through list_comments or agents conclude "no artifact exists".
+test('[linear] comment discovery goes through list_comments, never get_issue', () => {
+  const lin = getBackend('linear');
+  assert.match(lin.op('getWorkArtifact', {}, ctx()), /list_comments/);
+  assert.match(lin.op('upsertWorkArtifact', {}, ctx()), /list_comments/);
+  assert.match(lin.op('getAttachedPR', {}, ctx()), /list_comments/);
+  assert.doesNotMatch(
+    lin.op('getWorkArtifact', {}, ctx()),
+    /get_issue/,
+    'get_issue cannot be the comment source — it does not return comments',
+  );
+  assert.match(backends.linear.requires, /list_comments/, 'requires advertises the read tool');
+});
+
+// APU-719: no backend write may fail silently — every mutating op carries the receipt clause.
+const MUTATING_OPS = ['addComment', 'upsertWorkArtifact', 'setState', 'attachPR'];
+for (const type of ['linear', 'jira']) {
+  test(`[${type}] mutating ops carry the write-receipt clause`, () => {
+    const b = getBackend(type);
+    for (const op of MUTATING_OPS) {
+      const out = b.op(op, op === 'setState' ? { state: 'done' } : {}, ctx());
+      assert.match(out, /verify the write/i, `[${type}] ${op} verifies the response`);
+      assert.match(out, /never continue silently/i, `[${type}] ${op} fails loudly`);
+    }
+  });
+}
+
 test('each backend declares its remote MCP server (streamable HTTP /mcp endpoint)', () => {
   assert.equal(backends.linear.mcp.name, 'linear');
   assert.equal(backends.linear.mcp.url, 'https://mcp.linear.app/mcp');

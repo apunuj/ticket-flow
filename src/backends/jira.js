@@ -7,6 +7,7 @@
 // resolves them. The work artifact still lives in a marked comment — comments are universal.
 
 import { ARTIFACT_SENTINEL } from '../artifact.js';
+import { RECEIPT } from './_receipt.js';
 
 const id = 'jira';
 
@@ -44,23 +45,23 @@ export default {
 
       case 'setState': {
         const display = states[params.state] || params.state;
-        return `**transition** the issue to **${display}** with the Jira MCP **transition-issue** tool (\`issueKey: ${t}\`, choose the transition whose target status is "${display}")`;
+        return `**transition** the issue to **${display}** with the Jira MCP **transition-issue** tool (\`issueKey: ${t}\`, choose the transition whose target status is "${display}")${RECEIPT}`;
       }
 
       case 'attachPR':
-        return `link the PR to the issue: add it as a **remote link** (or a comment containing the PR URL) with the Jira MCP. If smart commits / the GitHub-for-Jira integration are enabled the development panel auto-links it; the comment guarantees a discoverable link regardless`;
+        return `link the PR to the issue: add it as a **remote link** (or a comment containing the PR URL) with the Jira MCP. If smart commits / the GitHub-for-Jira integration are enabled the development panel auto-links it; the comment guarantees a discoverable link regardless${RECEIPT}`;
 
       case 'getAttachedPR':
         return `read the issue's **development panel** / remote links / comments (Jira MCP **get-issue** on \`${t}\`) for the GitHub PR URL; cross-check with \`gh pr list --search "${t}"\` if missing`;
 
       case 'addComment':
-        return `add a comment to the issue with the Jira MCP **add-comment** tool (\`issueKey: ${t}\`)`;
+        return `add a comment to the issue with the Jira MCP **add-comment** tool (\`issueKey: ${t}\`)${RECEIPT}`;
 
       case 'getWorkArtifact':
         return `read the issue comments (Jira MCP **get-issue** on \`${t}\`) and find the one containing \`${ARTIFACT_SENTINEL}\` — that is the work artifact`;
 
       case 'upsertWorkArtifact':
-        return `upsert the work-artifact comment: find the existing comment containing \`${ARTIFACT_SENTINEL}\` and **update it in place** with the Jira MCP **edit-comment** tool (pass its comment id); if none exists, add it (\`issueKey: ${t}\`). Never post a second copy`;
+        return `upsert the work-artifact comment: find the existing comment containing \`${ARTIFACT_SENTINEL}\` and **update it in place** with the Jira MCP **edit-comment** tool (pass its comment id); if none exists, add it (\`issueKey: ${t}\`). Never post a second copy${RECEIPT}`;
 
       default:
         return `[[unknown op: ${name}]]`;
