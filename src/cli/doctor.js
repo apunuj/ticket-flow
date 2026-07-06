@@ -4,7 +4,7 @@ import { execSync } from 'node:child_process';
 import { loadConfig } from '../config.js';
 import { getBackend } from '../backends/index.js';
 import { getTool } from '../render/index.js';
-import { renderAll } from '../build.js';
+import { renderAll, MANIFEST_FILE, PKG_VERSION } from '../build.js';
 import { renderDoc } from '../compose/composer.js';
 
 // Diagnostics: each check returns { status: 'ok'|'warn'|'fail', label, detail?, fix? }.
@@ -76,6 +76,25 @@ export function checkDrift(config, root) {
   return ok('generated files', `${expected.length} present & current`);
 }
 
+// Compare the build manifest's version against the running package — a mismatch means
+// the generated pack predates this ticket-flow release.
+export function checkVersion(root) {
+  const p = path.join(root, MANIFEST_FILE);
+  if (!fs.existsSync(p))
+    return warn('generation version', 'no build manifest found', 'run `ticket-flow upgrade`');
+  try {
+    const m = JSON.parse(fs.readFileSync(p, 'utf8'));
+    if (m.version === PKG_VERSION) return ok('generation version', `current (${PKG_VERSION})`);
+    return warn(
+      'generation version',
+      `generated with ${m.version}, running ${PKG_VERSION}`,
+      'run `ticket-flow upgrade`',
+    );
+  } catch {
+    return warn('generation version', 'unreadable build manifest', 'run `ticket-flow upgrade`');
+  }
+}
+
 // Verify the backend's MCP server is scaffolded into each configured tool's config.
 export function checkMcp(config, root) {
   const backend = getBackend(config.backend.type);
@@ -111,7 +130,7 @@ export function doctor({ configPath, out } = {}) {
   results.push(checkGitRepo(), checkGitRemote(), checkGh());
   if (cfg.config) {
     const root = path.resolve(out || cfg.config.output.dir || '.');
-    results.push(checkDrift(cfg.config, root), checkMcp(cfg.config, root));
+    results.push(checkDrift(cfg.config, root), checkMcp(cfg.config, root), checkVersion(root));
   }
 
   console.log('ticket-flow doctor\n');

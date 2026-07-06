@@ -161,7 +161,7 @@ test('runBuild renders to --out and reports every written file', () => {
     );
     // 18 skills (6×3) + 3 tool extras (claude overview, copilot + opencode guides)
     // + opencode.json wiring + 3 MCP configs + TICKET-FLOW.md
-    assert.equal(written.length, 29);
+    assert.equal(written.length, 30);
     assert.ok(fs.existsSync(path.join(outDir, '.claude/skills/next-ticket/SKILL.md')));
     assert.ok(fs.existsSync(path.join(outDir, '.claude/skills/ticket-flow/SKILL.md')));
     assert.ok(fs.existsSync(path.join(outDir, '.github/instructions/ticket-flow.instructions.md')));
