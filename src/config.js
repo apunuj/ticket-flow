@@ -24,6 +24,7 @@ function normalize(config) {
   config.conventions = config.conventions || [];
   config.review = config.review || {};
   config.review.conventionChecks = config.review.conventionChecks || [];
+  config.orchestrate = config.orchestrate || {};
   config.output = config.output || {};
   config.output.dir = config.output.dir || '.';
   return config;

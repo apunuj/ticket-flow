@@ -6,8 +6,9 @@ import { frontmatter } from './_frontmatter.js';
 export default {
   id: 'claude',
 
-  argToken() {
-    return '$1';
+  argToken(meta) {
+    // argMode: all → the skill takes the full argument string (e.g. several ticket ids)
+    return meta && meta.argMode === 'all' ? '$ARGUMENTS' : '$1';
   },
 
   ask(question) {

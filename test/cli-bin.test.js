@@ -79,7 +79,7 @@ test('build renders from --config to --out end to end', () => {
   try {
     const { code, out } = run(['build', '--config', EXAMPLE, '--out', dir]);
     assert.equal(code, 0);
-    assert.match(out, /Built 26 files/); // 6 skills × 3 tools + extras + MCP + doc
+    assert.match(out, /Built 29 files/); // 7 skills × 3 tools + extras + MCP + doc
     assert.match(out, /always-on guide/);
     assert.match(out, /Try it now/);
     assert.ok(fs.existsSync(path.join(dir, '.claude/skills/merge-ticket/SKILL.md')));

@@ -154,3 +154,34 @@ test('conventions render with single periods under their own lead-in', () => {
   const fix = renderSkill('fix-ticket', env('claude')).content;
   assert.doesNotMatch(fix, /\.\.(\s|$)/, 'fix-ticket too');
 });
+
+// APU-724: /orchestrate-ticket — multi-ticket, multi-model orchestration as a first-class skill.
+test('orchestrate-ticket renders with multi-ticket args, roles, and the delegation contract', () => {
+  assert.ok(SKILLS.includes('orchestrate-ticket'), 'registered in SKILLS');
+  const f = renderSkill('orchestrate-ticket', env('claude'));
+  assert.equal(f.path, '.claude/skills/orchestrate-ticket/SKILL.md');
+  assert.match(f.content, /\$ARGUMENTS/, 'claude takes all args, not just $1');
+  assert.match(f.content, /Planner/, 'planner/reviewer role');
+  assert.match(f.content, /Implementer/, 'implementer role');
+  assert.match(f.content, /Delegation contract/, 'writes stay with the orchestrator');
+  assert.match(f.content, /product clarifications/i, 'STOP class 1');
+  assert.match(f.content, /judgment calls/i, 'STOP class 2');
+  assert.match(f.content, /Blocked-by|dependency order/i, 'dependency ordering');
+
+  const copilot = renderSkill('orchestrate-ticket', env('copilot'));
+  assert.match(copilot.content, /\$\{input:tickets\}/, 'copilot named input for the ticket list');
+});
+
+test('orchestrate config block is optional, validated, and rendered', () => {
+  const raw = fs.readFileSync(path.join(ROOT, 'examples', 'example.config.yaml'), 'utf8');
+  const withModels = raw + '\norchestrate:\n  plannerModel: opus\n  implementerModel: sonnet\n';
+  const cfg = parseConfig(withModels);
+  assert.equal(cfg.orchestrate.plannerModel, 'opus');
+  const out = renderSkill('orchestrate-ticket', {
+    config: cfg, backend: getBackend(cfg.backend.type), tool: getTool('claude'),
+  }).content;
+  assert.match(out, /opus/, 'planner model override rendered');
+  assert.match(out, /sonnet/, 'implementer model override rendered');
+  // and absent by default
+  assert.equal(parseConfig(raw).orchestrate.plannerModel, undefined);
+});
