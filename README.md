@@ -74,6 +74,18 @@ building.
 `build` writes the configured tool files, backend MCP config, and `TICKET-FLOW.md`. Generated files
 are created or merged; existing unrelated config is preserved.
 
+### Upgrade to a New Version
+
+```bash
+npx ticket-flow@latest upgrade
+```
+
+`upgrade` regenerates everything at the newest version and, on top of a plain `build`: refuses to
+overwrite generated files that carry uncommitted changes (possible hand edits — `--force` to
+override), prunes files an earlier version generated that no longer exist, and appends newly
+introduced optional config blocks to `ticket-flow.config.yaml` as commented snippets. `doctor`
+warns when the generated pack predates the running version.
+
 ## Generated Files
 
 | Tool | Slash Skills / Commands | Always-On Guidance | MCP Config |

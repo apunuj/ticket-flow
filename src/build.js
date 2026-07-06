@@ -2,7 +2,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { getBackend } from './backends/index.js';
 import { getTool } from './render/index.js';
-import { renderForTool, renderDoc } from './compose/composer.js';
+import { renderForTool, renderDoc, PKG_ROOT } from './compose/composer.js';
+
+export const MANIFEST_FILE = '.ticket-flow.manifest.json';
+export const PKG_VERSION = JSON.parse(
+  fs.readFileSync(path.join(PKG_ROOT, 'package.json'), 'utf8'),
+).version;
 
 // Render every configured skill for every configured tool, against the configured backend.
 // Returns [{ tool, kind, path, content }] without touching disk.
@@ -106,6 +111,18 @@ export function build(config, { outputDir } = {}) {
   const doc = renderDoc({ config, backend });
   fs.writeFileSync(path.join(root, 'TICKET-FLOW.md'), doc);
   written.push({ tool: '(repo)', kind: 'doc', path: 'TICKET-FLOW.md', note: 'team onboarding reference' });
+
+  // Manifest of the files this build OWNS — rendered output only. Merged tool configs
+  // (opencode.json, .mcp.json) contain user state and are never pruned or overwritten
+  // wholesale, so they stay out. `upgrade` prunes against it; `doctor` reads its version.
+  const owned = written
+    .filter((f) => ['skill', 'guide', 'overview', 'doc'].includes(f.kind))
+    .map((f) => f.path);
+  fs.writeFileSync(
+    path.join(root, MANIFEST_FILE),
+    JSON.stringify({ version: PKG_VERSION, files: owned }, null, 2) + '\n',
+  );
+  written.push({ tool: '(repo)', kind: 'manifest', path: MANIFEST_FILE, note: 'build manifest (read by upgrade/doctor)' });
 
   return written;
 }

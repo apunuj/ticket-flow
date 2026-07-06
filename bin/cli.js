@@ -3,12 +3,14 @@ import { runInit } from '../src/cli/init.js';
 import { runBuild } from '../src/cli/build.js';
 import { check } from '../src/cli/check.js';
 import { doctor } from '../src/cli/doctor.js';
+import { upgrade } from '../src/cli/upgrade.js';
 
 const HELP = `ticket-flow — portable ticket-driven workflow skills for Claude Code, Copilot, and opencode
 
 Usage:
   ticket-flow init [--force] [--defaults]  Set up ticket-flow.config.yaml (interactive; --defaults to skip prompts)
   ticket-flow build [--config <p>] [--out <dir>]   Generate the skills for your configured tools
+  ticket-flow upgrade [--force]           Regenerate after a new ticket-flow version: migrate config, prune stale files (--force to overwrite uncommitted hand edits)
   ticket-flow doctor [--config <p>] [--out <dir>]  Preflight checklist: config, git, gh, generated files, MCP
   ticket-flow check [--config <p>]        Validate config + report backend/tool requirements
 
@@ -40,6 +42,8 @@ async function main() {
     await runInit(flags);
   } else if (cmd === 'build') {
     runBuild(flags);
+  } else if (cmd === 'upgrade') {
+    upgrade(flags);
   } else if (cmd === 'check') {
     check(flags);
   } else if (cmd === 'doctor') {
