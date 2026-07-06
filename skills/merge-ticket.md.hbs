@@ -6,9 +6,11 @@ argument-hint: "{{eg.prefixUpper}}-NNN"
 
 Merge the PR for ticket {{arg}} and close it — **only** after the review gate passes.
 
+{{> arg-guard}}
+
 ## 1. Resolve the PR
 
-- {{op "getAttachedPR"}}.
+- {{op "getAttachedPR"}}. {{> preflight}}
 - If no open PR is found, ask the user for it. No PR → stop: nothing to merge; suggest `/execute-ticket {{arg}}`.
 
 ## 2. Review gate

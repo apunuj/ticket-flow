@@ -80,3 +80,28 @@ test('renderGuide maps every phase with a tool-specific pointer', () => {
   const copilotGuide = renderGuide(env('copilot'));
   assert.match(copilotGuide, /\.github\/prompts\/execute-ticket\.prompt\.md/, 'points at the copilot prompt file');
 });
+
+// APU-720: malformed arguments and missing backends are caught up front, not mid-flow.
+test('ticket-arg skills carry the argument guard; next-ticket does not', () => {
+  for (const skill of SKILLS) {
+    const out = renderSkill(skill, env('claude')).content;
+    if (skill === 'next-ticket') {
+      assert.doesNotMatch(out, /Argument guard/, 'next-ticket takes a project, not a ticket id');
+    } else {
+      assert.match(out, /Argument guard/, `${skill} guards its ticket argument`);
+      assert.match(out, /XYZ-<number>/, `${skill} names the configured id shape`);
+    }
+  }
+});
+
+test('every skill states backend fail-fast (preflight) on its first backend call', () => {
+  for (const skill of SKILLS) {
+    const out = renderSkill(skill, env('claude')).content;
+    assert.match(out, /stop and tell the user/i, `${skill} fails fast on a missing/erroring backend`);
+  }
+});
+
+test('artifact-read separates a missing artifact (recoverable) from a missing backend (stop)', () => {
+  const out = renderSkill('execute-ticket', env('claude')).content;
+  assert.match(out, /missing work artifact is recoverable; a missing backend is not/i);
+});

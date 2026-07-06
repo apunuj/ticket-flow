@@ -6,9 +6,11 @@ argument-hint: "<ticket-id> (e.g., {{eg.prefixUpper}}-300)"
 
 Describe ticket {{arg}} and orient on it.
 
+{{> arg-guard}}
+
 ## Steps
 
-1. {{titlecase (op "getTicket")}}.
+1. {{titlecase (op "getTicket")}}. {{> preflight}}
 
 2. **Branch on status:**
    - If the ticket is **completed or cancelled** → **Retrospective mode** (skip to step 7).
