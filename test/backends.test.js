@@ -66,7 +66,10 @@ test('backend-specific tool vocabulary differs (set vs transition, attach vs lin
   const jira = getBackend('jira');
   assert.match(lin.op('setState', { state: 'done' }, ctx()), /save_issue/);
   assert.match(jira.op('setState', { state: 'done' }, ctx()), /transition/);
-  assert.match(lin.op('attachPR', {}, ctx()), /create_attachment/);
+  // Linear's create_attachment uploads files (base64) — URL links go through save_issue.links.
+  assert.match(lin.op('attachPR', {}, ctx()), /save_issue/);
+  assert.match(lin.op('attachPR', {}, ctx()), /links/);
+  assert.doesNotMatch(lin.op('attachPR', {}, ctx()), /create_attachment/);
   assert.match(jira.op('attachPR', {}, ctx()), /remote link/);
 });
 

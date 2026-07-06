@@ -16,7 +16,7 @@ export default {
   capabilities: { groups: true, attachments: true, groupTargetDates: true },
   // surfaced by `ticket-flow check` and in generated docs
   requires:
-    'a Linear MCP server connected in your tool (Claude Code, Copilot, or opencode), exposing get_issue / list_issues / list_comments / list_milestones / save_issue / create_attachment / save_comment.',
+    'a Linear MCP server connected in your tool (Claude Code, Copilot, or opencode), exposing get_issue / list_issues / list_comments / list_milestones / save_issue / save_comment.',
   // Official remote MCP server (streamable HTTP). OAuth on first connect. `ticket-flow build`
   // scaffolds this into each tool's MCP config so connecting is a one-time approval.
   mcp: { name: 'linear', url: 'https://mcp.linear.app/mcp' },
@@ -46,8 +46,9 @@ export default {
         return `move the ticket to **${display}** with the Linear MCP **save_issue** tool (\`id: ${t}\`, \`state: "${display}"\`)${RECEIPT}`;
       }
 
+      // create_attachment uploads files (base64 content) — a PR URL is a link, set via save_issue.
       case 'attachPR':
-        return `attach the PR to the ticket with the Linear MCP **create_attachment** tool (on \`${t}\`, the PR URL as \`url\` and \`PR #<n>: <title>\` as \`title\`) — skip if the same PR is already attached${RECEIPT}`;
+        return `attach the PR to the ticket with the Linear MCP **save_issue** tool (\`id: ${t}\`, \`links: [{url: <PR URL>, title: "PR #<n>: <title>"}]\`) — skip if the same PR is already attached${RECEIPT}`;
 
       case 'getAttachedPR':
         return `read the ticket's attachments/links (Linear MCP **get_issue** on \`${t}\`) and its comments (Linear MCP **list_comments**, \`issueId: ${t}\`) for the GitHub PR URL that execute-ticket attached; cross-check with \`gh pr list --search "${t}"\` if missing`;
