@@ -43,6 +43,8 @@ Never merge on ambiguous evidence — when in doubt, ask.
 - {{op "setState" state="done"}}.
 - {{> artifact-write}} — set `status: merged`.
 
+{{> checkpoint next="start cleanup" require="the closing comment, the done state, and the artifact's `status: merged` update are receipted"}}
+
 ## 6. Post-merge cleanup — always confirm
 
 A merge leaves housekeeping. Surface BOTH and confirm before acting (or proceed if pre-authorized this turn) — never silently skip either, and never delete an unmerged branch without explicit per-branch confirmation:

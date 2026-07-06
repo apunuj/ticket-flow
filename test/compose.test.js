@@ -105,3 +105,28 @@ test('artifact-read separates a missing artifact (recoverable) from a missing ba
   const out = renderSkill('execute-ticket', env('claude')).content;
   assert.match(out, /missing work artifact is recoverable; a missing backend is not/i);
 });
+
+// APU-721: backend writes are phase gates, not droppable bullets.
+test('execute-ticket moves the ticket to In Progress at build start', () => {
+  const out = renderSkill('execute-ticket', env('claude')).content;
+  assert.match(out, /move the ticket to \*\*In Progress\*\*/, 'configured inProgress state used');
+  assert.match(out, /before the first commit/i, 'transition gates the first commit');
+});
+
+test('execute-ticket ingests an external plan and creates a missing artifact before building', () => {
+  const out = renderSkill('execute-ticket', env('claude')).content;
+  assert.match(out, /supplied externally|external plan|plan .*(file|message|orchestrator)/i);
+  assert.doesNotMatch(out, /\nResilience:/, 'trailing resilience clause promoted into the build gate');
+});
+
+test('describe-ticket gates branch checkout on the planning artifact', () => {
+  const out = renderSkill('describe-ticket', env('claude')).content;
+  assert.match(out, /Checkpoint[^.]*do not/i, 'checkout blocked until the artifact write is receipted');
+});
+
+test('writing skills phrase their backend writes as checkpoints', () => {
+  for (const skill of ['describe-ticket', 'execute-ticket', 'review-ticket', 'fix-ticket', 'merge-ticket']) {
+    const out = renderSkill(skill, env('claude')).content;
+    assert.match(out, /Checkpoint/, `${skill} carries a phase-gate checkpoint`);
+  }
+});
