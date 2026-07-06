@@ -8,6 +8,7 @@ This project follows a five-phase, ticket-driven workflow. **Recognize the user'
 - **Review a ticket** — when the user wants the ticket's PR reviewed or checked against its acceptance criteria: "review the PR", "is {{eg.prefixUpper}}-123 ready", "does this meet the criteria". → {{skillRef "review-ticket"}}
 - **Fix a ticket's PR feedback** — when the user wants to act on review comments or a failing/blocked PR: "fix the review comments", "address the PR feedback", "fix the failing CI on {{eg.prefixUpper}}-123". → {{skillRef "fix-ticket"}}
 - **Merge a ticket** — when the user wants to land/merge reviewed work and close out: "merge it", "land {{eg.prefixUpper}}-123", "close out the ticket". → {{skillRef "merge-ticket"}}
+- **Orchestrate tickets** — when the user wants several tickets worked together and/or a multi-model split (one model plans + reviews, another builds): "work {{eg.prefixUpper}}-101 and {{eg.prefixUpper}}-102 together", "orchestrate these tickets". → {{skillRef "orchestrate-ticket"}}
 
 **Lifecycle order:** next → describe → execute → review → merge, with **fix** looping back from review/merge whenever the PR has open comments or red CI. The phases are idempotent and resumable: if an earlier phase was skipped, the later one falls back gracefully (e.g. execute cuts the branch if describe never ran). When the intent is ambiguous, ask which phase the user means before acting.
 

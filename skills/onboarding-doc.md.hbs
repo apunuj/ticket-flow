@@ -19,6 +19,7 @@ next-ticket → describe-ticket → execute-ticket → review-ticket → merge-t
 | **review-ticket** | Reviews the PR at a depth you choose, checks it delivers every acceptance criterion, and logs the full review on the ticket. |
 | **fix-ticket** | Triages a PR's review comments + failing CI, confirms the scope and a plan with you, then fixes and updates the PR. |
 | **merge-ticket** | Gates on the review, merges, closes the ticket, cleans up branches, and surfaces the next priority. |
+| **orchestrate-ticket** | Runs the whole lifecycle across one or more tickets with sub-agents (Planner plans + reviews, Implementer builds), bubbling only product clarifications and review judgment calls to you. |
 
 ## How to use it
 
@@ -32,6 +33,7 @@ Just say what you want — the matching phase runs (no slash command needed):
 | "review the PR" / "is it ready?" | review-ticket |
 | "fix the review comments" / "fix the failing CI" | fix-ticket |
 | "merge it" / "close out the ticket" | merge-ticket |
+| "work {{eg.prefixUpper}}-101 and {{eg.prefixUpper}}-102 together" | orchestrate-ticket |
 
 Prefer explicit control? Invoke a phase directly: {{skillRef "next-ticket"}}, {{skillRef "describe-ticket"}}, {{skillRef "execute-ticket"}}, {{skillRef "review-ticket"}}, {{skillRef "merge-ticket"}} — the slash command runs the same procedure.
 

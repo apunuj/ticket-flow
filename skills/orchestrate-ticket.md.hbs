@@ -1,0 +1,51 @@
+---
+name: orchestrate-ticket
+description: Orchestrate one or more {{backend.displayName}} tickets end to end with sub-agents — a Planner role produces plans and reviews, an Implementer role builds and fixes — while you own every backend write and bubble only product clarifications and review judgment calls to the user. Use when the user wants several tickets worked together or a multi-model split — e.g. "work {{eg.prefixUpper}}-101 and {{eg.prefixUpper}}-102 together", "have the strong model plan and the fast model build", "orchestrate these tickets".
+argument-hint: "{{eg.prefixUpper}}-NNN [{{eg.prefixUpper}}-MMM …]"
+argMode: all
+argName: tickets
+---
+
+Orchestrate ticket(s) {{arg}} through the full lifecycle — describe → execute → review → fix → merge — using sub-agents for the heavy phases while you, the orchestrator, keep every backend write.
+
+**Argument guard.** The ticket list is `{{arg}}`. Every whitespace-separated token must be a well-formed ticket id — {{#if project.ticketPrefix}}`{{upper project.ticketPrefix}}-<number>`{{else}}`<PREFIX>-<number>` (e.g. `{{eg.prefixUpper}}-312`){{/if}}. Drop anything else (words, paths, stray dashes) and recover the intended ids from the invocation text or conversation; if none can be recovered, ask the user. A malformed id must never reach backend calls, branch names, or commit messages.
+
+{{> delegation}}
+
+## Roles
+
+- **Planner** — plans and reviews. Spawn with the strongest model available{{#if orchestrate.plannerModel}} (configured: `{{orchestrate.plannerModel}}`){{/if}}. Owns the describe-phase analysis and the review-phase findings.
+- **Implementer** — builds and fixes. Spawn with the default worker model{{#if orchestrate.implementerModel}} (configured: `{{orchestrate.implementerModel}}`){{/if}}. Owns code, tests, and commits on the ticket branch.
+- **You (orchestrator)** — sequencing, every {{backend.displayName}} write (with receipts), git/PR operations, and all user interaction.
+
+Sub-agent prompts must embed the relevant phase skill's procedure — read the phase skill file and carry its instructions verbatim where the sub-agent needs them; sub-agents return their results as data.
+
+## Interaction contract
+
+Exactly two classes of questions reach the user; everything else runs autonomously:
+
+1. **Product clarifications** during planning (describe's clarifying questions — batch them per ticket).
+2. **Judgment calls on review findings** (fix now / skip / defer — present the Planner's findings grouped, with your recommendation).
+
+Hard gates still stop the run regardless: a failing test gate, merge confirmation, destructive actions, and anything the phase skills mark "stop and ask".
+
+## Ordering
+
+Fetch every ticket up front ({{op "getTicket"}} for each id — this doubles as the backend preflight; if the tool is missing or erroring, stop and tell the user). Resolve the dependency order: `Blocked-by` relations and description chains. A blocked ticket waits until its blocker is **merged**, not merely built. Work strictly one phase of one ticket at a time; do not interleave phases across tickets.
+
+## Per ticket — the standard lifecycle, delegated
+
+Each ticket gets its own artifact, branch, and state transitions — never shared, never skipped.
+
+1. **Plan (Planner).** The Planner returns product behavior, user stories, acceptance criteria, clarifying questions, and a draft test-driven plan as data. Bubble the questions to the user (STOP class 1). After answers, the Planner finalizes the plan. Then **you** write the work artifact with `status: planning` — {{> artifact-write}} — and check out the ticket branch per `/describe-ticket`.
+2. **Build (Implementer).** First the build-start gate from `/execute-ticket`: artifact to `status: building`, then {{op "setState" state="inProgress"}}. Only then spawn the Implementer on the ticket branch; it works the plan test-first and returns commits + test results as data. **You** run the test gate, push, open the PR, then complete `/execute-ticket` step 5: attach the PR, post the shipping note, move to {{state "inReview"}}, update the artifact.
+3. **Review (Planner).** The Planner reviews the PR against the acceptance criteria and returns a verdict + findings as data. **You** record the review comment and the artifact's `Review verdict` per `/review-ticket`, then bubble the blocking findings to the user (STOP class 2).
+4. **Fix loop (Implementer).** For the findings the user accepted, run the `/fix-ticket` procedure with the Implementer doing the code work; re-review with the Planner until the verdict is ✅.
+5. **Merge.** Confirm with the user, then follow `/merge-ticket`: review gate, merge, closing comment, done state, artifact `status: merged`, cleanup.
+6. **Boundary summary.** Before starting the next ticket, report: ticket → PR → verdict → state, with receipts (comment ids / URLs).
+
+{{> checkpoint next="start any phase of the next ticket" require="the previous phase's backend writes are receipted on the current ticket"}}
+
+## Resume / idempotency
+
+Re-running with the same ticket list resumes each ticket from its artifact `status` (planning → building → in-review → merged) — never redo a receipted phase, never post a duplicate artifact.

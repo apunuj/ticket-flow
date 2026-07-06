@@ -38,3 +38,8 @@ tools:
 
 output:
   dir: "."                     # repo root the .claude/.github/.opencode dirs are written under
+
+# Optional: model split for /orchestrate-ticket (omit to use your tool's defaults).
+# orchestrate:
+#   plannerModel: ""       # strongest model — plans and reviews
+#   implementerModel: ""   # worker model — builds and fixes

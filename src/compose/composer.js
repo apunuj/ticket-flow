@@ -29,6 +29,7 @@ export const SKILLS = [
   'review-ticket',
   'fix-ticket',
   'merge-ticket',
+  'orchestrate-ticket',
 ];
 
 // The always-on "trigger map" template, rendered once per tool into that tool's
@@ -62,7 +63,10 @@ function buildContext(config, backend, tool, rawMeta) {
 
 function makeEnv(config, backend, tool, rawMeta) {
   const hb = Handlebars.create();
-  const opCtx = { config, ticket: tool.argToken(rawMeta), backend };
+  // argMode: all skills iterate over several tickets, so backend ops reference the
+  // current ticket generically instead of the whole argument string.
+  const opTicket = rawMeta && rawMeta.argMode === 'all' ? '<ticket-id>' : tool.argToken(rawMeta);
+  const opCtx = { config, ticket: opTicket, backend };
 
   // {{op "getTicket" state="inReview"}} -> backend-specific natural-language instruction
   hb.registerHelper('op', (name, options) =>
