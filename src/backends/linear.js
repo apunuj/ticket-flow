@@ -4,6 +4,7 @@
 // MCP is mounted under Claude Code, Copilot, or opencode — the agent resolves "the Linear MCP".
 
 import { ARTIFACT_SENTINEL } from '../artifact.js';
+import { RECEIPT } from './_receipt.js';
 
 const id = 'linear';
 
@@ -15,7 +16,7 @@ export default {
   capabilities: { groups: true, attachments: true, groupTargetDates: true },
   // surfaced by `ticket-flow check` and in generated docs
   requires:
-    'a Linear MCP server connected in your tool (Claude Code, Copilot, or opencode), exposing get_issue / list_issues / list_milestones / save_issue / create_attachment / save_comment.',
+    'a Linear MCP server connected in your tool (Claude Code, Copilot, or opencode), exposing get_issue / list_issues / list_comments / list_milestones / save_issue / save_comment.',
   // Official remote MCP server (streamable HTTP). OAuth on first connect. `ticket-flow build`
   // scaffolds this into each tool's MCP config so connecting is a one-time approval.
   mcp: { name: 'linear', url: 'https://mcp.linear.app/mcp' },
@@ -42,23 +43,26 @@ export default {
 
       case 'setState': {
         const display = states[params.state] || params.state;
-        return `move the ticket to **${display}** with the Linear MCP **save_issue** tool (\`id: ${t}\`, \`state: "${display}"\`)`;
+        return `move the ticket to **${display}** with the Linear MCP **save_issue** tool (\`id: ${t}\`, \`state: "${display}"\`)${RECEIPT}`;
       }
 
+      // create_attachment uploads files (base64 content) — a PR URL is a link, set via save_issue.
       case 'attachPR':
-        return `attach the PR to the ticket with the Linear MCP **create_attachment** tool (on \`${t}\`, the PR URL as \`url\` and \`PR #<n>: <title>\` as \`title\`) — skip if the same PR is already attached`;
+        return `attach the PR to the ticket with the Linear MCP **save_issue** tool (\`id: ${t}\`, \`links: [{url: <PR URL>, title: "PR #<n>: <title>"}]\`) — skip if the same PR is already attached${RECEIPT}`;
 
       case 'getAttachedPR':
-        return `read the ticket's attachments/links/comments (Linear MCP **get_issue** on \`${t}\`) for the GitHub PR URL that execute-ticket attached; cross-check with \`gh pr list --search "${t}"\` if missing`;
+        return `read the ticket's attachments/links (Linear MCP **get_issue** on \`${t}\`) and its comments (Linear MCP **list_comments**, \`issueId: ${t}\`) for the GitHub PR URL that execute-ticket attached; cross-check with \`gh pr list --search "${t}"\` if missing`;
 
       case 'addComment':
-        return `post a comment on the ticket with the Linear MCP **save_comment** tool (\`issueId: ${t}\`)`;
+        return `post a comment on the ticket with the Linear MCP **save_comment** tool (\`issueId: ${t}\`)${RECEIPT}`;
 
+      // Comment discovery must go through list_comments — get_issue does not return
+      // comments, and an agent that looks there concludes the artifact doesn't exist.
       case 'getWorkArtifact':
-        return `read the ticket comments (Linear MCP **get_issue** on \`${t}\` with \`includeRelations: true\`) and find the one containing \`${ARTIFACT_SENTINEL}\` — that is the work artifact`;
+        return `list the ticket's comments with the Linear MCP **list_comments** tool (\`issueId: ${t}\`) and find the one containing \`${ARTIFACT_SENTINEL}\` — that is the work artifact`;
 
       case 'upsertWorkArtifact':
-        return `upsert the work-artifact comment: find the existing comment containing \`${ARTIFACT_SENTINEL}\` and **update it in place** with the Linear MCP **save_comment** tool (pass its comment id); if none exists, create it (\`issueId: ${t}\`). Never post a second copy`;
+        return `upsert the work-artifact comment: list the ticket's comments with the Linear MCP **list_comments** tool (\`issueId: ${t}\`) and find the one containing \`${ARTIFACT_SENTINEL}\`; if found, **update it in place** with the Linear MCP **save_comment** tool (pass its comment id); if none exists, create it (\`issueId: ${t}\`). Never post a second copy${RECEIPT}`;
 
       default:
         return `[[unknown op: ${name}]]`;

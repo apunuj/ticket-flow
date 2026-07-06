@@ -66,7 +66,10 @@ test('backend-specific tool vocabulary differs (set vs transition, attach vs lin
   const jira = getBackend('jira');
   assert.match(lin.op('setState', { state: 'done' }, ctx()), /save_issue/);
   assert.match(jira.op('setState', { state: 'done' }, ctx()), /transition/);
-  assert.match(lin.op('attachPR', {}, ctx()), /create_attachment/);
+  // Linear's create_attachment uploads files (base64) — URL links go through save_issue.links.
+  assert.match(lin.op('attachPR', {}, ctx()), /save_issue/);
+  assert.match(lin.op('attachPR', {}, ctx()), /links/);
+  assert.doesNotMatch(lin.op('attachPR', {}, ctx()), /create_attachment/);
   assert.match(jira.op('attachPR', {}, ctx()), /remote link/);
 });
 
@@ -93,6 +96,34 @@ test('linear listGroups still works without a configured project', () => {
   assert.match(out, /list_milestones/);
   assert.doesNotMatch(out, /""/, 'no empty-string project leaks');
 });
+
+// APU-719: Linear's get_issue does not return comments — every comment-discovery
+// instruction must route through list_comments or agents conclude "no artifact exists".
+test('[linear] comment discovery goes through list_comments, never get_issue', () => {
+  const lin = getBackend('linear');
+  assert.match(lin.op('getWorkArtifact', {}, ctx()), /list_comments/);
+  assert.match(lin.op('upsertWorkArtifact', {}, ctx()), /list_comments/);
+  assert.match(lin.op('getAttachedPR', {}, ctx()), /list_comments/);
+  assert.doesNotMatch(
+    lin.op('getWorkArtifact', {}, ctx()),
+    /get_issue/,
+    'get_issue cannot be the comment source — it does not return comments',
+  );
+  assert.match(backends.linear.requires, /list_comments/, 'requires advertises the read tool');
+});
+
+// APU-719: no backend write may fail silently — every mutating op carries the receipt clause.
+const MUTATING_OPS = ['addComment', 'upsertWorkArtifact', 'setState', 'attachPR'];
+for (const type of ['linear', 'jira']) {
+  test(`[${type}] mutating ops carry the write-receipt clause`, () => {
+    const b = getBackend(type);
+    for (const op of MUTATING_OPS) {
+      const out = b.op(op, op === 'setState' ? { state: 'done' } : {}, ctx());
+      assert.match(out, /verify the write/i, `[${type}] ${op} verifies the response`);
+      assert.match(out, /never continue silently/i, `[${type}] ${op} fails loudly`);
+    }
+  });
+}
 
 test('each backend declares its remote MCP server (streamable HTTP /mcp endpoint)', () => {
   assert.equal(backends.linear.mcp.name, 'linear');
