@@ -75,6 +75,8 @@ function makeEnv(config, backend, tool, rawMeta) {
   });
   hb.registerHelper('lower', (s) => String(s == null ? '' : s).toLowerCase());
   hb.registerHelper('upper', (s) => String(s == null ? '' : s).toUpperCase());
+  // exactly one trailing period, whether or not the config string carried its own
+  hb.registerHelper('sentence', (s) => String(s == null ? '' : s).replace(/\.?\s*$/, '.'));
   hb.registerHelper('titlecase', (s) => {
     const str = String(s == null ? '' : s);
     return str.charAt(0).toUpperCase() + str.slice(1);
