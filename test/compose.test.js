@@ -191,6 +191,17 @@ for (const type of ['linear', 'jira']) {
         `${skill} echoes the artifact inline after each write`,
       );
       assert.match(out, /never need to open the ticket/i, `${skill} states the visibility rationale`);
+      assert.match(out, /final message/i, `${skill} requires the render in the turn's final message`);
+      assert.match(
+        out,
+        /after all backend writes and tool calls/i,
+        `${skill} sequences the render after backend writes and tool calls`,
+      );
+      assert.match(
+        out,
+        /render the user cannot see does not count/i,
+        `${skill} states the visibility corollary`,
+      );
     }
   });
 
@@ -204,6 +215,11 @@ for (const type of ['linear', 'jira']) {
       config: quiet, backend: getBackend(type), tool: getTool('claude'),
     }).content;
     assert.doesNotMatch(out, /render the updated artifact sections/i, 'echo suppressed');
+    assert.doesNotMatch(
+      out,
+      /after all backend writes and tool calls/i,
+      'final-message placement rule suppressed too',
+    );
     assert.match(out, /\*\*Update the work artifact\.\*\*/, 'upsert instruction still present');
   });
 
