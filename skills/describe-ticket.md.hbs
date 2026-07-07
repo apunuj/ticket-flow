@@ -47,8 +47,10 @@ Describe ticket {{arg}} and orient on it.
    **d. Check out the ticket branch.** The confirmed plan marks the start of work.
 
 {{> branch-checkout}}
+{{#if output.inlineArtifacts}}
 
-   **Sequence: writes first, render last.** Complete both writes above — the artifact upsert (c) and the branch checkout (d) — before rendering anything back to the user; never render-then-write. The artifact render belongs at the very end of this turn, after every backend write and tool call, per the final-message rule below.
+   **Sequence: writes first, render last.** Complete both writes above — the artifact upsert (c) and the branch checkout (d) — before rendering anything back to the user; never render-then-write. The artifact render belongs in this turn's final message, after every backend write and tool call, per the final-message rule below.
+{{/if}}
 
    Prospective mode only — never create branches or an artifact when describing closed tickets, and never branch before the plan is confirmed (exploratory describes stay branch-free).
 
@@ -70,8 +72,8 @@ Describe ticket {{arg}} and orient on it.
 - Tight prose. Bullets and short paragraphs over walls of text.
 - File references repo-root relative, never absolute.
 - End with the ticket URL.
+{{~> final-message}}
 
-{{> final-message}}
 
 ## Resume / idempotency
 

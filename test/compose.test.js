@@ -261,10 +261,35 @@ for (const type of ['linear', 'jira']) {
       .replace('type: linear', `type: ${type}`)
       .replace(/inlineArtifacts: true.*/, 'inlineArtifacts: false');
     const quiet = parseConfig(quietRaw);
-    const quietOut = renderSkill('execute-ticket', {
+    const blankRuns = (s) => [...s.matchAll(/\n{3,}/g)].length;
+    for (const skill of ['describe-ticket', 'execute-ticket', 'review-ticket', 'fix-ticket', 'merge-ticket']) {
+      const loudOut = renderSkill(skill, envType(type)).content;
+      const quietOut = renderSkill(skill, {
+        config: quiet, backend: getBackend(type), tool: getTool('claude'),
+      }).content;
+      assert.doesNotMatch(
+        quietOut,
+        /bare receipt/i,
+        `${skill}: final-message rule suppressed with inlineArtifacts: false`,
+      );
+      assert.doesNotMatch(
+        quietOut,
+        /turn's final message/i,
+        `${skill}: no final-message mandate survives in quiet mode`,
+      );
+      assert.ok(
+        blankRuns(quietOut) <= blankRuns(loudOut),
+        `${skill}: suppression leaves no extra blank-line runs (quiet ${blankRuns(quietOut)} vs loud ${blankRuns(loudOut)})`,
+      );
+    }
+    const quietDescribe = renderSkill('describe-ticket', {
       config: quiet, backend: getBackend(type), tool: getTool('claude'),
     }).content;
-    assert.doesNotMatch(quietOut, /bare receipt/i, 'final-message rule suppressed with inlineArtifacts: false');
+    assert.doesNotMatch(
+      quietDescribe,
+      /writes first, render last/i,
+      'sequencing corollary suppressed with inlineArtifacts: false',
+    );
   });
 }
 
