@@ -44,7 +44,7 @@ Sub-agent prompts must embed the relevant phase skill's procedure — read the p
 
 ## Interaction contract
 
-Exactly two classes of questions reach the user; everything else runs autonomously:
+Exactly two classes of questions reach the user **mid-run** (the model-split resolution above and the persist offer sit outside it, at the run's open and close); everything else runs autonomously:
 
 1. **Product clarifications** during planning (describe's clarifying questions — batch them per ticket).
 2. **Judgment calls on review findings** (fix now / skip / defer — present the Planner's findings grouped, with your recommendation).

@@ -380,6 +380,19 @@ for (const type of ['linear', 'jira']) {
     }
   });
 
+  // PR #13 review B2: the interaction contract's "exactly two classes" claim is only true
+  // mid-run — the model-split ask (unconfigured runs) and the persist offer are neither class.
+  test(`[${type}] interaction contract scopes the two-question claim to mid-run`, () => {
+    for (const block of ['', FULL_SPLIT]) {
+      const out = renderSkill('orchestrate-ticket', orchestrateEnv(type, block)).content;
+      assert.match(
+        out,
+        /Exactly two classes of questions reach the user \*\*mid-run\*\*/,
+        'two-question claim scoped to mid-run',
+      );
+    }
+  });
+
   // PR #13 review N1: empty strings are not models — "" for either key must fall to ask.
   test(`[${type}] empty-string models render the ask path, not the configured path`, () => {
     for (const block of [
