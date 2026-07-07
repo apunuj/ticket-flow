@@ -510,3 +510,29 @@ test('orchestrate config block is optional, validated, and rendered', () => {
   // and absent by default
   assert.equal(parseConfig(raw).orchestrate.plannerModel, undefined);
 });
+
+// APU-793: self-contained asks + guaranteed visibility for every gate question.
+// The `ask` helper's optional context= appends a tool-neutral clause MANDATING that the
+// context be displayed in the message body immediately before the question — context never
+// rides inside the (mobile-truncating, mid-turn-swallowable) question string. The clause is
+// additive on all three tools; the per-tool ask machinery is unchanged. Backend-neutral.
+for (const type of ['linear', 'jira']) {
+  test(`[${type}] {{ask}} context= renders the display mandate on every tool`, () => {
+    for (const toolId of ['claude', 'copilot', 'opencode']) {
+      const out = renderSkill('fix-ticket', envType(type, toolId)).content;
+      assert.match(
+        out,
+        /in the message body immediately before this question/i,
+        `${toolId}: ask context renders the display mandate`,
+      );
+      assert.match(out, /asking without displaying it is non-compliant/i, `${toolId}: the mandate has teeth`);
+      assert.match(out, /keep the question text itself short/i, `${toolId}: short-question corollary`);
+      if (toolId === 'claude') {
+        assert.match(out, /AskUserQuestion/, 'claude asks via AskUserQuestion');
+      } else {
+        assert.match(out, /present the options and wait/i, `${toolId}: present-and-wait prose`);
+        assert.doesNotMatch(out, /AskUserQuestion/, `${toolId}: never names claude machinery`);
+      }
+    }
+  });
+}
