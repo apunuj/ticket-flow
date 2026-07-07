@@ -172,46 +172,57 @@ test('orchestrate-ticket renders with multi-ticket args, roles, and the delegati
   assert.match(copilot.content, /\$\{input:tickets\}/, 'copilot named input for the ticket list');
 });
 
-// APU-787: every artifact write echoes the updated sections inline in chat, gated by
-// output.inlineArtifacts (default true).
-test('artifact writes instruct an inline echo of the updated sections', () => {
-  for (const skill of ['execute-ticket', 'describe-ticket']) {
-    const out = renderSkill(skill, env('claude')).content;
-    assert.match(
-      out,
-      /render the updated artifact sections/i,
-      `${skill} echoes the artifact inline after each write`,
-    );
-    assert.match(out, /never need to open the ticket/i, `${skill} states the visibility rationale`);
-  }
+// APU-787: artifact visibility convention — inline echo after every write, artifact mirrored
+// to the PR, verdict on the PR. Backend-neutral: asserted for both linear and jira renders.
+const exampleRaw = fs.readFileSync(path.join(ROOT, 'examples', 'example.config.yaml'), 'utf8');
+const configFor = (type) =>
+  type === 'linear' ? config : parseConfig(exampleRaw.replace('type: linear', `type: ${type}`));
+const envType = (type, toolId = 'claude') => ({
+  config: configFor(type), backend: getBackend(type), tool: getTool(toolId),
 });
 
-test('output.inlineArtifacts: false suppresses the echo but keeps the upsert', () => {
-  const raw = fs.readFileSync(path.join(ROOT, 'examples', 'example.config.yaml'), 'utf8');
-  const quiet = parseConfig(raw.replace(/^output:\n/m, 'output:\n  inlineArtifacts: false\n'));
-  assert.equal(quiet.output.inlineArtifacts, false, 'fixture toggles the knob');
-  const out = renderSkill('execute-ticket', {
-    config: quiet, backend: getBackend(quiet.backend.type), tool: getTool('claude'),
-  }).content;
-  assert.doesNotMatch(out, /render the updated artifact sections/i, 'echo suppressed');
-  assert.match(out, /\*\*Update the work artifact\.\*\*/, 'upsert instruction still present');
-});
+for (const type of ['linear', 'jira']) {
+  test(`[${type}] artifact writes instruct an inline echo of the updated sections`, () => {
+    for (const skill of ['execute-ticket', 'describe-ticket']) {
+      const out = renderSkill(skill, envType(type)).content;
+      assert.match(
+        out,
+        /render the updated artifact sections/i,
+        `${skill} echoes the artifact inline after each write`,
+      );
+      assert.match(out, /never need to open the ticket/i, `${skill} states the visibility rationale`);
+    }
+  });
 
-test('describe-ticket restates the refined story list unconditionally', () => {
-  const out = renderSkill('describe-ticket', env('claude')).content;
-  assert.match(out, /always, even when the clarifications were trivial/i);
-});
+  test(`[${type}] output.inlineArtifacts: false suppresses the echo but keeps the upsert`, () => {
+    const quietRaw = exampleRaw
+      .replace('type: linear', `type: ${type}`)
+      .replace(/inlineArtifacts: true.*/, 'inlineArtifacts: false');
+    const quiet = parseConfig(quietRaw);
+    assert.equal(quiet.output.inlineArtifacts, false, 'fixture toggles the knob');
+    const out = renderSkill('execute-ticket', {
+      config: quiet, backend: getBackend(type), tool: getTool('claude'),
+    }).content;
+    assert.doesNotMatch(out, /render the updated artifact sections/i, 'echo suppressed');
+    assert.match(out, /\*\*Update the work artifact\.\*\*/, 'upsert instruction still present');
+  });
 
-test('execute-ticket mirrors the work artifact into the PR body and keeps it synced', () => {
-  const out = renderSkill('execute-ticket', env('claude')).content;
-  assert.match(out, /## Work artifact/, 'PR body carries a Work artifact section');
-  assert.match(out, /gh pr edit/, 'sync rule refreshes the section while the PR is open');
-});
+  test(`[${type}] describe-ticket restates the refined story list unconditionally`, () => {
+    const out = renderSkill('describe-ticket', envType(type)).content;
+    assert.match(out, /always, even when the clarifications were trivial/i);
+  });
 
-test('review-ticket records the verdict on the PR, not just the ticket', () => {
-  const out = renderSkill('review-ticket', env('claude')).content;
-  assert.match(out, /gh pr comment/, 'verdict lands on the PR');
-});
+  test(`[${type}] execute-ticket mirrors the work artifact into the PR body and keeps it synced`, () => {
+    const out = renderSkill('execute-ticket', envType(type)).content;
+    assert.match(out, /## Work artifact/, 'PR body carries a Work artifact section');
+    assert.match(out, /gh pr edit/, 'sync rule refreshes the section while the PR is open');
+  });
+
+  test(`[${type}] review-ticket records the verdict on the PR, not just the ticket`, () => {
+    const out = renderSkill('review-ticket', envType(type)).content;
+    assert.match(out, /gh pr comment/, 'verdict lands on the PR');
+  });
+}
 
 test('orchestrate config block is optional, validated, and rendered', () => {
   const raw = fs.readFileSync(path.join(ROOT, 'examples', 'example.config.yaml'), 'utf8');
