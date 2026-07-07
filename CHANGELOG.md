@@ -29,6 +29,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Go (`go test ./...`), and Cargo (`cargo test`) test commands in addition to npm and Make.
   `init --defaults` prints a visible warning instead of silently baking in `npm test` when
   no stack is detectable.
+- README: documents conversational bootstrap (a coding agent can run init/build/doctor for
+  you), adds an Orchestrate Mode section (roles, config, the two user gates, the batch
+  playbook) and the orchestrate-ticket row to the skill/intent tables, and clarifies that
+  usage is npx-only — no npm files are written into consumer repos (Java/Python safe).
 
 ### Changed
 
