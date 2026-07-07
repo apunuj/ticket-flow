@@ -378,6 +378,36 @@ for (const type of ['linear', 'jira']) {
       'resolution order stated',
     );
   });
+
+  // T4 (US-3): persisting the choice is an offer at run end, never a mid-run or silent write.
+  test(`[${type}] persist offer is tied to run completion in every resolution path`, () => {
+    for (const block of ['', FULL_SPLIT]) {
+      const out = renderSkill('orchestrate-ticket', orchestrateEnv(type, block)).content;
+      assert.match(out, /after the run completes/i, 'persist gated on run completion');
+      assert.match(out, /final boundary summary/i, 'anchored to the final boundary summary');
+      assert.match(out, /back on the base branch/i, 'anchored to being back on the base branch');
+      assert.match(out, /never edit the config mid-run/i, 'no mid-run config edits');
+      assert.match(out, /never write .*silently/i, 'no silent write-back');
+    }
+  });
+
+  // T5 (US-4): both summaries name the model that ran each phase, in every resolution path.
+  test(`[${type}] kickoff and boundary summaries name the model per phase`, () => {
+    for (const block of ['', FULL_SPLIT]) {
+      const out = renderSkill('orchestrate-ticket', orchestrateEnv(type, block)).content;
+      assert.match(out, /kickoff summary/i, 'run opens with a kickoff summary');
+      assert.match(
+        out,
+        /kickoff summary and every boundary summary must name which model ran each phase/i,
+        'both summaries carry the per-phase model',
+      );
+      assert.match(
+        out,
+        /Boundary summary[^\n]*model that ran each phase/i,
+        'the per-ticket boundary-summary step itself names the model',
+      );
+    }
+  });
 }
 
 test('orchestrate config block is optional, validated, and rendered', () => {

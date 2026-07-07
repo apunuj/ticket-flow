@@ -21,6 +21,8 @@ Which model runs each role is a cost/quality decision the operator owns — neve
 {{else}}
 - **Ask first.** No configured split — before any phase work, {{ask "which model split to use for this run — **Split** (recommended): the strongest model plans and reviews, the worker model builds and fixes; **All-strongest**: the strongest model for both roles; **Budget**: the worker model for both roles; **Custom**: name a model per role, with optional per-phase overrides"}}. Do not proceed until the user has answered.
 {{/if}}
+- **Kickoff summary.** Open the run by naming the resolved split and where it came from (per-run instruction, config, or the user's answer). The kickoff summary and every boundary summary must name which model ran each phase.
+- **Persist offer.** When the run's split is not already pinned in config, offer to save it to the `orchestrate` config block only **after the run completes** — at the final boundary summary, back on the base branch. Never edit the config mid-run, and never write the choice back silently.
 
 ## Roles
 
@@ -60,7 +62,7 @@ Each ticket gets its own artifact, branch, and state transitions — never share
 3. **Review (Planner).** The Planner reviews the PR against the acceptance criteria and returns a verdict + findings as data. **You** record the review comment and the artifact's `Review verdict` per `/review-ticket`, then bubble the blocking findings to the user (STOP class 2). Findings the user defers go to **one deferred-findings ticket for the whole batch** — create it on first use ({{op "createTicket"}}), number findings sequentially as they accumulate, and reference it from each PR body, so nothing is lost and nothing blocks.
 4. **Fix loop (Implementer).** For the findings the user accepted, run the `/fix-ticket` procedure with the Implementer doing the code work; re-review with the Planner until the verdict is ✅. After fixes, the Planner **spot-verifies each applied fix** — it resolves its finding, introduces no new bug or regression, and breaks no interface a downstream ticket depends on — before re-review concludes.
 5. **Merge.** Confirm with the user, then follow `/merge-ticket`: review gate, merge, closing comment, done state, artifact `status: merged`, cleanup. Before merging, watch CI to completion and read each check's conclusion individually — never trust a watcher's exit code alone. When the user has granted standing merge authority, distinguish dormant from live: a flag-gated change that deploys inert may merge without a fresh confirm; a change that alters live production behavior always gets an explicit confirm plus a prerequisites checklist in the PR body.
-6. **Boundary summary.** Before starting the next ticket, report: ticket → PR → verdict → state, with receipts (comment ids / URLs).
+6. **Boundary summary.** Before starting the next ticket, report: ticket → PR → verdict → state, with receipts (comment ids / URLs) and the model that ran each phase.
 
 {{> checkpoint next="start any phase of the next ticket" require="the previous phase's backend writes are receipted on the current ticket"}}
 
