@@ -172,6 +172,31 @@ test('orchestrate-ticket renders with multi-ticket args, roles, and the delegati
   assert.match(copilot.content, /\$\{input:tickets\}/, 'copilot named input for the ticket list');
 });
 
+// APU-787: every artifact write echoes the updated sections inline in chat, gated by
+// output.inlineArtifacts (default true).
+test('artifact writes instruct an inline echo of the updated sections', () => {
+  for (const skill of ['execute-ticket', 'describe-ticket']) {
+    const out = renderSkill(skill, env('claude')).content;
+    assert.match(
+      out,
+      /render the updated artifact sections/i,
+      `${skill} echoes the artifact inline after each write`,
+    );
+    assert.match(out, /never need to open the ticket/i, `${skill} states the visibility rationale`);
+  }
+});
+
+test('output.inlineArtifacts: false suppresses the echo but keeps the upsert', () => {
+  const raw = fs.readFileSync(path.join(ROOT, 'examples', 'example.config.yaml'), 'utf8');
+  const quiet = parseConfig(raw.replace(/^output:\n/m, 'output:\n  inlineArtifacts: false\n'));
+  assert.equal(quiet.output.inlineArtifacts, false, 'fixture toggles the knob');
+  const out = renderSkill('execute-ticket', {
+    config: quiet, backend: getBackend(quiet.backend.type), tool: getTool('claude'),
+  }).content;
+  assert.doesNotMatch(out, /render the updated artifact sections/i, 'echo suppressed');
+  assert.match(out, /\*\*Update the work artifact\.\*\*/, 'upsert instruction still present');
+});
+
 test('orchestrate config block is optional, validated, and rendered', () => {
   const raw = fs.readFileSync(path.join(ROOT, 'examples', 'example.config.yaml'), 'utf8');
   const withModels = raw + '\norchestrate:\n  plannerModel: opus\n  implementerModel: sonnet\n';
