@@ -59,6 +59,21 @@ for (const type of ['linear', 'jira']) {
   test(`[${type}] an unknown op degrades to a visible marker`, () => {
     assert.equal(b.op('frobnicate', {}, ctx()), '[[unknown op: frobnicate]]');
   });
+
+  // APU-788: createTicket backs the batch deferred-findings ticket in orchestrate-ticket.
+  test(`[${type}] createTicket creates in the configured project with a title and description`, () => {
+    const out = b.op('createTicket', {}, ctx());
+    assert.match(out, /create/i, `[${type}] instructs a create`);
+    assert.match(out, /My Project/, `[${type}] scoped to the configured project`);
+    assert.match(out, /title|summary/i, `[${type}] passes the title`);
+    assert.match(out, /description/i, `[${type}] passes the description`);
+  });
+
+  test(`[${type}] createTicket resolves the project at runtime when none is configured`, () => {
+    const out = b.op('createTicket', {}, ctxNoProject());
+    assert.doesNotMatch(out, /""/, `[${type}] no empty-string project leaks`);
+    assert.match(out, /repo|active|ambiguous|resolve/i, `[${type}] runtime-resolution guidance`);
+  });
 }
 
 test('backend-specific tool vocabulary differs (set vs transition, attach vs link)', () => {
@@ -71,6 +86,9 @@ test('backend-specific tool vocabulary differs (set vs transition, attach vs lin
   assert.match(lin.op('attachPR', {}, ctx()), /links/);
   assert.doesNotMatch(lin.op('attachPR', {}, ctx()), /create_attachment/);
   assert.match(jira.op('attachPR', {}, ctx()), /remote link/);
+  // Linear creates via save_issue (no id); Jira has a dedicated create-issue tool.
+  assert.match(lin.op('createTicket', {}, ctx()), /save_issue/);
+  assert.match(jira.op('createTicket', {}, ctx()), /create-issue/);
 });
 
 test('op honors an explicit project override in params', () => {
@@ -113,7 +131,7 @@ test('[linear] comment discovery goes through list_comments, never get_issue', (
 });
 
 // APU-719: no backend write may fail silently — every mutating op carries the receipt clause.
-const MUTATING_OPS = ['addComment', 'upsertWorkArtifact', 'setState', 'attachPR'];
+const MUTATING_OPS = ['addComment', 'upsertWorkArtifact', 'setState', 'attachPR', 'createTicket'];
 for (const type of ['linear', 'jira']) {
   test(`[${type}] mutating ops carry the write-receipt clause`, () => {
     const b = getBackend(type);
