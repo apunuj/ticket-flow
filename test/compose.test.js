@@ -594,4 +594,23 @@ for (const type of ['linear', 'jira']) {
     // the pinned restatement phrase (APU-787) survives untouched
     assert.match(out, /always, even when the clarifications were trivial/i, 'restatement phrase intact');
   });
+
+  test(`[${type}] describe quiet mode keeps the stories+plan floor`, () => {
+    const quietRaw = exampleRaw
+      .replace('type: linear', `type: ${type}`)
+      .replace(/inlineArtifacts: true.*/, 'inlineArtifacts: false');
+    const quiet = parseConfig(quietRaw);
+    const out = renderSkill('describe-ticket', {
+      config: quiet, backend: getBackend(type), tool: getTool('claude'),
+    }).content;
+    // the unconditional floor survives quiet mode
+    assert.match(out, /the confirmed user stories and the plan's task summary/i, 'floor names stories + plan');
+    assert.match(out, /the ticket URL alone is never the whole answer/i, 'floor rejects a bare URL');
+    // the conditional/inline floors are suppressed, so their banned phrases are absent
+    assert.doesNotMatch(out, /turn's final message/i);
+    assert.doesNotMatch(out, /bare receipt/i);
+    assert.doesNotMatch(out, /render the updated artifact sections/i);
+    assert.doesNotMatch(out, /after all backend writes and tool calls/i);
+    assert.doesNotMatch(out, /writes first, render last/i);
+  });
 }
