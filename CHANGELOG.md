@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Every gate question is now self-contained, and every gate answer is guaranteed to be
+  visible. The `ask` helper gains an optional `context=` that appends a tool-neutral clause
+  mandating the context be **displayed in the message body immediately before the question** —
+  context never rides inside the question string (it truncates on mobile and is swallowable
+  mid-turn text). Applied across the workflow: `fix-ticket`'s scope confirm carries the full
+  triage list; `merge-ticket`'s needs-changes / CI-failure / unresolved-thread asks each list
+  their items, and the branch-deletion confirm shows the per-branch candidate set (which the
+  pre-authorized path still displays before any delete); `execute-ticket`'s commit confirm
+  shows the full proposed message. `describe-ticket` displays all three product-behavior parts
+  with teeth, and after clarifications always displays the refined stories **and** the
+  execution plan and STOPs for ratification — no trivial-clarifications escape — before any
+  artifact write, branch checkout, or build; `orchestrate-ticket` folds plan ratification into
+  its class-1 bubble, relays the Planner's summary/stories/ACs, and ratifies before writing the
+  artifact. `describe` and `review` gain unconditional final-message floors (the stories+plan
+  summary, and the verdict line with every blocking finding / uncovered criterion) that survive
+  quiet mode. The shared argument guard now repeats the recovered id in the final message and
+  asks with the candidate ids displayed when the recovery is ambiguous. No confirm's trigger
+  point changed; additive on all three tools; no new config keys.
+
 - `/orchestrate-ticket` no longer resolves the Planner/Implementer model split silently —
   model choice is a cost/quality decision the operator owns. Resolution order: **explicit
   per-run instruction > config > ask**. With both `orchestrate.plannerModel` and

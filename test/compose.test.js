@@ -14,6 +14,7 @@ import {
   renderDoc,
   renderForTool,
   renderExtras,
+  DOC_TOOL,
 } from '../src/compose/composer.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -509,4 +510,242 @@ test('orchestrate config block is optional, validated, and rendered', () => {
   assert.match(out, /sonnet/, 'implementer model override rendered');
   // and absent by default
   assert.equal(parseConfig(raw).orchestrate.plannerModel, undefined);
+});
+
+// APU-793: self-contained asks + guaranteed visibility for every gate question.
+// The `ask` helper's optional context= appends a tool-neutral clause MANDATING that the
+// context be displayed in the message body immediately before the question — context never
+// rides inside the (mobile-truncating, mid-turn-swallowable) question string. The clause is
+// additive on all three tools; the per-tool ask machinery is unchanged. Backend-neutral.
+for (const type of ['linear', 'jira']) {
+  test(`[${type}] {{ask}} context= renders the display mandate on every tool`, () => {
+    for (const toolId of ['claude', 'copilot', 'opencode']) {
+      const out = renderSkill('fix-ticket', envType(type, toolId)).content;
+      assert.match(
+        out,
+        /in the message body immediately before this question/i,
+        `${toolId}: ask context renders the display mandate`,
+      );
+      assert.match(out, /asking without displaying it is non-compliant/i, `${toolId}: the mandate has teeth`);
+      assert.match(out, /keep the question text itself short/i, `${toolId}: short-question corollary`);
+      if (toolId === 'claude') {
+        assert.match(out, /AskUserQuestion/, 'claude asks via AskUserQuestion');
+      } else {
+        assert.match(out, /present the options and wait/i, `${toolId}: present-and-wait prose`);
+        assert.doesNotMatch(out, /AskUserQuestion/, `${toolId}: never names claude machinery`);
+      }
+    }
+  });
+
+  test(`[${type}] merge asks are self-contained`, () => {
+    const out = renderSkill('merge-ticket', envType(type)).content;
+    assert.match(out, /in the message body immediately before this question/i, 'display mandate present');
+    assert.match(
+      out,
+      /the unaddressed blocking findings from the review verdict/i,
+      'needs-changes ask lists the findings',
+    );
+    assert.match(out, /each failing or pending check by name/i, 'CI ask names each check');
+    assert.match(
+      out,
+      /the unresolved review threads and any CHANGES_REQUESTED decision/i,
+      'threads ask lists the threads',
+    );
+    assert.match(out, /the per-branch candidate list/i, 'branch-deletion ask carries the candidate set');
+    assert.match(
+      out,
+      /even on the pre-authorized path, display that exact per-branch set/i,
+      'pre-authorized deletes still display the set',
+    );
+  });
+
+  test(`[${type}] execute commit confirm is self-contained`, () => {
+    const out = renderSkill('execute-ticket', envType(type)).content;
+    assert.match(out, /in the message body immediately before this question/i, 'display mandate present');
+    assert.match(
+      out,
+      /the full proposed commit message — its title and body/i,
+      'commit confirm carries the full message',
+    );
+  });
+
+  test(`[${type}] describe step 3 displays with teeth`, () => {
+    const out = renderSkill('describe-ticket', envType(type)).content;
+    assert.match(
+      out,
+      /omitting or burying them mid-turn is non-compliant/i,
+      'step 3 mandates displaying all three parts',
+    );
+    assert.match(
+      out,
+      /the step-3 output — the summary/i,
+      'step-4 clarifying ask carries the step-3 output as context',
+    );
+  });
+
+  test(`[${type}] describe always stops for plan ratification`, () => {
+    const out = renderSkill('describe-ticket', envType(type)).content;
+    assert.match(out, /there is no trivial-clarifications escape/i, 'the ratification STOP has no escape');
+    assert.match(out, /ratif/i, 'a ratification gate exists');
+    assert.doesNotMatch(
+      out,
+      /STOP again for confirmation unless the clarifications were trivial/i,
+      "5a's trivial-clarifications escape is removed",
+    );
+    // the pinned restatement phrase (APU-787) survives untouched
+    assert.match(out, /always, even when the clarifications were trivial/i, 'restatement phrase intact');
+  });
+
+  test(`[${type}] describe quiet mode keeps the stories+plan floor`, () => {
+    const quietRaw = exampleRaw
+      .replace('type: linear', `type: ${type}`)
+      .replace(/inlineArtifacts: true.*/, 'inlineArtifacts: false');
+    const quiet = parseConfig(quietRaw);
+    const out = renderSkill('describe-ticket', {
+      config: quiet, backend: getBackend(type), tool: getTool('claude'),
+    }).content;
+    // the unconditional floor survives quiet mode
+    assert.match(out, /the confirmed user stories and the plan's task summary/i, 'floor names stories + plan');
+    assert.match(out, /the ticket URL alone is never the whole answer/i, 'floor rejects a bare URL');
+    // the conditional/inline floors are suppressed, so their banned phrases are absent
+    assert.doesNotMatch(out, /turn's final message/i);
+    assert.doesNotMatch(out, /bare receipt/i);
+    assert.doesNotMatch(out, /render the updated artifact sections/i);
+    assert.doesNotMatch(out, /after all backend writes and tool calls/i);
+    assert.doesNotMatch(out, /writes first, render last/i);
+  });
+
+  test(`[${type}] review verdict floor holds loud and quiet`, () => {
+    for (const inlineOn of [true, false]) {
+      const raw = inlineOn
+        ? exampleRaw.replace('type: linear', `type: ${type}`)
+        : exampleRaw
+            .replace('type: linear', `type: ${type}`)
+            .replace(/inlineArtifacts: true.*/, 'inlineArtifacts: false');
+      const out = renderSkill('review-ticket', {
+        config: parseConfig(raw), backend: getBackend(type), tool: getTool('claude'),
+      }).content;
+      assert.match(
+        out,
+        /the verdict line and every blocking finding \/ uncovered acceptance criterion/i,
+        `inline=${inlineOn}: verdict floor states verdict + findings`,
+      );
+      assert.match(
+        out,
+        /never a pointer back at earlier output/i,
+        `inline=${inlineOn}: floor rejects a pointer`,
+      );
+      if (!inlineOn) {
+        assert.doesNotMatch(out, /turn's final message/i, 'quiet: no suppressed banned phrase');
+        assert.doesNotMatch(out, /bare receipt/i, 'quiet: no suppressed banned phrase');
+      }
+    }
+  });
+
+  test(`[${type}] orchestrate bubbles are self-contained and the plan is ratified before the artifact write`, () => {
+    const out = renderSkill('orchestrate-ticket', envType(type)).content;
+    // class 1 now folds in plan ratification and mandates relaying the Planner's output
+    assert.match(out, /Product clarifications and plan ratification/i, 'class 1 folds in ratification');
+    assert.match(
+      out,
+      /sub-agent output is invisible to the user unless you relay it/i,
+      'the bubble must relay the Planner output',
+    );
+    // the lifecycle bubble carries the Planner's summary/stories/ACs as ask context
+    assert.match(
+      out,
+      /the Planner's summary, user stories, and acceptance criteria, plus the clarifying questions/i,
+      'bubble ask carries the Planner output as context',
+    );
+    // a ratification STOP exists and precedes the lifecycle artifact write
+    assert.match(
+      out,
+      /display the refined user stories and the execution plan and STOP for the user to ratify/i,
+      'lifecycle stops for ratification',
+    );
+    const ratifyIdx = out.indexOf('Only after ratification');
+    assert.ok(ratifyIdx !== -1, 'explicit post-ratification gate present');
+    const writeIdx = out.indexOf('**Update the work artifact.**', ratifyIdx);
+    assert.ok(writeIdx > ratifyIdx, 'ratification precedes the lifecycle artifact write');
+    // pinned invariants stay green
+    assert.match(
+      out,
+      /Exactly two classes of questions reach the user \*\*mid-run\*\*/,
+      'two-classes claim intact',
+    );
+    assert.match(out, /do not proceed until the user has answered/i, 'model-split ask gate intact');
+  });
+
+  test(`[${type}] arg-guard repeats the recovered id and asks when ambiguous`, () => {
+    // the shared partial (rendered via describe): repeat the recovered id, ask when ambiguous
+    const describe = renderSkill('describe-ticket', envType(type)).content;
+    assert.match(describe, /repeat that id in the final message/i, 'unambiguous recovery repeats the id');
+    assert.match(describe, /the candidate ticket ids you found/i, 'ambiguous recovery asks with candidates');
+    assert.match(
+      describe,
+      /in the message body immediately before this question/i,
+      'the ambiguous ask displays its candidates',
+    );
+    // orchestrate's inline multi-ticket guard mirrors the recovered-id parity
+    const orch = renderSkill('orchestrate-ticket', envType(type)).content;
+    assert.match(orch, /repeat them in the final message/i, 'inline guard repeats the recovered ids');
+    assert.match(orch, /the candidate ids displayed/i, 'inline guard displays candidates when ambiguous');
+  });
+
+  test(`[${type}] changed skills leak no claude machinery to copilot/opencode`, () => {
+    const changed = [
+      'fix-ticket', 'merge-ticket', 'execute-ticket', 'describe-ticket', 'review-ticket', 'orchestrate-ticket',
+    ];
+    for (const toolId of ['copilot', 'opencode']) {
+      for (const skill of changed) {
+        const out = renderSkill(skill, envType(type, toolId)).content;
+        assert.doesNotMatch(out, /AskUserQuestion/, `${skill}/${toolId}: no claude-only ask machinery`);
+        assert.match(out, /present the options and wait/i, `${skill}/${toolId}: present-and-wait prose`);
+      }
+    }
+  });
+
+  // Fix loop N1: on claude the ask output ends with the bare question, so a ?-terminated
+  // question followed by the display-mandate clause produced "…did you mean?. Display".
+  // The helper swallows its leading period after terminal punctuation — on every tool.
+  test(`[${type}] display-mandate clause never doubles terminal punctuation`, () => {
+    for (const toolId of ['claude', 'copilot', 'opencode']) {
+      for (const skill of SKILLS) {
+        const out = renderSkill(skill, envType(type, toolId)).content;
+        assert.doesNotMatch(out, /[?!.]\. Display /, `${skill}/${toolId}: clean junction before the clause`);
+      }
+    }
+  });
+
+  // Fix loop N2: the ratification STOP is explicitly unconditional on the zero-questions
+  // path too — "after answers" alone read vacuous when there was nothing to ask.
+  test(`[${type}] ratification STOP is explicit on the zero-questions path`, () => {
+    for (const skill of ['describe-ticket', 'orchestrate-ticket']) {
+      const out = renderSkill(skill, envType(type)).content;
+      assert.match(
+        out,
+        /even when there were no clarifying questions/i,
+        `${skill}: ratification holds with zero questions`,
+      );
+    }
+  });
+
+  // Fix loop N3: pin describe's ordering positionally, mirroring the orchestrate pin —
+  // ratify STOP strictly before the artifact write, strictly before the branch checkout.
+  test(`[${type}] describe orders ratify STOP before artifact write before branch checkout`, () => {
+    const out = renderSkill('describe-ticket', envType(type)).content;
+    const ratifyIdx = out.indexOf('Ratify — STOP');
+    const writeIdx = out.indexOf('**Update the work artifact.**');
+    const checkoutIdx = out.indexOf('Check out the ticket branch');
+    assert.ok(ratifyIdx !== -1, 'ratify STOP present');
+    assert.ok(writeIdx > ratifyIdx, 'artifact write after the ratify STOP');
+    assert.ok(checkoutIdx > writeIdx, 'branch checkout after the artifact write');
+  });
+}
+
+// Fix loop N4: arg-guard now calls {{ask}}, and DOC_TOOL renders with the same partials —
+// a future doc template including arg-guard must not throw on a missing ask.
+test('DOC_TOOL carries an ask stub so doc templates survive {{ask}}', () => {
+  assert.equal(typeof DOC_TOOL.ask, 'function', 'DOC_TOOL implements ask');
+  assert.match(DOC_TOOL.ask('which one?'), /present the options and wait/i, 'present-and-wait prose');
 });

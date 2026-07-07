@@ -90,8 +90,26 @@ function makeEnv(config, backend, tool, rawMeta) {
     const str = String(s == null ? '' : s);
     return str.charAt(0).toUpperCase() + str.slice(1);
   });
-  // {{ask "question"}} and {{codeReview depth=...}} -> tool-specific guidance
-  hb.registerHelper('ask', (question) => new Handlebars.SafeString(tool.ask(question)));
+  // {{ask "question"}} and {{codeReview depth=...}} -> tool-specific guidance.
+  // Optional context= hash: appends a tool-neutral clause MANDATING that the context be
+  // displayed in the message body immediately before the question. Context must never ride
+  // inside the question string (it truncates on mobile and is swallowable mid-turn text);
+  // the clause reads correctly after every tool's ask output (AskUserQuestion on claude,
+  // present-and-wait prose elsewhere).
+  hb.registerHelper('ask', (question, options) => {
+    let out = tool.ask(question);
+    const context = options && options.hash && options.hash.context;
+    if (context) {
+      // Don't double terminal punctuation: claude's ask ends with the bare question, so a
+      // ?-terminated one would render "…mean?. Display". Swallow the clause's leading period.
+      const sep = /[?!.]$/.test(out) ? ' ' : '. ';
+      out +=
+        `${sep}Display ${context} in the message body immediately before this question — ` +
+        'asking without displaying it is non-compliant; never rely on earlier mid-turn text, ' +
+        'and keep the question text itself short.';
+    }
+    return new Handlebars.SafeString(out);
+  });
   hb.registerHelper('codeReview', (options) =>
     new Handlebars.SafeString(tool.codeReview((options && options.hash) || {}, { config })),
   );
@@ -149,7 +167,14 @@ export function renderExtras({ config, backend, tool }) {
 }
 
 // A neutral pseudo-tool so the tool-agnostic onboarding doc can use the shared helpers.
-const DOC_TOOL = { id: 'doc', argToken: () => '<ticket>', skillRef: (name) => `\`/${name}\`` };
+// It carries an `ask` stub (present-and-wait prose, like copilot/opencode) because the shared
+// partials — arg-guard among them — call {{ask}}; a doc template including one must not throw.
+export const DOC_TOOL = {
+  id: 'doc',
+  argToken: () => '<ticket>',
+  skillRef: (name) => `\`/${name}\``,
+  ask: (question) => `ask the user: ${question} — present the options and wait for their answer before continuing`,
+};
 
 // Render the repo-level team onboarding reference (TICKET-FLOW.md) — backend-aware,
 // tool-agnostic. One file per repo, not per tool.
