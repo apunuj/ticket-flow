@@ -690,4 +690,17 @@ for (const type of ['linear', 'jira']) {
     assert.match(orch, /repeat them in the final message/i, 'inline guard repeats the recovered ids');
     assert.match(orch, /the candidate ids displayed/i, 'inline guard displays candidates when ambiguous');
   });
+
+  test(`[${type}] changed skills leak no claude machinery to copilot/opencode`, () => {
+    const changed = [
+      'fix-ticket', 'merge-ticket', 'execute-ticket', 'describe-ticket', 'review-ticket', 'orchestrate-ticket',
+    ];
+    for (const toolId of ['copilot', 'opencode']) {
+      for (const skill of changed) {
+        const out = renderSkill(skill, envType(type, toolId)).content;
+        assert.doesNotMatch(out, /AskUserQuestion/, `${skill}/${toolId}: no claude-only ask machinery`);
+        assert.match(out, /present the options and wait/i, `${skill}/${toolId}: present-and-wait prose`);
+      }
+    }
+  });
 }
