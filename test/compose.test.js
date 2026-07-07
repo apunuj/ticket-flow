@@ -8,6 +8,7 @@ import { getBackend } from '../src/backends/index.js';
 import { getTool } from '../src/render/index.js';
 import {
   SKILLS,
+  and,
   renderSkill,
   renderGuide,
   renderDoc,
@@ -330,6 +331,169 @@ for (const type of ['linear', 'jira']) {
     assert.match(guide, /exact pushed tip/i, 'orchestrator re-runs the gate on the pushed tip');
     assert.match(guide, /conclusion individually/i, 'per-check CI reading');
     assert.match(guide, /deferred-findings/, 'residuals accumulate in one batch ticket');
+  });
+}
+
+// PR #13 review N3: the 'and' subexpression helper, directly. Handlebars appends its
+// options object as the last argument; the helper drops it before checking truthiness.
+test('and helper: every argument truthy, options object dropped', () => {
+  const opts = {}; // stands in for the Handlebars options object
+  assert.equal(and('opus', 'sonnet', opts), true, 'two truthy strings');
+  assert.equal(and('opus', '', opts), false, 'empty string is falsy');
+  assert.equal(and('', '', opts), false, 'both empty');
+  assert.equal(and(undefined, 'sonnet', opts), false, 'missing key (undefined)');
+  assert.equal(and('opus', undefined, opts), false, 'missing key on the other side');
+  assert.equal(and(null, 'sonnet', opts), false, 'null is falsy');
+  assert.equal(and(0, 'sonnet', opts), false, 'zero is falsy');
+  assert.equal(and('opus', opts), true, 'single truthy argument');
+  assert.equal(and(false, opts), false, 'single falsy argument');
+});
+
+// APU-792: the Planner/Implementer model split is a cost/quality decision the operator
+// owns — resolve it interactively, never silently. Resolution order: explicit per-run
+// instruction > config (both models) > ask. Backend-neutral: asserted for linear and jira.
+const orchestrateEnv = (type, orchestrateBlock = '', toolId = 'claude') => {
+  const raw = exampleRaw.replace('type: linear', `type: ${type}`) + orchestrateBlock;
+  return { config: parseConfig(raw), backend: getBackend(type), tool: getTool(toolId) };
+};
+const FULL_SPLIT = '\norchestrate:\n  plannerModel: opus\n  implementerModel: sonnet\n';
+
+for (const type of ['linear', 'jira']) {
+  test(`[${type}] configured split (both models) renders pinned models and does not ask`, () => {
+    const out = renderSkill('orchestrate-ticket', orchestrateEnv(type, FULL_SPLIT)).content;
+    assert.match(out, /Planner[^\n]*`opus`/, 'planner model named in the configured prose');
+    assert.match(out, /Implementer[^\n]*`sonnet`/, 'implementer model named in the configured prose');
+    assert.match(out, /without asking/i, 'configured path proceeds without the question');
+    assert.doesNotMatch(out, /All-strongest/, 'no preset question in the configured render');
+    assert.doesNotMatch(out, /do not proceed until/i, 'no ask gate in the configured render');
+  });
+
+  test(`[${type}] partial config (one model) still asks the full preset question`, () => {
+    for (const partial of [
+      '\norchestrate:\n  plannerModel: opus\n',
+      '\norchestrate:\n  implementerModel: sonnet\n',
+    ]) {
+      const out = renderSkill('orchestrate-ticket', orchestrateEnv(type, partial)).content;
+      assert.match(out, /\*\*All-strongest\*\*/, 'full preset question renders');
+      assert.match(out, /do not proceed until the user has answered/i, 'ask gate present');
+      assert.doesNotMatch(out, /Configured split/, 'configured prose absent on partial config');
+    }
+  });
+
+  // PR #13 review B2: the interaction contract's "exactly two classes" claim is only true
+  // mid-run — the model-split ask (unconfigured runs) and the persist offer are neither class.
+  test(`[${type}] interaction contract scopes the two-question claim to mid-run`, () => {
+    for (const block of ['', FULL_SPLIT]) {
+      const out = renderSkill('orchestrate-ticket', orchestrateEnv(type, block)).content;
+      assert.match(
+        out,
+        /Exactly two classes of questions reach the user \*\*mid-run\*\*/,
+        'two-question claim scoped to mid-run',
+      );
+    }
+  });
+
+  // PR #13 review N1: empty strings are not models — "" for either key must fall to ask.
+  test(`[${type}] empty-string models render the ask path, not the configured path`, () => {
+    for (const block of [
+      '\norchestrate:\n  plannerModel: ""\n  implementerModel: ""\n',
+      '\norchestrate:\n  plannerModel: ""\n  implementerModel: sonnet\n',
+      '\norchestrate:\n  plannerModel: opus\n  implementerModel: ""\n',
+    ]) {
+      const out = renderSkill('orchestrate-ticket', orchestrateEnv(type, block)).content;
+      assert.match(out, /do not proceed until the user has answered/i, 'ask gate present');
+      assert.doesNotMatch(out, /Configured split/, 'configured prose absent on empty models');
+    }
+  });
+
+  test(`[${type}] no configured split → preset question with all four options, gated`, () => {
+    const out = renderSkill('orchestrate-ticket', orchestrateEnv(type)).content;
+    assert.match(out, /\*\*Split\*\*[^\n]*recommended/i, 'Split preset, marked recommended');
+    assert.match(out, /\*\*All-strongest\*\*/, 'All-strongest preset');
+    assert.match(out, /\*\*Budget\*\*/, 'Budget preset');
+    assert.match(out, /\*\*Custom\*\*/, 'Custom preset');
+    assert.match(out, /per-phase overrides/i, 'Custom allows per-phase overrides');
+    assert.match(out, /do not proceed until the user has answered/i, 'hard ask gate');
+    assert.match(
+      out,
+      /explicit per-run instruction > config > ask/i,
+      'resolution order stated',
+    );
+  });
+
+  // T4 (US-3): persisting the choice is an offer at run end, never a mid-run or silent write.
+  test(`[${type}] persist offer is tied to run completion in every resolution path`, () => {
+    for (const block of ['', FULL_SPLIT]) {
+      const out = renderSkill('orchestrate-ticket', orchestrateEnv(type, block)).content;
+      assert.match(out, /after the run completes/i, 'persist gated on run completion');
+      assert.match(out, /final boundary summary/i, 'anchored to the final boundary summary');
+      assert.match(out, /back on the base branch/i, 'anchored to being back on the base branch');
+      assert.match(out, /never edit the config mid-run/i, 'no mid-run config edits');
+      assert.match(out, /never write .*silently/i, 'no silent write-back');
+    }
+  });
+
+  // T7 (US-6): an explicit per-run instruction beats config, skips the question, lasts one
+  // run, is never persisted, and is flagged in the kickoff summary — in every render.
+  test(`[${type}] per-run override rule present in configured and unconfigured renders`, () => {
+    for (const block of ['', FULL_SPLIT]) {
+      const out = renderSkill('orchestrate-ticket', orchestrateEnv(type, block)).content;
+      assert.match(out, /configured values included/i, 'override beats configured values');
+      assert.match(out, /this run only/i, 'override lasts one run');
+      assert.match(out, /skips any model-split question/i, 'override skips the question');
+      assert.match(out, /never written back to config/i, 'override is never persisted');
+      assert.match(
+        out,
+        /kickoff summary must flag it as a one-run override/i,
+        'kickoff summary flags the override',
+      );
+    }
+  });
+
+  // T6 (US-5): the preset question rides each tool's ask machinery ({{ask}}: AskUserQuestion
+  // on claude, plain present-and-wait elsewhere); pinning the model on the sub-agent spawn is
+  // stated tool-neutrally, since skill bodies carry no per-tool conditionals.
+  test(`[${type}] preset question uses the tool's ask machinery; pinning degrades gracefully`, () => {
+    const claude = renderSkill('orchestrate-ticket', orchestrateEnv(type)).content;
+    assert.match(claude, /AskUserQuestion/, 'claude asks via AskUserQuestion');
+    for (const toolId of ['copilot', 'opencode']) {
+      const out = renderSkill('orchestrate-ticket', orchestrateEnv(type, '', toolId)).content;
+      assert.match(out, /present the options and wait/i, `${toolId} asks and waits in plain prose`);
+      assert.doesNotMatch(out, /AskUserQuestion/, `${toolId} never names claude machinery`);
+    }
+    for (const toolId of ['claude', 'copilot', 'opencode']) {
+      for (const block of ['', FULL_SPLIT]) {
+        const out = renderSkill('orchestrate-ticket', orchestrateEnv(type, block, toolId)).content;
+        assert.match(
+          out,
+          /pin the resolved model on each sub-agent spawn where your tool supports it/i,
+          `${toolId}: model pinned on the spawn where supported`,
+        );
+        assert.match(
+          out,
+          /otherwise record the chosen split/i,
+          `${toolId}: graceful degradation still records intent`,
+        );
+      }
+    }
+  });
+
+  // T5 (US-4): both summaries name the model that ran each phase, in every resolution path.
+  test(`[${type}] kickoff and boundary summaries name the model per phase`, () => {
+    for (const block of ['', FULL_SPLIT]) {
+      const out = renderSkill('orchestrate-ticket', orchestrateEnv(type, block)).content;
+      assert.match(out, /kickoff summary/i, 'run opens with a kickoff summary');
+      assert.match(
+        out,
+        /kickoff summary and every boundary summary must name which model ran each phase/i,
+        'both summaries carry the per-phase model',
+      );
+      assert.match(
+        out,
+        /Boundary summary[^\n]*model that ran each phase/i,
+        'the per-ticket boundary-summary step itself names the model',
+      );
+    }
   });
 }
 

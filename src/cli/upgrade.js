@@ -11,7 +11,8 @@ const CONFIG_MIGRATIONS = [
   {
     key: 'orchestrate',
     snippet: `
-# Optional: model split for /orchestrate-ticket (omit to use your tool's defaults).
+# Optional: model split for /orchestrate-ticket. Leave unset to be asked per run;
+# set BOTH keys to skip the question. A per-run instruction always wins (that run only).
 # orchestrate:
 #   plannerModel: ""       # strongest model — plans and reviews
 #   implementerModel: ""   # worker model — builds and fixes

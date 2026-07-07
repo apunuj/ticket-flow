@@ -147,19 +147,26 @@ with sub-agents doing the heavy phases. Reach for it when a spec splits into two
 dependency-chained tickets, or when you want a multi-model split — one model planning and
 reviewing, another building. For a single small ticket, the plain lifecycle is the better fit.
 
-**Roles.** A **Planner** (strongest available model) produces the per-ticket plans and reviews the
-PRs; an **Implementer** (your default worker model) builds and fixes on the ticket branch; the
-**orchestrator** keeps everything it must never delegate — sequencing, every ticket-backend write,
-git and PR operations, and all user interaction. Pin the role→model mapping in config if you want:
+**Roles.** A **Planner** produces the per-ticket plans and reviews the PRs; an **Implementer**
+builds and fixes on the ticket branch; the **orchestrator** keeps everything it must never
+delegate — sequencing, every ticket-backend write, git and PR operations, and all user interaction.
+Which model runs each role is yours to decide, resolved as **explicit per-run instruction > config >
+ask**: a split stated in the invocation wins for that run only, a config with both models set is a
+standing answer used without asking, and otherwise the run opens with a preset question — **Split**
+(recommended: strongest model plans and reviews, worker model builds and fixes), **All-strongest**,
+**Budget**, or **Custom** — and won't proceed until you answer. It offers to save your choice to
+config only after the run completes, and the kickoff and boundary summaries always name which model
+ran each phase.
 
 ```yaml
+# Leave unset to be asked per run; set BOTH keys to skip the question.
 orchestrate:
   plannerModel: ""       # strongest model — plans and reviews
   implementerModel: ""   # worker model — builds and fixes
 ```
 
-**Exactly two kinds of questions reach you.** Product clarifications while planning, and fix/skip
-judgment calls on review findings. Everything else — building, verifying, shipping, fixing — runs
+**Exactly two kinds of questions reach you mid-run.** Product clarifications while planning, and
+fix/skip judgment calls on review findings. Everything else — building, verifying, shipping, fixing — runs
 autonomously, with hard stops preserved for failing test gates, merges, and destructive actions.
 
 **The batch playbook is built in.** Tickets proceed in dependency order, one phase at a time, each

@@ -104,7 +104,11 @@ test('upgrade aborts when generated files carry uncommitted changes; --force pro
 
 test('upgrade migrates the config: missing orchestrate block appended, stamp refreshed', () => {
   withTmp((dir) => {
-    scaffold(dir, { yaml: '# ticket-flow.config.yaml — generated for Ticket-Flow 0.0.1.\n' + exampleYaml() });
+    // Simulate a pre-0.4 config: the example fixture now ships the commented orchestrate
+    // block, so strip it to exercise the migration path.
+    const preOrchestrate = exampleYaml().replace(/\n*# Optional: model split[\s\S]*$/, '\n');
+    assert.doesNotMatch(preOrchestrate, /orchestrate:/, 'fixture lacks the block');
+    scaffold(dir, { yaml: '# ticket-flow.config.yaml — generated for Ticket-Flow 0.0.1.\n' + preOrchestrate });
     build(parseConfig(exampleYaml()), { outputDir: dir });
     execSync('git add -A && git commit -qm generated', { cwd: dir, stdio: 'ignore', shell: true });
 
@@ -117,6 +121,27 @@ test('upgrade migrates the config: missing orchestrate block appended, stamp ref
     parseConfig(yaml);
     const res2 = runUpgrade({ configPath: path.join(dir, 'ticket-flow.config.yaml'), out: dir, cwd: dir });
     assert.equal(res2.migrated.length, 0, 'second run migrates nothing');
+  });
+});
+
+// PR #13 review N2: a config that already ships the commented orchestrate block (the
+// current example fixture does) must not have it appended a second time.
+test('upgrade does not duplicate an orchestrate block the config already carries', () => {
+  withTmp((dir) => {
+    assert.match(exampleYaml(), /# orchestrate:/, 'fixture already carries the commented block');
+    scaffold(dir, { yaml: '# ticket-flow.config.yaml — generated for Ticket-Flow 0.0.1.\n' + exampleYaml() });
+    build(parseConfig(exampleYaml()), { outputDir: dir });
+    execSync('git add -A && git commit -qm generated', { cwd: dir, stdio: 'ignore', shell: true });
+
+    const res = runUpgrade({ configPath: path.join(dir, 'ticket-flow.config.yaml'), out: dir, cwd: dir });
+    assert.equal(res.migrated.length, 0, 'nothing reported as migrated');
+    const yaml = fs.readFileSync(path.join(dir, 'ticket-flow.config.yaml'), 'utf8');
+    assert.equal(
+      [...yaml.matchAll(/^\s*#?\s*orchestrate:/gm)].length,
+      1,
+      'orchestrate block appears exactly once after upgrade',
+    );
+    parseConfig(yaml); // still parseable
   });
 });
 

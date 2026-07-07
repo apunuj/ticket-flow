@@ -168,7 +168,7 @@
     },
     "orchestrate": {
       "type": "object",
-      "description": "Optional role\u2192model mapping for /orchestrate-ticket. Omitted = the tool's defaults (strongest model plans/reviews, default model implements).",
+      "description": "Optional role\u2192model mapping for /orchestrate-ticket. When BOTH models are set, runs use the split without asking; otherwise each run asks the operator to pick a split before any phase work. An explicit per-run instruction always wins, for that run only.",
       "additionalProperties": false,
       "properties": {
         "plannerModel": {
