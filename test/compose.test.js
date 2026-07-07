@@ -613,4 +613,31 @@ for (const type of ['linear', 'jira']) {
     assert.doesNotMatch(out, /after all backend writes and tool calls/i);
     assert.doesNotMatch(out, /writes first, render last/i);
   });
+
+  test(`[${type}] review verdict floor holds loud and quiet`, () => {
+    for (const inlineOn of [true, false]) {
+      const raw = inlineOn
+        ? exampleRaw.replace('type: linear', `type: ${type}`)
+        : exampleRaw
+            .replace('type: linear', `type: ${type}`)
+            .replace(/inlineArtifacts: true.*/, 'inlineArtifacts: false');
+      const out = renderSkill('review-ticket', {
+        config: parseConfig(raw), backend: getBackend(type), tool: getTool('claude'),
+      }).content;
+      assert.match(
+        out,
+        /the verdict line and every blocking finding \/ uncovered acceptance criterion/i,
+        `inline=${inlineOn}: verdict floor states verdict + findings`,
+      );
+      assert.match(
+        out,
+        /never a pointer back at earlier output/i,
+        `inline=${inlineOn}: floor rejects a pointer`,
+      );
+      if (!inlineOn) {
+        assert.doesNotMatch(out, /turn's final message/i, 'quiet: no suppressed banned phrase');
+        assert.doesNotMatch(out, /bare receipt/i, 'quiet: no suppressed banned phrase');
+      }
+    }
+  });
 }
