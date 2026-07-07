@@ -56,6 +56,12 @@ export default {
       case 'addComment':
         return `post a comment on the ticket with the Linear MCP **save_comment** tool (\`issueId: ${t}\`)${RECEIPT}`;
 
+      // save_issue with no id creates — Linear has no separate create tool.
+      case 'createTicket':
+        return project
+          ? `create a new issue with the Linear MCP **save_issue** tool (omit \`id\` to create; \`title: <title>\`, \`description: <description>\`, \`project: "${project}"\` in that project's team), and note the new issue's id from the response${RECEIPT}`
+          : `create a new issue with the Linear MCP **save_issue** tool (omit \`id\` to create; \`title: <title>\`, \`description: <description>\`) in the active Linear team/project for this repo (ask if ambiguous), and note the new issue's id from the response${RECEIPT}`;
+
       // Comment discovery must go through list_comments — get_issue does not return
       // comments, and an agent that looks there concludes the artifact doesn't exist.
       case 'getWorkArtifact':

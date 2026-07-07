@@ -224,6 +224,46 @@ for (const type of ['linear', 'jira']) {
   });
 }
 
+// APU-788: the multi-PR batch playbook — patterns proven on a real 4-PR batch folded into
+// the orchestrate skill. Backend-neutral: asserted for both linear and jira renders.
+for (const type of ['linear', 'jira']) {
+  test(`[${type}] orchestrate-ticket briefs bind sub-agents to the ratified plan and a structured return`, () => {
+    const out = renderSkill('orchestrate-ticket', envType(type)).content;
+    assert.match(out, /## Sub-agent briefs/, 'briefs are a first-class section');
+    assert.match(out, /override/i, 'ratified decisions override the raw ticket text');
+    assert.match(out, /never push, open PRs/, 'sub-agent write boundary');
+    assert.match(out, /structured return/i, 'briefs require a structured return');
+    assert.match(out, /can never reach the user/i, 'product forks stop and return');
+  });
+
+  test(`[${type}] orchestrate-ticket verifies independently and reads CI per check`, () => {
+    const out = renderSkill('orchestrate-ticket', envType(type)).content;
+    assert.match(out, /exact tip/i, 'test gate re-run on the exact pushed tip');
+    assert.match(out, /conclusion individually/i, 'each CI check read, not the watcher exit code');
+  });
+
+  test(`[${type}] orchestrate-ticket batches deferred findings and spot-verifies fixes`, () => {
+    const out = renderSkill('orchestrate-ticket', envType(type)).content;
+    assert.match(out, /deferred-findings/, 'one deferred-findings ticket per batch');
+    assert.match(out, /create/i, 'created on first use via the createTicket op');
+    assert.match(out, /spot-verif/i, 'planner spot-verifies each applied fix');
+  });
+
+  test(`[${type}] orchestrate-ticket carries the stacked-PR escape hatch and dormant-vs-live merges`, () => {
+    const out = renderSkill('orchestrate-ticket', envType(type)).content;
+    assert.match(out, /rebase --onto/, 'stack then rebase onto the base branch');
+    assert.match(out, /deploys inert/i, 'flag-gated dormant changes may merge on standing authority');
+    assert.match(out, /live production behavior/i, 'live changes always get an explicit confirm');
+  });
+
+  test(`[${type}] workflow guide carries the verify-after-everything and deferred-findings bullets`, () => {
+    const guide = renderGuide(envType(type));
+    assert.match(guide, /exact pushed tip/i, 'orchestrator re-runs the gate on the pushed tip');
+    assert.match(guide, /conclusion individually/i, 'per-check CI reading');
+    assert.match(guide, /deferred-findings/, 'residuals accumulate in one batch ticket');
+  });
+}
+
 test('orchestrate config block is optional, validated, and rendered', () => {
   const raw = fs.readFileSync(path.join(ROOT, 'examples', 'example.config.yaml'), 'utf8');
   const withModels = raw + '\norchestrate:\n  plannerModel: opus\n  implementerModel: sonnet\n';

@@ -14,6 +14,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   verdict is also posted on the PR), not just persisted on the ticket. New config knob
   `output.inlineArtifacts` (default `true`) suppresses the inline echo when set to `false`;
   ticket/PR persistence is unaffected.
+- `orchestrate-ticket` now carries the proven multi-PR batch playbook: the orchestrator
+  verifies independently (re-runs the test gate on the exact pushed tip, reads each CI
+  check's conclusion individually), deferred review findings accumulate in one numbered
+  deferred-findings ticket per batch referenced from PR bodies, the Planner spot-verifies
+  each applied fix before re-review concludes, a stacked-PR escape hatch (branch off the
+  blocker, `rebase --onto` after it merges) covers externally held merges, standing merge
+  authority distinguishes dormant (flag-gated, deploys inert) from live changes, and a
+  sub-agent brief contract binds delegated work to the ratified plan, scope boundary,
+  gates, and a structured return.
+- New `createTicket` backend op on both backends (Linear `save_issue`, Jira
+  `create-issue`), backing the batch deferred-findings ticket.
 
 ### Changed
 

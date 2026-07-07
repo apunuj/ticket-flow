@@ -18,7 +18,7 @@ export default {
   groupingNounPlural: 'sprints',
   capabilities: { groups: true, attachments: false, groupTargetDates: true },
   requires:
-    'an Atlassian/Jira MCP server connected in your tool, exposing get-issue, JQL search, transition-issue, add-comment, and edit-comment operations (e.g. the Atlassian Remote MCP).',
+    'an Atlassian/Jira MCP server connected in your tool, exposing get-issue, JQL search, transition-issue, create-issue, add-comment, and edit-comment operations (e.g. the Atlassian Remote MCP).',
   // Atlassian Rovo remote MCP server (streamable HTTP). OAuth on first connect. `ticket-flow
   // build` scaffolds this into each tool's MCP config so connecting is a one-time approval.
   mcp: { name: 'atlassian', url: 'https://mcp.atlassian.com/v1/mcp' },
@@ -56,6 +56,11 @@ export default {
 
       case 'addComment':
         return `add a comment to the issue with the Jira MCP **add-comment** tool (\`issueKey: ${t}\`)${RECEIPT}`;
+
+      case 'createTicket':
+        return project
+          ? `create a new issue with the Jira MCP **create-issue** tool (\`project: "${project}"\`, \`summary: <title>\`, \`description: <description>\`), and note the new issue key from the response${RECEIPT}`
+          : `create a new issue with the Jira MCP **create-issue** tool (\`summary: <title>\`, \`description: <description>\`), using the Jira project key for this repo (ask if ambiguous), and note the new issue key from the response${RECEIPT}`;
 
       case 'getWorkArtifact':
         return `read the issue comments (Jira MCP **get-issue** on \`${t}\`) and find the one containing \`${ARTIFACT_SENTINEL}\` — that is the work artifact`;
