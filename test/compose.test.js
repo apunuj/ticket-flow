@@ -352,6 +352,18 @@ for (const type of ['linear', 'jira']) {
     assert.doesNotMatch(out, /do not proceed until/i, 'no ask gate in the configured render');
   });
 
+  test(`[${type}] partial config (one model) still asks the full preset question`, () => {
+    for (const partial of [
+      '\norchestrate:\n  plannerModel: opus\n',
+      '\norchestrate:\n  implementerModel: sonnet\n',
+    ]) {
+      const out = renderSkill('orchestrate-ticket', orchestrateEnv(type, partial)).content;
+      assert.match(out, /\*\*All-strongest\*\*/, 'full preset question renders');
+      assert.match(out, /do not proceed until the user has answered/i, 'ask gate present');
+      assert.doesNotMatch(out, /Configured split/, 'configured prose absent on partial config');
+    }
+  });
+
   test(`[${type}] no configured split → preset question with all four options, gated`, () => {
     const out = renderSkill('orchestrate-ticket', orchestrateEnv(type)).content;
     assert.match(out, /\*\*Split\*\*[^\n]*recommended/i, 'Split preset, marked recommended');
