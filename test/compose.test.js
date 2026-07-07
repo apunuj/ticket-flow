@@ -228,6 +228,11 @@ for (const type of ['linear', 'jira']) {
     assert.match(out, /always, even when the clarifications were trivial/i);
   });
 
+  test(`[${type}] describe-ticket sequences writes before the render — never render-then-write`, () => {
+    const out = renderSkill('describe-ticket', envType(type)).content;
+    assert.match(out, /writes first, render last/i);
+  });
+
   test(`[${type}] execute-ticket mirrors the work artifact into the PR body and keeps it synced`, () => {
     const out = renderSkill('execute-ticket', envType(type)).content;
     assert.match(out, /## Work artifact/, 'PR body carries a Work artifact section');

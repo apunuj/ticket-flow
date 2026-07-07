@@ -48,6 +48,8 @@ Describe ticket {{arg}} and orient on it.
 
 {{> branch-checkout}}
 
+   **Sequence: writes first, render last.** Complete both writes above — the artifact upsert (c) and the branch checkout (d) — before rendering anything back to the user; never render-then-write. The artifact render belongs at the very end of this turn, after every backend write and tool call, per the final-message rule below.
+
    Prospective mode only — never create branches or an artifact when describing closed tickets, and never branch before the plan is confirmed (exploratory describes stay branch-free).
 
 ### Retrospective mode (closed tickets)
