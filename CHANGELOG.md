@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-07-07
+
 ### Added
 
 - Artifact visibility convention: every phase artifact is shown inline in chat after each
@@ -33,6 +35,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   you), adds an Orchestrate Mode section (roles, config, the two user gates, the batch
   playbook) and the orchestrate-ticket row to the skill/intent tables, and clarifies that
   usage is npx-only — no npm files are written into consumer repos (Java/Python safe).
+
+## [0.3.0] - 2026-07-06
+
+Hardening from the APU-715 postmortem, plus the orchestrate skill.
+(Backfilled section — this release was tagged without a changelog entry.)
+
+### Added
+
+- `ticket-flow upgrade`: version-aware regeneration with a `.ticket-flow.manifest.json`,
+  a git-status drift guard for hand-edited generated files, manifest-scoped orphan pruning,
+  and commented config-block migration; `doctor` warns when the pack predates the running
+  version.
+- `/orchestrate-ticket`: multi-ticket, multi-model orchestration (`argMode: all`) with an
+  optional `orchestrate.plannerModel`/`implementerModel` config block.
+- Delegation contract: sub-agents return data; the orchestrator performs and verifies every
+  backend write. Phase-gate checkpoints, write receipts on every mutating backend op, an
+  argument guard, and a backend MCP preflight in every skill.
+
+### Fixed
+
+- Comment discovery goes through `list_comments` (Linear `get_issue` returns no comments);
+  rendering fixes across tools.
+
+## [0.2.0] - 2026-07-06
 
 ### Changed
 
@@ -62,5 +88,8 @@ Initial release.
 - Shared work artifact stored as a marked comment on the ticket so every tool
   can find and update the same plan, branch, PR, and review state.
 
-[Unreleased]: https://github.com/apunuj/ticket-flow/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/apunuj/ticket-flow/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/apunuj/ticket-flow/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/apunuj/ticket-flow/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/apunuj/ticket-flow/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/apunuj/ticket-flow/releases/tag/v0.1.0
