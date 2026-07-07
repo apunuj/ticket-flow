@@ -61,6 +61,8 @@ This repo uses a PR flow — feature PRs target **`{{git.baseBranch}}`**. Never 
   - **Summary** — what landed, mapped to the ticket's acceptance criteria.
   - **Out of scope** — items deliberately deferred, with the owning ticket.
   - **Test plan** — note that `{{test.command}}` passed, plus any manual smoke paths.
+  - **Work artifact** — a `## Work artifact` section mirroring the artifact's user-story / acceptance-criteria checklist with current checkbox state.
+- Whenever the work artifact changes while the PR is open, refresh the `## Work artifact` section with `gh pr edit --body`.
 - If a PR for this branch already exists, push to it instead of creating a new one. Report the PR URL.
 
 ## 5. Attach PR + move the ticket to {{state "inReview"}}
@@ -70,7 +72,7 @@ Attaching the PR is an invariant — `/review-ticket` and `/merge-ticket` resolv
 - {{op "attachPR"}}.
 - {{op "addComment"}}: a short shipping note — PR link, what landed (mapped to acceptance criteria), what was deferred.
 - {{op "setState" state="inReview"}}.
-- {{> artifact-write}} — set `status: in-review` and fill the `PR` section.
+- {{> artifact-write}} — set `status: in-review` and fill the `PR` section; if the artifact changed since the PR body was written, refresh its `## Work artifact` section (`gh pr edit --body`).
 
 Do **not** move the ticket to its done state — that's `/merge-ticket` after the review gate.
 

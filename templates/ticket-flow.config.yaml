@@ -38,6 +38,7 @@ tools:
 
 output:
   dir: "."                     # repo root the .claude/.github/.opencode dirs are written under
+  inlineArtifacts: true        # echo updated artifact sections inline in chat; set false to quieten
 
 # Optional: model split for /orchestrate-ticket (omit to use your tool's defaults).
 # orchestrate:

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Artifact visibility convention: every phase artifact is shown inline in chat after each
+  artifact write and mirrored to the PR (a synced `## Work artifact` body section; the review
+  verdict is also posted on the PR), not just persisted on the ticket. New config knob
+  `output.inlineArtifacts` (default `true`) suppresses the inline echo when set to `false`;
+  ticket/PR persistence is unaffected.
+
 ### Changed
 
 - `init` no longer prompts for a ticket prefix or backend project. `project.ticketPrefix` and

@@ -38,6 +38,26 @@ test('fills defaults the schema cannot create', () => {
   assert.equal(cfg.output.dir, '.');
 });
 
+// APU-787: inline artifact echo is on unless explicitly disabled.
+test('output.inlineArtifacts defaults to true when omitted', () => {
+  const cfg = parse(valid());
+  assert.equal(cfg.output.inlineArtifacts, true);
+});
+
+test('output.inlineArtifacts: explicit false is respected', () => {
+  const o = valid();
+  o.output = { inlineArtifacts: false };
+  const cfg = parse(o);
+  assert.equal(cfg.output.inlineArtifacts, false);
+});
+
+test('output.inlineArtifacts is true when the whole output block is absent', () => {
+  const o = valid();
+  delete o.output;
+  const cfg = parse(o);
+  assert.equal(cfg.output.inlineArtifacts, true);
+});
+
 test('merges partial states over the defaults', () => {
   const o = valid();
   o.backend.states = { inReview: 'Code Review' };

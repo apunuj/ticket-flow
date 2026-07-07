@@ -27,6 +27,7 @@ function normalize(config) {
   config.orchestrate = config.orchestrate || {};
   config.output = config.output || {};
   config.output.dir = config.output.dir || '.';
+  config.output.inlineArtifacts = config.output.inlineArtifacts !== false;
   return config;
 }
 

@@ -40,3 +40,4 @@ tools:
 
 output:
   dir: "."
+  inlineArtifacts: true        # echo updated artifact sections inline in chat; set false to quieten

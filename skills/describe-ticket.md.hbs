@@ -34,7 +34,7 @@ Describe ticket {{arg}} and orient on it.
 
    On the next turn, after answers:
 
-   **a. Restate the user-story list, refined** per the clarifications (split/merge/drop/reword; flag anything explicitly de-scoped). STOP again for confirmation unless the clarifications were trivial.
+   **a. Restate the refined user-story list — always, even when the clarifications were trivial or changed nothing** (split/merge/drop/reword; flag anything explicitly de-scoped). Skipping this restatement is non-compliant. STOP again for confirmation unless the clarifications were trivial.
 
    **b. Execution plan (test-driven by default).** A short ordered task list mapped to the confirmed stories, with file/module pointers (repo-root relative, `src/.../Service.ext:42` style). Each task cites the `US-N` it implements. **Default to TDD: for each story, the first task writes a failing test that encodes its acceptance criterion, and the implementation task that follows makes it pass (red → green → refactor).** Name the specific test file/case in each test task. If a story is genuinely untestable (pure config, docs, a throwaway spike), say so and note why TDD is skipped for it. Tight, not exhaustive.
 
