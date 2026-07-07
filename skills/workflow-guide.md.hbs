@@ -16,4 +16,6 @@ This project follows a five-phase, ticket-driven workflow. **Recognize the user'
 
 - The lifecycle applies **per ticket**, regardless of who executes: N tickets in flight = N work artifacts, N branches, N state transitions — never a shared or skipped trail.
 - Delegating a phase to a sub-agent does not skip that phase's procedure. Sub-agents return data; the orchestrator performs and verifies every backend write (artifact upsert, comments, state moves, PR links) when the delegated work returns — or embeds the phase's exact write procedure in the sub-agent's prompt and verifies the writes landed afterwards.
+- Verify after everything: when delegated work returns, the orchestrator re-runs the test gate on the exact pushed tip and reads each CI check's conclusion individually — a sub-agent's report or a watcher's exit code is never the gate.
+- Non-blocking review residuals accumulate in one numbered deferred-findings ticket per batch, referenced from PR bodies.
 - Work tickets in dependency order (Blocked-by first) and summarize progress to the user at each ticket boundary.

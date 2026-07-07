@@ -18,7 +18,15 @@ Orchestrate ticket(s) {{arg}} through the full lifecycle — describe → execut
 - **Implementer** — builds and fixes. Spawn with the default worker model{{#if orchestrate.implementerModel}} (configured: `{{orchestrate.implementerModel}}`){{/if}}. Owns code, tests, and commits on the ticket branch.
 - **You (orchestrator)** — sequencing, every {{backend.displayName}} write (with receipts), git/PR operations, and all user interaction.
 
-Sub-agent prompts must embed the relevant phase skill's procedure — read the phase skill file and carry its instructions verbatim where the sub-agent needs them; sub-agents return their results as data.
+## Sub-agent briefs
+
+Sub-agent prompts must embed the relevant phase skill's procedure — read the phase skill file and carry its instructions verbatim where the sub-agent needs them; sub-agents return their results as data. Every brief must:
+
+- Point at the finalized plan artifact and the user-ratified decisions, stating explicitly that those decisions **override** the raw ticket text where they differ.
+- State the scope boundary — what belongs to this ticket's PR vs later tickets — and that sub-agents never push, open PRs, or write to the ticket backend.
+- State the gates and exact baselines (e.g. the test count to beat) and the commit conventions.
+- Require a structured return: per-task status, files touched, final gate numbers, deviations, commit SHAs, unresolved forks.
+- Instruct stop-and-return on a genuine product fork — a sub-agent can never reach the user.
 
 ## Interaction contract
 
@@ -31,17 +39,17 @@ Hard gates still stop the run regardless: a failing test gate, merge confirmatio
 
 ## Ordering
 
-Fetch every ticket up front ({{op "getTicket"}} for each id — this doubles as the backend preflight; if the tool is missing or erroring, stop and tell the user). Resolve the dependency order: `Blocked-by` relations and description chains. A blocked ticket waits until its blocker is **merged**, not merely built. Work strictly one phase of one ticket at a time; do not interleave phases across tickets.
+Fetch every ticket up front ({{op "getTicket"}} for each id — this doubles as the backend preflight; if the tool is missing or erroring, stop and tell the user). Resolve the dependency order: `Blocked-by` relations and description chains. A blocked ticket waits until its blocker is **merged**, not merely built. Escape hatch: if the blocker's merge is held by something external (e.g. a deploy prerequisite) and the user approves, stack — branch the next ticket off the blocker's branch and keep building; once the blocker merges, rebase onto the base branch (`git rebase --onto origin/{{git.baseBranch}} <old-base>`) and retarget the PR. Work strictly one phase of one ticket at a time; do not interleave phases across tickets.
 
 ## Per ticket — the standard lifecycle, delegated
 
 Each ticket gets its own artifact, branch, and state transitions — never shared, never skipped.
 
 1. **Plan (Planner).** The Planner returns product behavior, user stories, acceptance criteria, clarifying questions, and a draft test-driven plan as data. Bubble the questions to the user (STOP class 1). After answers, the Planner finalizes the plan. Then **you** write the work artifact with `status: planning` — {{> artifact-write}} — and check out the ticket branch per `/describe-ticket`.
-2. **Build (Implementer).** First the build-start gate from `/execute-ticket`: artifact to `status: building`, then {{op "setState" state="inProgress"}}. Only then spawn the Implementer on the ticket branch; it works the plan test-first and returns commits + test results as data. **You** run the test gate, push, open the PR, then complete `/execute-ticket` step 5: attach the PR, post the shipping note, move to {{state "inReview"}}, update the artifact.
-3. **Review (Planner).** The Planner reviews the PR against the acceptance criteria and returns a verdict + findings as data. **You** record the review comment and the artifact's `Review verdict` per `/review-ticket`, then bubble the blocking findings to the user (STOP class 2).
-4. **Fix loop (Implementer).** For the findings the user accepted, run the `/fix-ticket` procedure with the Implementer doing the code work; re-review with the Planner until the verdict is ✅.
-5. **Merge.** Confirm with the user, then follow `/merge-ticket`: review gate, merge, closing comment, done state, artifact `status: merged`, cleanup.
+2. **Build (Implementer).** First the build-start gate from `/execute-ticket`: artifact to `status: building`, then {{op "setState" state="inProgress"}}. Only then spawn the Implementer on the ticket branch; it works the plan test-first and returns commits + test results as data. **You** run the test gate, push, open the PR — verifying independently: re-run the full test gate on the exact tip being pushed (never trust the Implementer's reported numbers alone) and confirm a clean tree — then complete `/execute-ticket` step 5: attach the PR, post the shipping note, move to {{state "inReview"}}, update the artifact.
+3. **Review (Planner).** The Planner reviews the PR against the acceptance criteria and returns a verdict + findings as data. **You** record the review comment and the artifact's `Review verdict` per `/review-ticket`, then bubble the blocking findings to the user (STOP class 2). Findings the user defers go to **one deferred-findings ticket for the whole batch** — create it on first use ({{op "createTicket"}}), number findings sequentially as they accumulate, and reference it from each PR body, so nothing is lost and nothing blocks.
+4. **Fix loop (Implementer).** For the findings the user accepted, run the `/fix-ticket` procedure with the Implementer doing the code work; re-review with the Planner until the verdict is ✅. After fixes, the Planner **spot-verifies each applied fix** — it resolves its finding, introduces no new bug or regression, and breaks no interface a downstream ticket depends on — before re-review concludes.
+5. **Merge.** Confirm with the user, then follow `/merge-ticket`: review gate, merge, closing comment, done state, artifact `status: merged`, cleanup. Before merging, watch CI to completion and read each check's conclusion individually — never trust a watcher's exit code alone. When the user has granted standing merge authority, distinguish dormant from live: a flag-gated change that deploys inert may merge without a fresh confirm; a change that alters live production behavior always gets an explicit confirm plus a prerequisites checklist in the PR body.
 6. **Boundary summary.** Before starting the next ticket, report: ticket → PR → verdict → state, with receipts (comment ids / URLs).
 
 {{> checkpoint next="start any phase of the next ticket" require="the previous phase's backend writes are receipted on the current ticket"}}
