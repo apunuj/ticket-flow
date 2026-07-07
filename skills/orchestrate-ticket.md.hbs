@@ -8,7 +8,7 @@ argName: tickets
 
 Orchestrate ticket(s) {{arg}} through the full lifecycle — describe → execute → review → fix → merge — using sub-agents for the heavy phases while you, the orchestrator, keep every backend write.
 
-**Argument guard.** The ticket list is `{{arg}}`. Every whitespace-separated token must be a well-formed ticket id — {{#if project.ticketPrefix}}`{{upper project.ticketPrefix}}-<number>`{{else}}`<PREFIX>-<number>` (e.g. `{{eg.prefixUpper}}-312`){{/if}}. Drop anything else (words, paths, stray dashes) and recover the intended ids from the invocation text or conversation; if none can be recovered, ask the user. A malformed id must never reach backend calls, branch names, or commit messages.
+**Argument guard.** The ticket list is `{{arg}}`. Every whitespace-separated token must be a well-formed ticket id — {{#if project.ticketPrefix}}`{{upper project.ticketPrefix}}-<number>`{{else}}`<PREFIX>-<number>` (e.g. `{{eg.prefixUpper}}-312`){{/if}}. Drop anything else (words, paths, stray dashes) and recover the intended ids from the invocation text or conversation; state which ids you recovered and repeat them in the final message so the user can catch a wrong guess. If several ids are plausible, or none can be recovered, ask the user with the candidate ids displayed. A malformed id must never reach backend calls, branch names, or commit messages.
 
 {{> delegation}}
 

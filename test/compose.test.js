@@ -674,4 +674,20 @@ for (const type of ['linear', 'jira']) {
     );
     assert.match(out, /do not proceed until the user has answered/i, 'model-split ask gate intact');
   });
+
+  test(`[${type}] arg-guard repeats the recovered id and asks when ambiguous`, () => {
+    // the shared partial (rendered via describe): repeat the recovered id, ask when ambiguous
+    const describe = renderSkill('describe-ticket', envType(type)).content;
+    assert.match(describe, /repeat that id in the final message/i, 'unambiguous recovery repeats the id');
+    assert.match(describe, /the candidate ticket ids you found/i, 'ambiguous recovery asks with candidates');
+    assert.match(
+      describe,
+      /in the message body immediately before this question/i,
+      'the ambiguous ask displays its candidates',
+    );
+    // orchestrate's inline multi-ticket guard mirrors the recovered-id parity
+    const orch = renderSkill('orchestrate-ticket', envType(type)).content;
+    assert.match(orch, /repeat them in the final message/i, 'inline guard repeats the recovered ids');
+    assert.match(orch, /the candidate ids displayed/i, 'inline guard displays candidates when ambiguous');
+  });
 }
