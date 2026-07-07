@@ -124,6 +124,27 @@ test('upgrade migrates the config: missing orchestrate block appended, stamp ref
   });
 });
 
+// PR #13 review N2: a config that already ships the commented orchestrate block (the
+// current example fixture does) must not have it appended a second time.
+test('upgrade does not duplicate an orchestrate block the config already carries', () => {
+  withTmp((dir) => {
+    assert.match(exampleYaml(), /# orchestrate:/, 'fixture already carries the commented block');
+    scaffold(dir, { yaml: '# ticket-flow.config.yaml — generated for Ticket-Flow 0.0.1.\n' + exampleYaml() });
+    build(parseConfig(exampleYaml()), { outputDir: dir });
+    execSync('git add -A && git commit -qm generated', { cwd: dir, stdio: 'ignore', shell: true });
+
+    const res = runUpgrade({ configPath: path.join(dir, 'ticket-flow.config.yaml'), out: dir, cwd: dir });
+    assert.equal(res.migrated.length, 0, 'nothing reported as migrated');
+    const yaml = fs.readFileSync(path.join(dir, 'ticket-flow.config.yaml'), 'utf8');
+    assert.equal(
+      [...yaml.matchAll(/^\s*#?\s*orchestrate:/gm)].length,
+      1,
+      'orchestrate block appears exactly once after upgrade',
+    );
+    parseConfig(yaml); // still parseable
+  });
+});
+
 test('doctor checkVersion warns when the manifest is from another version', () => {
   withTmp((dir) => {
     build(parseConfig(exampleYaml()), { outputDir: dir });

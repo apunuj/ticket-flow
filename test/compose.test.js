@@ -8,6 +8,7 @@ import { getBackend } from '../src/backends/index.js';
 import { getTool } from '../src/render/index.js';
 import {
   SKILLS,
+  and,
   renderSkill,
   renderGuide,
   renderDoc,
@@ -333,6 +334,21 @@ for (const type of ['linear', 'jira']) {
   });
 }
 
+// PR #13 review N3: the 'and' subexpression helper, directly. Handlebars appends its
+// options object as the last argument; the helper drops it before checking truthiness.
+test('and helper: every argument truthy, options object dropped', () => {
+  const opts = {}; // stands in for the Handlebars options object
+  assert.equal(and('opus', 'sonnet', opts), true, 'two truthy strings');
+  assert.equal(and('opus', '', opts), false, 'empty string is falsy');
+  assert.equal(and('', '', opts), false, 'both empty');
+  assert.equal(and(undefined, 'sonnet', opts), false, 'missing key (undefined)');
+  assert.equal(and('opus', undefined, opts), false, 'missing key on the other side');
+  assert.equal(and(null, 'sonnet', opts), false, 'null is falsy');
+  assert.equal(and(0, 'sonnet', opts), false, 'zero is falsy');
+  assert.equal(and('opus', opts), true, 'single truthy argument');
+  assert.equal(and(false, opts), false, 'single falsy argument');
+});
+
 // APU-792: the Planner/Implementer model split is a cost/quality decision the operator
 // owns — resolve it interactively, never silently. Resolution order: explicit per-run
 // instruction > config (both models) > ask. Backend-neutral: asserted for linear and jira.
@@ -361,6 +377,19 @@ for (const type of ['linear', 'jira']) {
       assert.match(out, /\*\*All-strongest\*\*/, 'full preset question renders');
       assert.match(out, /do not proceed until the user has answered/i, 'ask gate present');
       assert.doesNotMatch(out, /Configured split/, 'configured prose absent on partial config');
+    }
+  });
+
+  // PR #13 review N1: empty strings are not models — "" for either key must fall to ask.
+  test(`[${type}] empty-string models render the ask path, not the configured path`, () => {
+    for (const block of [
+      '\norchestrate:\n  plannerModel: ""\n  implementerModel: ""\n',
+      '\norchestrate:\n  plannerModel: ""\n  implementerModel: sonnet\n',
+      '\norchestrate:\n  plannerModel: opus\n  implementerModel: ""\n',
+    ]) {
+      const out = renderSkill('orchestrate-ticket', orchestrateEnv(type, block)).content;
+      assert.match(out, /do not proceed until the user has answered/i, 'ask gate present');
+      assert.doesNotMatch(out, /Configured split/, 'configured prose absent on empty models');
     }
   });
 

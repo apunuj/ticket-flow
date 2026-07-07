@@ -37,6 +37,10 @@ export const SKILLS = [
 // not only via slash commands. Body-only (no skill frontmatter).
 const GUIDE_TEMPLATE = 'workflow-guide.md.hbs';
 
+// {{#if (and a b)}} — every argument truthy. Handlebars passes its options object as the
+// trailing argument, so it is dropped before the check. Exported for unit tests.
+export const and = (...args) => args.slice(0, -1).every(Boolean);
+
 function buildContext(config, backend, tool, rawMeta) {
   // Illustrative ticket prefix for examples/hints. Uses the configured prefix when present,
   // else a neutral placeholder — ticketPrefix is optional, and real ids are read at runtime.
@@ -77,8 +81,7 @@ function makeEnv(config, backend, tool, rawMeta) {
     const states = (config.backend && config.backend.states) || {};
     return states[name] || name;
   });
-  // {{#if (and a b)}} — every argument truthy (the trailing Handlebars options object is dropped)
-  hb.registerHelper('and', (...args) => args.slice(0, -1).every(Boolean));
+  hb.registerHelper('and', and);
   hb.registerHelper('lower', (s) => String(s == null ? '' : s).toLowerCase());
   hb.registerHelper('upper', (s) => String(s == null ? '' : s).toUpperCase());
   // exactly one trailing period, whether or not the config string carried its own
