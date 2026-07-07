@@ -535,4 +535,36 @@ for (const type of ['linear', 'jira']) {
       }
     }
   });
+
+  test(`[${type}] merge asks are self-contained`, () => {
+    const out = renderSkill('merge-ticket', envType(type)).content;
+    assert.match(out, /in the message body immediately before this question/i, 'display mandate present');
+    assert.match(
+      out,
+      /the unaddressed blocking findings from the review verdict/i,
+      'needs-changes ask lists the findings',
+    );
+    assert.match(out, /each failing or pending check by name/i, 'CI ask names each check');
+    assert.match(
+      out,
+      /the unresolved review threads and any CHANGES_REQUESTED decision/i,
+      'threads ask lists the threads',
+    );
+    assert.match(out, /the per-branch candidate list/i, 'branch-deletion ask carries the candidate set');
+    assert.match(
+      out,
+      /even on the pre-authorized path, display that exact per-branch set/i,
+      'pre-authorized deletes still display the set',
+    );
+  });
+
+  test(`[${type}] execute commit confirm is self-contained`, () => {
+    const out = renderSkill('execute-ticket', envType(type)).content;
+    assert.match(out, /in the message body immediately before this question/i, 'display mandate present');
+    assert.match(
+      out,
+      /the full proposed commit message — its title and body/i,
+      'commit confirm carries the full message',
+    );
+  });
 }

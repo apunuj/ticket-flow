@@ -55,7 +55,7 @@ Run `{{test.command}}` once more as the gate.
 
 This repo uses a PR flow — feature PRs target **`{{git.baseBranch}}`**. Never push directly to it.
 
-- If uncommitted changes remain, scope them to {{arg}} using the artifact's task→file map (fallback: read the diff and confirm which files belong to {{arg}} vs other tickets — default to staging only {{arg}}'s files). Show the proposed commit message and confirm before committing; use a heredoc so the body formats correctly.
+- If uncommitted changes remain, scope them to {{arg}} using the artifact's task→file map (fallback: read the diff and confirm which files belong to {{arg}} vs other tickets — default to staging only {{arg}}'s files). Before committing, {{ask "commit the staged changes with this message?" context="the full proposed commit message — its title and body"}} Use a heredoc so the body formats correctly.
 - Push: `git push -u origin <branch>`.
 - Open the PR with `gh pr create --base {{git.baseBranch}}`, title referencing {{arg}}, body containing:
   - **Summary** — what landed, mapped to the ticket's acceptance criteria.

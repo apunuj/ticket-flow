@@ -19,7 +19,7 @@ Merging requires that a review happened **and** its findings are addressed.
 
 - **Infer first.** {{> artifact-read}} Read the `Review verdict`. Also scan the conversation and the ticket comments for a `/review-ticket {{arg}}` verdict.
   - Clear `✅ Ready to merge` with nothing outstanding → state the inference and proceed.
-  - `🟡 Needs changes` with no evidence the findings were addressed → list them, then {{ask "these review findings aren't addressed yet — run /fix-ticket to fix them now, or stop?"}}. On confirm, hand off to `/fix-ticket {{arg}}` and do **not** merge; otherwise **stop**.
+  - `🟡 Needs changes` with no evidence the findings were addressed → {{ask "these review findings aren't addressed yet — run /fix-ticket to fix them now, or stop?" context="the unaddressed blocking findings from the review verdict, listed out"}} On confirm, hand off to `/fix-ticket {{arg}}` and do **not** merge; otherwise **stop**.
 - **If inconclusive,** {{ask "has this PR been reviewed, and are all review comments addressed?"}} If no/unsure — **stop**; suggest `/review-ticket {{arg}}`, or `/fix-ticket {{arg}}` if comments are already on the PR.
 
 Never merge on ambiguous evidence — when in doubt, ask.
@@ -28,8 +28,8 @@ Never merge on ambiguous evidence — when in doubt, ask.
 
 `gh pr view <PR#> --json state,mergeable,reviewDecision,statusCheckRollup,reviews` plus `gh pr checks <PR#>`:
 
-- Failing or pending required checks → surface them, then {{ask "CI isn't green — run /fix-ticket to address the failures, or stop?"}}. On confirm, hand off to `/fix-ticket {{arg}}`; otherwise stop.
-- Unresolved review threads or a `CHANGES_REQUESTED` decision → surface them and offer the same `/fix-ticket {{arg}}` hand-off; otherwise stop.
+- Failing or pending required checks → {{ask "CI isn't green — run /fix-ticket to address the failures, or stop?" context="each failing or pending check by name"}} On confirm, hand off to `/fix-ticket {{arg}}`; otherwise stop.
+- Unresolved review threads or a `CHANGES_REQUESTED` decision → {{ask "unresolved threads / changes requested — run /fix-ticket to address them, or stop?" context="the unresolved review threads and any CHANGES_REQUESTED decision, listed"}} On confirm, hand off to `/fix-ticket {{arg}}`; otherwise stop.
 - `mergeable: CONFLICTING` → surface and stop; `/fix-ticket {{arg}}` can rebase and resolve, or offer to rebase here.
 
 ## 4. Merge
@@ -51,7 +51,7 @@ Never merge on ambiguous evidence — when in doubt, ask.
 
 A merge leaves housekeeping. Surface BOTH and confirm before acting (or proceed if pre-authorized this turn) — never silently skip either, and never delete an unmerged branch without explicit per-branch confirmation:
 
-1. **Delete merged + stale branches.** The just-merged head branch (local *and* remote), plus any branch now fully merged into the base. List candidates (`git branch --merged {{git.baseBranch}}`, `git ls-remote --heads origin`) so the user confirms the set. `git branch -d` for merged locals (`-D` only for an abandoned/never-merged one); `git push origin --delete <branch>` for remotes.
+1. **Delete merged + stale branches.** The just-merged head branch (local *and* remote), plus any branch now fully merged into the base. Enumerate the candidates first (`git branch --merged {{git.baseBranch}}`, `git ls-remote --heads origin`), then {{ask "delete these branches? confirm per branch — never force-delete an unmerged one without an explicit yes" context="the per-branch candidate list — each branch's merged/unmerged status and whether it is local, remote, or both"}} Even on the pre-authorized path, display that exact per-branch set in the message before any delete command runs. Use `git branch -d` for merged locals (`-D` only for an abandoned/never-merged one); `git push origin --delete <branch>` for remotes.
 2. **Make the local base branch current.** `git checkout {{git.baseBranch}} && git merge --ff-only origin/{{git.baseBranch}}` so the next ticket's branch cuts from an up-to-date base.
 
 Report what was deleted and the new local `{{git.baseBranch}}` HEAD.
