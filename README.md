@@ -19,9 +19,11 @@ next-ticket -> describe-ticket -> execute-ticket -> review-ticket -> merge-ticke
 
 ## What It Generates
 
-Ticket-Flow creates six workflow phases that can be invoked directly or triggered conversationally.
+Ticket-Flow creates seven workflow skills that can be invoked directly or triggered conversationally:
+six lifecycle phases, plus an orchestrate mode that drives several tickets through those phases with
+sub-agents.
 
-| Phase | Purpose |
+| Skill | Purpose |
 |---|---|
 | **next-ticket** | Surface the next priority backlog ticket, grouped by milestone or sprint. |
 | **describe-ticket** | Turn a ticket into user stories, acceptance criteria, and an execution plan; record the work artifact; create the ticket branch. |
@@ -29,6 +31,7 @@ Ticket-Flow creates six workflow phases that can be invoked directly or triggere
 | **review-ticket** | Review the PR at the requested depth and verify the diff satisfies every acceptance criterion. |
 | **fix-ticket** | Address open PR feedback, failing CI, review comments, or change requests, then update the PR. |
 | **merge-ticket** | Verify the review gate, merge, close the ticket, clean up branches, and surface the next priority. |
+| **orchestrate-ticket** | Drive one or more tickets through the whole lifecycle with a Planner/Implementer sub-agent split — see [Orchestrate Mode](#orchestrate-mode). |
 
 ## Why Use It
 
@@ -57,6 +60,12 @@ formats your coding assistants already understand.
 You do not need to configure the ticket-backend MCP server by hand. `ticket-flow build` scaffolds
 the MCP config for each generated tool, and `ticket-flow doctor` reports anything still missing.
 
+**Non-Node repos:** Node is needed only to *run* the generator. Ticket-Flow writes no
+`package.json`, lockfile, or `node_modules` into your repo — use `npx` as shown below rather than
+installing it as a dependency. `init` detects the test command for Maven, Gradle, pytest, Go, and
+Cargo projects as well as npm and Make, so a Java or Python repo gets a sensible
+`ticket-flow.config.yaml` out of the box.
+
 ### Generate a Workflow
 
 Run these commands from the project repository where you want the workflow files generated:
@@ -66,6 +75,17 @@ npx ticket-flow init
 npx ticket-flow build
 npx ticket-flow doctor
 ```
+
+Or skip the terminal entirely: the bootstrap is itself agent-friendly. Tell your coding agent
+(Claude Code, Copilot, opencode) something like
+
+> Set up ticket-flow in this repo: run `npx ticket-flow init --defaults`, adjust
+> `ticket-flow.config.yaml` to this project (backend, base branch, test command), then run
+> `npx ticket-flow build` and `npx ticket-flow doctor`, fix anything doctor reports, and commit
+> the generated files.
+
+and it can drive `init`/`build`/`doctor`, tune the config to the repo, and commit the result —
+no manual command-running required.
 
 `init` detects sensible defaults from the repo, including project name, base branch, ticket prefix,
 and test command. Use `init --defaults` to skip prompts, or edit `ticket-flow.config.yaml` before
@@ -102,7 +122,8 @@ the selected ticket backend.
 ## Usage
 
 You can run a phase explicitly with `/next-ticket`, `/describe-ticket`, `/execute-ticket`,
-`/review-ticket`, `/fix-ticket`, or `/merge-ticket`.
+`/review-ticket`, `/fix-ticket`, or `/merge-ticket` — or hand several tickets to
+`/orchestrate-ticket` at once.
 
 You can also ask naturally:
 
@@ -114,9 +135,41 @@ You can also ask naturally:
 | "review the PR" / "is it ready?" | **review-ticket** |
 | "fix the review feedback" / "CI is failing" | **fix-ticket** |
 | "merge it" / "close out the ticket" | **merge-ticket** |
+| "work PROJ-101 and PROJ-102 together" / "orchestrate these tickets" | **orchestrate-ticket** |
 
 The generated guidance maps natural language to the same lifecycle procedures as the slash
 commands.
+
+## Orchestrate Mode
+
+`/orchestrate-ticket PROJ-101 PROJ-102 …` drives one or more tickets through the full lifecycle
+with sub-agents doing the heavy phases. Reach for it when a spec splits into two or more
+dependency-chained tickets, or when you want a multi-model split — one model planning and
+reviewing, another building. For a single small ticket, the plain lifecycle is the better fit.
+
+**Roles.** A **Planner** (strongest available model) produces the per-ticket plans and reviews the
+PRs; an **Implementer** (your default worker model) builds and fixes on the ticket branch; the
+**orchestrator** keeps everything it must never delegate — sequencing, every ticket-backend write,
+git and PR operations, and all user interaction. Pin the role→model mapping in config if you want:
+
+```yaml
+orchestrate:
+  plannerModel: ""       # strongest model — plans and reviews
+  implementerModel: ""   # worker model — builds and fixes
+```
+
+**Exactly two kinds of questions reach you.** Product clarifications while planning, and fix/skip
+judgment calls on review findings. Everything else — building, verifying, shipping, fixing — runs
+autonomously, with hard stops preserved for failing test gates, merges, and destructive actions.
+
+**The batch playbook is built in.** Tickets proceed in dependency order, one phase at a time, each
+with its own work artifact, branch, and state trail. The orchestrator verifies independently
+(re-runs the test gate on the exact pushed tip and reads each CI check's conclusion, never a
+watcher's exit code), collects deferred review findings into one numbered follow-up ticket per
+batch, has the Planner spot-verify every applied fix, can stack the next PR on a blocker whose
+merge is held externally (rebasing and retargeting once it lands), and — under standing merge
+authority — still distinguishes flag-gated dormant changes from anything that alters live behavior,
+which always gets an explicit confirm.
 
 ## Configuration
 
