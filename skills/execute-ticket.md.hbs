@@ -73,6 +73,8 @@ Attaching the PR is an invariant — `/review-ticket` and `/merge-ticket` resolv
 - {{op "addComment"}}: a short shipping note — PR link, what landed (mapped to acceptance criteria), what was deferred.
 - {{op "setState" state="inReview"}}.
 - {{> artifact-write}} — set `status: in-review` and fill the `PR` section; if the artifact changed since the PR body was written, refresh its `## Work artifact` section (`gh pr edit --body`).
+{{~> final-message}}
+
 
 Do **not** move the ticket to its done state — that's `/merge-ticket` after the review gate.
 

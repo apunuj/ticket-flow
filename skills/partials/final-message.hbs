@@ -1,0 +1,5 @@
+{{#if output.inlineArtifacts}}
+
+
+**End on the render.** The artifact render must land in the turn's final message, after all backend writes and tool calls — never only in mid-turn text. A short closing pointer (e.g. the next step to run) may follow it within that same message; never end the turn on a bare receipt that points back at earlier, possibly hidden mid-turn text.
+{{~/if~}}

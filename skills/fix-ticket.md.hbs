@@ -65,6 +65,8 @@ Then work the confirmed plan:
 - {{> artifact-write}} — tick the fixed items, keep `status: in-review`, and set the `Review verdict` to "fixes applied for <items> — re-review needed", so `/merge-ticket` does not treat the stale verdict as a pass.
 - {{> checkpoint next="declare the fixes done" require="the fix note and the artifact update are receipted on the ticket"}}
 - Confirm CI is re-running on the new push. End by suggesting: re-run `/review-ticket {{arg}}` to confirm, then `/merge-ticket {{arg}}`.
+{{~> final-message}}
+
 
 ## Stop and ask
 

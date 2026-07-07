@@ -191,6 +191,17 @@ for (const type of ['linear', 'jira']) {
         `${skill} echoes the artifact inline after each write`,
       );
       assert.match(out, /never need to open the ticket/i, `${skill} states the visibility rationale`);
+      assert.match(out, /final message/i, `${skill} requires the render in the turn's final message`);
+      assert.match(
+        out,
+        /after all backend writes and tool calls/i,
+        `${skill} sequences the render after backend writes and tool calls`,
+      );
+      assert.match(
+        out,
+        /render the user cannot see does not count/i,
+        `${skill} states the visibility corollary`,
+      );
     }
   });
 
@@ -204,12 +215,22 @@ for (const type of ['linear', 'jira']) {
       config: quiet, backend: getBackend(type), tool: getTool('claude'),
     }).content;
     assert.doesNotMatch(out, /render the updated artifact sections/i, 'echo suppressed');
+    assert.doesNotMatch(
+      out,
+      /after all backend writes and tool calls/i,
+      'final-message placement rule suppressed too',
+    );
     assert.match(out, /\*\*Update the work artifact\.\*\*/, 'upsert instruction still present');
   });
 
   test(`[${type}] describe-ticket restates the refined story list unconditionally`, () => {
     const out = renderSkill('describe-ticket', envType(type)).content;
     assert.match(out, /always, even when the clarifications were trivial/i);
+  });
+
+  test(`[${type}] describe-ticket sequences writes before the render — never render-then-write`, () => {
+    const out = renderSkill('describe-ticket', envType(type)).content;
+    assert.match(out, /writes first, render last/i);
   });
 
   test(`[${type}] execute-ticket mirrors the work artifact into the PR body and keeps it synced`, () => {
@@ -221,6 +242,54 @@ for (const type of ['linear', 'jira']) {
   test(`[${type}] review-ticket records the verdict on the PR, not just the ticket`, () => {
     const out = renderSkill('review-ticket', envType(type)).content;
     assert.match(out, /gh pr comment/, 'verdict lands on the PR');
+  });
+}
+
+// APU-791: a real run emitted the artifact render mid-turn, before the artifact-write/
+// branch-checkout tool calls — agent harnesses only reliably display a turn's final text,
+// so the user saw nothing. Every phase must end on the render, never a bare receipt pointing
+// at earlier, possibly-hidden text. Backend-neutral: asserted for both linear and jira renders.
+for (const type of ['linear', 'jira']) {
+  test(`[${type}] every phase ends with the artifact render, never a bare receipt`, () => {
+    for (const skill of ['describe-ticket', 'execute-ticket', 'review-ticket', 'fix-ticket', 'merge-ticket']) {
+      const out = renderSkill(skill, envType(type)).content;
+      assert.match(out, /bare receipt/i, `${skill} names the anti-pattern`);
+      assert.match(out, /turn's final message/i, `${skill} requires ending on the final-message render`);
+    }
+
+    const quietRaw = exampleRaw
+      .replace('type: linear', `type: ${type}`)
+      .replace(/inlineArtifacts: true.*/, 'inlineArtifacts: false');
+    const quiet = parseConfig(quietRaw);
+    const blankRuns = (s) => [...s.matchAll(/\n{3,}/g)].length;
+    for (const skill of ['describe-ticket', 'execute-ticket', 'review-ticket', 'fix-ticket', 'merge-ticket']) {
+      const loudOut = renderSkill(skill, envType(type)).content;
+      const quietOut = renderSkill(skill, {
+        config: quiet, backend: getBackend(type), tool: getTool('claude'),
+      }).content;
+      assert.doesNotMatch(
+        quietOut,
+        /bare receipt/i,
+        `${skill}: final-message rule suppressed with inlineArtifacts: false`,
+      );
+      assert.doesNotMatch(
+        quietOut,
+        /turn's final message/i,
+        `${skill}: no final-message mandate survives in quiet mode`,
+      );
+      assert.ok(
+        blankRuns(quietOut) <= blankRuns(loudOut),
+        `${skill}: suppression leaves no extra blank-line runs (quiet ${blankRuns(quietOut)} vs loud ${blankRuns(loudOut)})`,
+      );
+    }
+    const quietDescribe = renderSkill('describe-ticket', {
+      config: quiet, backend: getBackend(type), tool: getTool('claude'),
+    }).content;
+    assert.doesNotMatch(
+      quietDescribe,
+      /writes first, render last/i,
+      'sequencing corollary suppressed with inlineArtifacts: false',
+    );
   });
 }
 
