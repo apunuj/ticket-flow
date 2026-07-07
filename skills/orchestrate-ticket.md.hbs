@@ -16,6 +16,7 @@ Orchestrate ticket(s) {{arg}} through the full lifecycle — describe → execut
 
 Which model runs each role is a cost/quality decision the operator owns — never resolve it silently. Resolution order: **explicit per-run instruction > config > ask**.
 
+- **Per-run override.** A model split the user states in the invocation or the conversation wins over everything below, configured values included. It applies to this run only and skips any model-split question; it is never written back to config, and the kickoff summary must flag it as a one-run override.
 {{#if (and orchestrate.plannerModel orchestrate.implementerModel)}}
 - **Configured split.** This project pins both roles in config — Planner: `{{orchestrate.plannerModel}}`, Implementer: `{{orchestrate.implementerModel}}`. Absent a per-run instruction, use it without asking.
 {{else}}

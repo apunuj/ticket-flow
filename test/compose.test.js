@@ -391,6 +391,23 @@ for (const type of ['linear', 'jira']) {
     }
   });
 
+  // T7 (US-6): an explicit per-run instruction beats config, skips the question, lasts one
+  // run, is never persisted, and is flagged in the kickoff summary — in every render.
+  test(`[${type}] per-run override rule present in configured and unconfigured renders`, () => {
+    for (const block of ['', FULL_SPLIT]) {
+      const out = renderSkill('orchestrate-ticket', orchestrateEnv(type, block)).content;
+      assert.match(out, /configured values included/i, 'override beats configured values');
+      assert.match(out, /this run only/i, 'override lasts one run');
+      assert.match(out, /skips any model-split question/i, 'override skips the question');
+      assert.match(out, /never written back to config/i, 'override is never persisted');
+      assert.match(
+        out,
+        /kickoff summary must flag it as a one-run override/i,
+        'kickoff summary flags the override',
+      );
+    }
+  });
+
   // T6 (US-5): the preset question rides each tool's ask machinery ({{ask}}: AskUserQuestion
   // on claude, plain present-and-wait elsewhere); pinning the model on the sub-agent spawn is
   // stated tool-neutrally, since skill bodies carry no per-tool conditionals.
