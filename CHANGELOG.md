@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Clarified the 0.4.0 artifact visibility convention (`output.inlineArtifacts`): the inline
+  artifact render must land in the turn's **final message**, after all backend writes and
+  tool calls — a real run emitted it mid-turn, before the artifact-write/branch-checkout
+  tool calls, and agent harnesses only reliably display a turn's final text, so the user saw
+  nothing. Every phase skill (`describe`, `execute`, `review`, `fix`, `merge`) now ends on the
+  render, never a bare receipt pointing at earlier, possibly-hidden text; `describe-ticket`
+  additionally spells out the write-then-render sequencing corollary. No new config knob —
+  correctness-only, tool-agnostic and backend-neutral.
+
 ## [0.4.0] - 2026-07-07
 
 ### Added
