@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `/orchestrate-ticket` no longer resolves the Planner/Implementer model split silently —
+  model choice is a cost/quality decision the operator owns. Resolution order: **explicit
+  per-run instruction > config > ask**. With both `orchestrate.plannerModel` and
+  `orchestrate.implementerModel` set, runs use the configured split without asking; partial
+  or absent config triggers a preset question (Split — recommended / All-strongest / Budget /
+  Custom, via each tool's ask machinery) and the run does not proceed until answered. A
+  per-run instruction wins for that run only, skips the question, and is never written back
+  to config. The resolved model is pinned on each sub-agent spawn where the tool supports
+  it; kickoff and boundary summaries always name which model ran each phase, and persisting
+  the choice is offered only after the run completes — never a mid-run or silent config
+  write. No new config keys.
+
 ### Fixed
 
 - Clarified the 0.4.0 artifact visibility convention (`output.inlineArtifacts`): the inline
