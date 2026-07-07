@@ -38,7 +38,7 @@ Describe ticket {{arg}} and orient on it.
 
    **b. Execution plan (test-driven by default).** A short ordered task list mapped to the confirmed stories, with file/module pointers (repo-root relative, `src/.../Service.ext:42` style). Each task cites the `US-N` it implements. **Default to TDD: for each story, the first task writes a failing test that encodes its acceptance criterion, and the implementation task that follows makes it pass (red → green → refactor).** Name the specific test file/case in each test task. If a story is genuinely untestable (pure config, docs, a throwaway spike), say so and note why TDD is skipped for it. Tight, not exhaustive.
 
-   **Ratify — STOP.** Display the refined user stories (a) and the execution plan (b) together in this message, then STOP and wait for the user to ratify or redirect the plan — always, there is no trivial-clarifications escape. Do not write the work artifact, check out a branch, or start implementing before the plan is ratified.
+   **Ratify — STOP.** Display the refined user stories (a) and the execution plan (b) together in this message, then STOP and wait for the user to ratify or redirect the plan — always, even when there were no clarifying questions to ask; there is no trivial-clarifications escape. Do not write the work artifact, check out a branch, or start implementing before the plan is ratified.
 
    **c. Record the work artifact.** {{> artifact-format}}
 

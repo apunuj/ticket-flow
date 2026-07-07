@@ -14,6 +14,7 @@ import {
   renderDoc,
   renderForTool,
   renderExtras,
+  DOC_TOOL,
 } from '../src/compose/composer.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -703,4 +704,48 @@ for (const type of ['linear', 'jira']) {
       }
     }
   });
+
+  // Fix loop N1: on claude the ask output ends with the bare question, so a ?-terminated
+  // question followed by the display-mandate clause produced "…did you mean?. Display".
+  // The helper swallows its leading period after terminal punctuation — on every tool.
+  test(`[${type}] display-mandate clause never doubles terminal punctuation`, () => {
+    for (const toolId of ['claude', 'copilot', 'opencode']) {
+      for (const skill of SKILLS) {
+        const out = renderSkill(skill, envType(type, toolId)).content;
+        assert.doesNotMatch(out, /[?!.]\. Display /, `${skill}/${toolId}: clean junction before the clause`);
+      }
+    }
+  });
+
+  // Fix loop N2: the ratification STOP is explicitly unconditional on the zero-questions
+  // path too — "after answers" alone read vacuous when there was nothing to ask.
+  test(`[${type}] ratification STOP is explicit on the zero-questions path`, () => {
+    for (const skill of ['describe-ticket', 'orchestrate-ticket']) {
+      const out = renderSkill(skill, envType(type)).content;
+      assert.match(
+        out,
+        /even when there were no clarifying questions/i,
+        `${skill}: ratification holds with zero questions`,
+      );
+    }
+  });
+
+  // Fix loop N3: pin describe's ordering positionally, mirroring the orchestrate pin —
+  // ratify STOP strictly before the artifact write, strictly before the branch checkout.
+  test(`[${type}] describe orders ratify STOP before artifact write before branch checkout`, () => {
+    const out = renderSkill('describe-ticket', envType(type)).content;
+    const ratifyIdx = out.indexOf('Ratify — STOP');
+    const writeIdx = out.indexOf('**Update the work artifact.**');
+    const checkoutIdx = out.indexOf('Check out the ticket branch');
+    assert.ok(ratifyIdx !== -1, 'ratify STOP present');
+    assert.ok(writeIdx > ratifyIdx, 'artifact write after the ratify STOP');
+    assert.ok(checkoutIdx > writeIdx, 'branch checkout after the artifact write');
+  });
 }
+
+// Fix loop N4: arg-guard now calls {{ask}}, and DOC_TOOL renders with the same partials —
+// a future doc template including arg-guard must not throw on a missing ask.
+test('DOC_TOOL carries an ask stub so doc templates survive {{ask}}', () => {
+  assert.equal(typeof DOC_TOOL.ask, 'function', 'DOC_TOOL implements ask');
+  assert.match(DOC_TOOL.ask('which one?'), /present the options and wait/i, 'present-and-wait prose');
+});
