@@ -20,7 +20,7 @@ Describe ticket {{arg}} and orient on it.
 
 ### Prospective mode
 
-3. **Product behavior.** Three parts, in order:
+3. **Product behavior.** Three parts, in order — display all three in the message body; omitting or burying them mid-turn is non-compliant:
 
    **a. Summary** (≤80 words). The "why" — the problem it solves or gap it closes, lifted from the ticket's `## Why` / first paragraph (do not invent). Flag any blockers, predecessors, or hybrid pairs noted in the description.
 
@@ -28,15 +28,17 @@ Describe ticket {{arg}} and orient on it.
 
    **c. Acceptance criteria** (verbatim or near-verbatim), as a checklist. If a criterion maps to a story, note it inline (`US-N`).
 
-4. **Clarifying questions.** Output 2–4 questions targeted at genuinely under-specified decisions (ambiguous scope, choices the ticket leaves open, trade-offs, sequencing). **Do not ask about anything the ticket already answers.** If everything is well-specified, say so and skip to step 5. {{ask "the clarifying questions above"}}.
+4. **Clarifying questions.** Output 2–4 questions targeted at genuinely under-specified decisions (ambiguous scope, choices the ticket leaves open, trade-offs, sequencing). **Do not ask about anything the ticket already answers.** If everything is well-specified, say so and skip to step 5. {{ask "the clarifying questions above" context="the step-3 output — the summary, the user stories, and the acceptance criteria"}}
 
 5. **STOP.** Wait for the user's answers. Do not include the plan in this response.
 
    On the next turn, after answers:
 
-   **a. Restate the refined user-story list — always, even when the clarifications were trivial or changed nothing** (split/merge/drop/reword; flag anything explicitly de-scoped). Skipping this restatement is non-compliant. STOP again for confirmation unless the clarifications were trivial.
+   **a. Restate the refined user-story list — always, even when the clarifications were trivial or changed nothing** (split/merge/drop/reword; flag anything explicitly de-scoped). Skipping this restatement is non-compliant.
 
    **b. Execution plan (test-driven by default).** A short ordered task list mapped to the confirmed stories, with file/module pointers (repo-root relative, `src/.../Service.ext:42` style). Each task cites the `US-N` it implements. **Default to TDD: for each story, the first task writes a failing test that encodes its acceptance criterion, and the implementation task that follows makes it pass (red → green → refactor).** Name the specific test file/case in each test task. If a story is genuinely untestable (pure config, docs, a throwaway spike), say so and note why TDD is skipped for it. Tight, not exhaustive.
+
+   **Ratify — STOP.** Display the refined user stories (a) and the execution plan (b) together in this message, then STOP and wait for the user to ratify or redirect the plan — always, there is no trivial-clarifications escape. Do not write the work artifact, check out a branch, or start implementing before the plan is ratified.
 
    **c. Record the work artifact.** {{> artifact-format}}
 

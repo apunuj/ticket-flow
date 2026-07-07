@@ -567,4 +567,31 @@ for (const type of ['linear', 'jira']) {
       'commit confirm carries the full message',
     );
   });
+
+  test(`[${type}] describe step 3 displays with teeth`, () => {
+    const out = renderSkill('describe-ticket', envType(type)).content;
+    assert.match(
+      out,
+      /omitting or burying them mid-turn is non-compliant/i,
+      'step 3 mandates displaying all three parts',
+    );
+    assert.match(
+      out,
+      /the step-3 output — the summary/i,
+      'step-4 clarifying ask carries the step-3 output as context',
+    );
+  });
+
+  test(`[${type}] describe always stops for plan ratification`, () => {
+    const out = renderSkill('describe-ticket', envType(type)).content;
+    assert.match(out, /there is no trivial-clarifications escape/i, 'the ratification STOP has no escape');
+    assert.match(out, /ratif/i, 'a ratification gate exists');
+    assert.doesNotMatch(
+      out,
+      /STOP again for confirmation unless the clarifications were trivial/i,
+      "5a's trivial-clarifications escape is removed",
+    );
+    // the pinned restatement phrase (APU-787) survives untouched
+    assert.match(out, /always, even when the clarifications were trivial/i, 'restatement phrase intact');
+  });
 }
