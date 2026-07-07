@@ -104,7 +104,11 @@ test('upgrade aborts when generated files carry uncommitted changes; --force pro
 
 test('upgrade migrates the config: missing orchestrate block appended, stamp refreshed', () => {
   withTmp((dir) => {
-    scaffold(dir, { yaml: '# ticket-flow.config.yaml — generated for Ticket-Flow 0.0.1.\n' + exampleYaml() });
+    // Simulate a pre-0.4 config: the example fixture now ships the commented orchestrate
+    // block, so strip it to exercise the migration path.
+    const preOrchestrate = exampleYaml().replace(/\n*# Optional: model split[\s\S]*$/, '\n');
+    assert.doesNotMatch(preOrchestrate, /orchestrate:/, 'fixture lacks the block');
+    scaffold(dir, { yaml: '# ticket-flow.config.yaml — generated for Ticket-Flow 0.0.1.\n' + preOrchestrate });
     build(parseConfig(exampleYaml()), { outputDir: dir });
     execSync('git add -A && git commit -qm generated', { cwd: dir, stdio: 'ignore', shell: true });
 
