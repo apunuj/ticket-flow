@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
+import { parseConfig } from '../src/config.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CLI = path.join(ROOT, 'bin', 'cli.js');
@@ -69,6 +70,34 @@ test('init --defaults writes a detected config without prompts', () => {
     assert.match(cfg, /name:/);
     assert.match(cfg, /backend:/);
     assert.doesNotMatch(cfg, /ticketPrefix:/, 'init no longer writes a ticket prefix');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('init --defaults warns when no test command is detectable', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tf-bin-'));
+  try {
+    const { code, out } = run(['init', '--defaults'], { cwd: dir });
+    assert.equal(code, 0);
+    assert.match(out, /could not detect a test command/);
+    assert.match(out, /edit test\.command in ticket-flow\.config\.yaml/);
+    const cfg = parseConfig(fs.readFileSync(path.join(dir, 'ticket-flow.config.yaml'), 'utf8'));
+    assert.equal(cfg.test.command, 'npm test', 'config stays schema-valid with the fallback');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('init --defaults does not warn when a stack is detected', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tf-bin-'));
+  try {
+    fs.writeFileSync(path.join(dir, 'go.mod'), 'module example.com/acme\n');
+    const { code, out } = run(['init', '--defaults'], { cwd: dir });
+    assert.equal(code, 0);
+    assert.doesNotMatch(out, /could not detect a test command/);
+    const cfg = parseConfig(fs.readFileSync(path.join(dir, 'ticket-flow.config.yaml'), 'utf8'));
+    assert.equal(cfg.test.command, 'go test ./...');
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }

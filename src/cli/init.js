@@ -14,12 +14,44 @@ function git(cmd, cwd) {
   return execSync(`git ${cmd}`, { cwd, stdio: ['ignore', 'pipe', 'ignore'], encoding: 'utf8' }).trim();
 }
 
+// Best-effort test-command detection from stack marker files — first match wins, null when
+// nothing recognizable is found. Never throws.
+export function detectTestCommand(cwd) {
+  const read = (f) => fs.readFileSync(path.join(cwd, f), 'utf8');
+  const has = (f) => fs.existsSync(path.join(cwd, f));
+  const grep = (f, re) => {
+    try {
+      return re.test(read(f));
+    } catch {
+      return false; // file absent or unreadable
+    }
+  };
+
+  try {
+    const pkg = JSON.parse(read('package.json'));
+    if (pkg.scripts?.test && !/no test specified/.test(pkg.scripts.test)) return 'npm test';
+  } catch {
+    /* no (or unparseable) package.json — keep probing */
+  }
+  if (grep('Makefile', /^test:/m)) return 'make test';
+  if (has('pom.xml')) return 'mvn test';
+  if (has('build.gradle') || has('build.gradle.kts')) return has('gradlew') ? './gradlew test' : 'gradle test';
+  if (grep('pyproject.toml', /\[tool\.pytest/) || grep('pytest.ini', /^\[pytest\]/m) || grep('setup.cfg', /^\[tool:pytest\]/m)) {
+    return 'pytest';
+  }
+  if (has('go.mod')) return 'go test ./...';
+  if (has('Cargo.toml')) return 'cargo test';
+  return null;
+}
+
 // Best-effort defaults from the surrounding repo — never throws.
 export function detectDefaults(cwd) {
+  const detected = detectTestCommand(cwd);
   const d = {
     projectName: path.basename(cwd),
     baseBranch: 'main',
-    testCommand: 'npm test',
+    testCommand: detected ?? 'npm test',
+    testCommandDetected: detected !== null,
   };
 
   try {
@@ -38,17 +70,6 @@ export function detectDefaults(cwd) {
       if (b) d.baseBranch = b;
     } catch {
       /* not a git repo */
-    }
-  }
-
-  try {
-    const pkg = JSON.parse(fs.readFileSync(path.join(cwd, 'package.json'), 'utf8'));
-    if (pkg.scripts?.test && !/no test specified/.test(pkg.scripts.test)) d.testCommand = 'npm test';
-  } catch {
-    try {
-      if (/^test:/m.test(fs.readFileSync(path.join(cwd, 'Makefile'), 'utf8'))) d.testCommand = 'make test';
-    } catch {
-      /* neither */
     }
   }
 
@@ -141,8 +162,12 @@ export function initDefaults(flags = {}) {
     console.log(ALREADY);
     return dest;
   }
-  fs.writeFileSync(dest, configToYaml(assembleConfig(answersFromDetected(detectDefaults(process.cwd())))));
+  const detected = detectDefaults(process.cwd());
+  fs.writeFileSync(dest, configToYaml(assembleConfig(answersFromDetected(detected))));
   console.log(`Created ${path.relative(process.cwd(), dest)} (from detected defaults)`);
+  if (!detected.testCommandDetected) {
+    console.log('⚠ could not detect a test command — edit test.command in ticket-flow.config.yaml');
+  }
   return dest;
 }
 

@@ -89,6 +89,70 @@ test('detectDefaults picks up a Make test target (no package.json)', () => {
   }
 });
 
+// Scaffold a temp dir containing just the given marker files, run detectDefaults on it.
+function detectWith(files) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tf-detect-'));
+  try {
+    for (const [name, content] of Object.entries(files)) {
+      fs.writeFileSync(path.join(dir, name), content);
+    }
+    return detectDefaults(dir);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+test('detectDefaults picks up a Maven pom.xml', () => {
+  assert.equal(detectWith({ 'pom.xml': '<project/>' }).testCommand, 'mvn test');
+});
+
+test('detectDefaults picks the Gradle wrapper when gradlew exists', () => {
+  const d = detectWith({ 'build.gradle': 'plugins {}', gradlew: '#!/bin/sh\n' });
+  assert.equal(d.testCommand, './gradlew test');
+});
+
+test('detectDefaults falls back to plain gradle without a wrapper', () => {
+  assert.equal(detectWith({ 'build.gradle': 'plugins {}' }).testCommand, 'gradle test');
+  assert.equal(detectWith({ 'build.gradle.kts': 'plugins {}' }).testCommand, 'gradle test');
+});
+
+test('detectDefaults picks up pytest config in pyproject/pytest.ini/setup.cfg', () => {
+  assert.equal(
+    detectWith({ 'pyproject.toml': '[tool.pytest.ini_options]\ntestpaths = ["tests"]\n' }).testCommand,
+    'pytest',
+  );
+  assert.equal(detectWith({ 'pytest.ini': '[pytest]\naddopts = -q\n' }).testCommand, 'pytest');
+  assert.equal(detectWith({ 'setup.cfg': '[tool:pytest]\naddopts = -q\n' }).testCommand, 'pytest');
+});
+
+test('detectDefaults does not treat a bare pyproject.toml as pytest', () => {
+  const d = detectWith({ 'pyproject.toml': '[project]\nname = "acme"\n' });
+  assert.equal(d.testCommand, 'npm test', 'falls through to the schema-valid default');
+  assert.equal(d.testCommandDetected, false);
+});
+
+test('detectDefaults picks up a Go module', () => {
+  assert.equal(detectWith({ 'go.mod': 'module example.com/acme\n' }).testCommand, 'go test ./...');
+});
+
+test('detectDefaults picks up a Cargo.toml', () => {
+  assert.equal(detectWith({ 'Cargo.toml': '[package]\nname = "acme"\n' }).testCommand, 'cargo test');
+});
+
+test('detectDefaults prefers package.json test script over other stacks', () => {
+  const d = detectWith({
+    'package.json': JSON.stringify({ scripts: { test: 'node --test' } }),
+    'pom.xml': '<project/>',
+  });
+  assert.equal(d.testCommand, 'npm test');
+  assert.equal(d.testCommandDetected, true);
+});
+
+test('detectDefaults prefers Maven over Go when both markers exist', () => {
+  const d = detectWith({ 'pom.xml': '<project/>', 'go.mod': 'module example.com/acme\n' });
+  assert.equal(d.testCommand, 'mvn test');
+});
+
 test('assembleConfig + configToYaml produce a schema-valid config', () => {
   const yaml = configToYaml(
     assembleConfig({

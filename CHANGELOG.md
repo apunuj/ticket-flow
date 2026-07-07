@@ -25,6 +25,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   gates, and a structured return.
 - New `createTicket` backend op on both backends (Linear `save_issue`, Jira
   `create-issue`), backing the batch deferred-findings ticket.
+- `init` now detects Maven (`mvn test`), Gradle (`./gradlew test` / `gradle test`), pytest,
+  Go (`go test ./...`), and Cargo (`cargo test`) test commands in addition to npm and Make.
+  `init --defaults` prints a visible warning instead of silently baking in `npm test` when
+  no stack is detectable.
 
 ### Changed
 
