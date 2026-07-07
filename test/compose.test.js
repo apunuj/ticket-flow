@@ -197,6 +197,22 @@ test('output.inlineArtifacts: false suppresses the echo but keeps the upsert', (
   assert.match(out, /\*\*Update the work artifact\.\*\*/, 'upsert instruction still present');
 });
 
+test('describe-ticket restates the refined story list unconditionally', () => {
+  const out = renderSkill('describe-ticket', env('claude')).content;
+  assert.match(out, /always, even when the clarifications were trivial/i);
+});
+
+test('execute-ticket mirrors the work artifact into the PR body and keeps it synced', () => {
+  const out = renderSkill('execute-ticket', env('claude')).content;
+  assert.match(out, /## Work artifact/, 'PR body carries a Work artifact section');
+  assert.match(out, /gh pr edit/, 'sync rule refreshes the section while the PR is open');
+});
+
+test('review-ticket records the verdict on the PR, not just the ticket', () => {
+  const out = renderSkill('review-ticket', env('claude')).content;
+  assert.match(out, /gh pr comment/, 'verdict lands on the PR');
+});
+
 test('orchestrate config block is optional, validated, and rendered', () => {
   const raw = fs.readFileSync(path.join(ROOT, 'examples', 'example.config.yaml'), 'utf8');
   const withModels = raw + '\norchestrate:\n  plannerModel: opus\n  implementerModel: sonnet\n';

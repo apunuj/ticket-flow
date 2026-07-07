@@ -46,6 +46,8 @@ End with a clear verdict, stated in chat AND recorded:
 
 Record the **full review on the ticket** (not just in chat): {{op "addComment"}} with a structured review comment containing — the **verdict**; the **blocking** and **nice-to-have** findings grouped, each with a repo-root-relative `file:line`; any **uncovered acceptance criteria**; any **convention violations**; and the **PR link**. This comment is the durable record — inline PR comments (if you chose them in step 2) are *in addition*, not instead.
 
+The verdict must ALSO be recorded on the PR — post a PR comment with the verdict line (`gh pr comment <pr> --body "..."`, or append it to the PR description), regardless of whether inline PR comments were chosen in step 2.
+
 Then {{> artifact-write}} — fill the `Review verdict` section with the verdict **and the list of blocking findings / uncovered criteria**, so `/merge-ticket` can confirm they were addressed. `/merge-ticket` reads this verdict to decide whether review is done.
 
 {{> checkpoint next="hand off or end the review" require="the verdict comment and the artifact's `Review verdict` update are receipted on the ticket"}}
