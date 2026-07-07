@@ -640,4 +640,38 @@ for (const type of ['linear', 'jira']) {
       }
     }
   });
+
+  test(`[${type}] orchestrate bubbles are self-contained and the plan is ratified before the artifact write`, () => {
+    const out = renderSkill('orchestrate-ticket', envType(type)).content;
+    // class 1 now folds in plan ratification and mandates relaying the Planner's output
+    assert.match(out, /Product clarifications and plan ratification/i, 'class 1 folds in ratification');
+    assert.match(
+      out,
+      /sub-agent output is invisible to the user unless you relay it/i,
+      'the bubble must relay the Planner output',
+    );
+    // the lifecycle bubble carries the Planner's summary/stories/ACs as ask context
+    assert.match(
+      out,
+      /the Planner's summary, user stories, and acceptance criteria, plus the clarifying questions/i,
+      'bubble ask carries the Planner output as context',
+    );
+    // a ratification STOP exists and precedes the lifecycle artifact write
+    assert.match(
+      out,
+      /display the refined user stories and the execution plan and STOP for the user to ratify/i,
+      'lifecycle stops for ratification',
+    );
+    const ratifyIdx = out.indexOf('Only after ratification');
+    assert.ok(ratifyIdx !== -1, 'explicit post-ratification gate present');
+    const writeIdx = out.indexOf('**Update the work artifact.**', ratifyIdx);
+    assert.ok(writeIdx > ratifyIdx, 'ratification precedes the lifecycle artifact write');
+    // pinned invariants stay green
+    assert.match(
+      out,
+      /Exactly two classes of questions reach the user \*\*mid-run\*\*/,
+      'two-classes claim intact',
+    );
+    assert.match(out, /do not proceed until the user has answered/i, 'model-split ask gate intact');
+  });
 }
