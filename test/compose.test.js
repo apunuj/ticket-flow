@@ -240,6 +240,29 @@ for (const type of ['linear', 'jira']) {
   });
 }
 
+// APU-791: a real run emitted the artifact render mid-turn, before the artifact-write/
+// branch-checkout tool calls — agent harnesses only reliably display a turn's final text,
+// so the user saw nothing. Every phase must end on the render, never a bare receipt pointing
+// at earlier, possibly-hidden text. Backend-neutral: asserted for both linear and jira renders.
+for (const type of ['linear', 'jira']) {
+  test(`[${type}] every phase ends with the artifact render, never a bare receipt`, () => {
+    for (const skill of ['describe-ticket', 'execute-ticket', 'review-ticket', 'fix-ticket', 'merge-ticket']) {
+      const out = renderSkill(skill, envType(type)).content;
+      assert.match(out, /bare receipt/i, `${skill} names the anti-pattern`);
+      assert.match(out, /turn's final message/i, `${skill} requires ending on the final-message render`);
+    }
+
+    const quietRaw = exampleRaw
+      .replace('type: linear', `type: ${type}`)
+      .replace(/inlineArtifacts: true.*/, 'inlineArtifacts: false');
+    const quiet = parseConfig(quietRaw);
+    const quietOut = renderSkill('execute-ticket', {
+      config: quiet, backend: getBackend(type), tool: getTool('claude'),
+    }).content;
+    assert.doesNotMatch(quietOut, /bare receipt/i, 'final-message rule suppressed with inlineArtifacts: false');
+  });
+}
+
 // APU-788: the multi-PR batch playbook — patterns proven on a real 4-PR batch folded into
 // the orchestrate skill. Backend-neutral: asserted for both linear and jira renders.
 for (const type of ['linear', 'jira']) {
