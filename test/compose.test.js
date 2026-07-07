@@ -333,6 +333,41 @@ for (const type of ['linear', 'jira']) {
   });
 }
 
+// APU-792: the Planner/Implementer model split is a cost/quality decision the operator
+// owns — resolve it interactively, never silently. Resolution order: explicit per-run
+// instruction > config (both models) > ask. Backend-neutral: asserted for linear and jira.
+const orchestrateEnv = (type, orchestrateBlock = '', toolId = 'claude') => {
+  const raw = exampleRaw.replace('type: linear', `type: ${type}`) + orchestrateBlock;
+  return { config: parseConfig(raw), backend: getBackend(type), tool: getTool(toolId) };
+};
+const FULL_SPLIT = '\norchestrate:\n  plannerModel: opus\n  implementerModel: sonnet\n';
+
+for (const type of ['linear', 'jira']) {
+  test(`[${type}] configured split (both models) renders pinned models and does not ask`, () => {
+    const out = renderSkill('orchestrate-ticket', orchestrateEnv(type, FULL_SPLIT)).content;
+    assert.match(out, /Planner[^\n]*`opus`/, 'planner model named in the configured prose');
+    assert.match(out, /Implementer[^\n]*`sonnet`/, 'implementer model named in the configured prose');
+    assert.match(out, /without asking/i, 'configured path proceeds without the question');
+    assert.doesNotMatch(out, /All-strongest/, 'no preset question in the configured render');
+    assert.doesNotMatch(out, /do not proceed until/i, 'no ask gate in the configured render');
+  });
+
+  test(`[${type}] no configured split → preset question with all four options, gated`, () => {
+    const out = renderSkill('orchestrate-ticket', orchestrateEnv(type)).content;
+    assert.match(out, /\*\*Split\*\*[^\n]*recommended/i, 'Split preset, marked recommended');
+    assert.match(out, /\*\*All-strongest\*\*/, 'All-strongest preset');
+    assert.match(out, /\*\*Budget\*\*/, 'Budget preset');
+    assert.match(out, /\*\*Custom\*\*/, 'Custom preset');
+    assert.match(out, /per-phase overrides/i, 'Custom allows per-phase overrides');
+    assert.match(out, /do not proceed until the user has answered/i, 'hard ask gate');
+    assert.match(
+      out,
+      /explicit per-run instruction > config > ask/i,
+      'resolution order stated',
+    );
+  });
+}
+
 test('orchestrate config block is optional, validated, and rendered', () => {
   const raw = fs.readFileSync(path.join(ROOT, 'examples', 'example.config.yaml'), 'utf8');
   const withModels = raw + '\norchestrate:\n  plannerModel: opus\n  implementerModel: sonnet\n';

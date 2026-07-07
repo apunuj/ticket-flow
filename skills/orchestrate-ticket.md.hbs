@@ -12,10 +12,20 @@ Orchestrate ticket(s) {{arg}} through the full lifecycle — describe → execut
 
 {{> delegation}}
 
+## Model split
+
+Which model runs each role is a cost/quality decision the operator owns — never resolve it silently. Resolution order: **explicit per-run instruction > config > ask**.
+
+{{#if (and orchestrate.plannerModel orchestrate.implementerModel)}}
+- **Configured split.** This project pins both roles in config — Planner: `{{orchestrate.plannerModel}}`, Implementer: `{{orchestrate.implementerModel}}`. Absent a per-run instruction, use it without asking.
+{{else}}
+- **Ask first.** No configured split — before any phase work, {{ask "which model split to use for this run — **Split** (recommended): the strongest model plans and reviews, the worker model builds and fixes; **All-strongest**: the strongest model for both roles; **Budget**: the worker model for both roles; **Custom**: name a model per role, with optional per-phase overrides"}}. Do not proceed until the user has answered.
+{{/if}}
+
 ## Roles
 
-- **Planner** — plans and reviews. Spawn with the strongest model available{{#if orchestrate.plannerModel}} (configured: `{{orchestrate.plannerModel}}`){{/if}}. Owns the describe-phase analysis and the review-phase findings.
-- **Implementer** — builds and fixes. Spawn with the default worker model{{#if orchestrate.implementerModel}} (configured: `{{orchestrate.implementerModel}}`){{/if}}. Owns code, tests, and commits on the ticket branch.
+- **Planner** — plans and reviews; runs on the Planner model resolved above. Owns the describe-phase analysis and the review-phase findings.
+- **Implementer** — builds and fixes; runs on the Implementer model resolved above. Owns code, tests, and commits on the ticket branch.
 - **You (orchestrator)** — sequencing, every {{backend.displayName}} write (with receipts), git/PR operations, and all user interaction.
 
 ## Sub-agent briefs

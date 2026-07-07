@@ -77,6 +77,8 @@ function makeEnv(config, backend, tool, rawMeta) {
     const states = (config.backend && config.backend.states) || {};
     return states[name] || name;
   });
+  // {{#if (and a b)}} — every argument truthy (the trailing Handlebars options object is dropped)
+  hb.registerHelper('and', (...args) => args.slice(0, -1).every(Boolean));
   hb.registerHelper('lower', (s) => String(s == null ? '' : s).toLowerCase());
   hb.registerHelper('upper', (s) => String(s == null ? '' : s).toUpperCase());
   // exactly one trailing period, whether or not the config string carried its own
