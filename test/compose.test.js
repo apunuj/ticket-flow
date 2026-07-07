@@ -391,6 +391,34 @@ for (const type of ['linear', 'jira']) {
     }
   });
 
+  // T6 (US-5): the preset question rides each tool's ask machinery ({{ask}}: AskUserQuestion
+  // on claude, plain present-and-wait elsewhere); pinning the model on the sub-agent spawn is
+  // stated tool-neutrally, since skill bodies carry no per-tool conditionals.
+  test(`[${type}] preset question uses the tool's ask machinery; pinning degrades gracefully`, () => {
+    const claude = renderSkill('orchestrate-ticket', orchestrateEnv(type)).content;
+    assert.match(claude, /AskUserQuestion/, 'claude asks via AskUserQuestion');
+    for (const toolId of ['copilot', 'opencode']) {
+      const out = renderSkill('orchestrate-ticket', orchestrateEnv(type, '', toolId)).content;
+      assert.match(out, /present the options and wait/i, `${toolId} asks and waits in plain prose`);
+      assert.doesNotMatch(out, /AskUserQuestion/, `${toolId} never names claude machinery`);
+    }
+    for (const toolId of ['claude', 'copilot', 'opencode']) {
+      for (const block of ['', FULL_SPLIT]) {
+        const out = renderSkill('orchestrate-ticket', orchestrateEnv(type, block, toolId)).content;
+        assert.match(
+          out,
+          /pin the resolved model on each sub-agent spawn where your tool supports it/i,
+          `${toolId}: model pinned on the spawn where supported`,
+        );
+        assert.match(
+          out,
+          /otherwise record the chosen split/i,
+          `${toolId}: graceful degradation still records intent`,
+        );
+      }
+    }
+  });
+
   // T5 (US-4): both summaries name the model that ran each phase, in every resolution path.
   test(`[${type}] kickoff and boundary summaries name the model per phase`, () => {
     for (const block of ['', FULL_SPLIT]) {
