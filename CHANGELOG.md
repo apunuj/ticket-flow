@@ -9,6 +9,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Closed a batch of backend/tool parity leaks and empty-config robustness gaps. Backend-specific
+  vocabulary that shared templates render is now carried by adapter facts rather than hardcoded
+  Linear terms: the priority scale (`priorityScale`), the group's date noun (`groupDateNoun`:
+  target date vs end date), and its closed-status phrasing (`groupClosedStatuses`) each exist on
+  both adapters and are spread into the composer context, so a Jira `next-ticket` reads "Highest
+  > High > … > Lowest" and "end date" instead of Linear's scale and "target date". `describe-ticket`'s
+  retrospective PR discovery routes through the `getAttachedPR` op, so Jira points at the
+  development panel / remote links rather than Linear-style attachments. `attachPR`'s
+  duplicate-skip is now an op-level clause on both adapters (Jira "linked", Linear "attached"),
+  not a template rider. The onboarding doc lists tools by display name ("Claude Code", "GitHub
+  Copilot") instead of the bare config id. A parity sweep asserts no backend's terms leak into
+  the other's renders across all seven skills and three tools.
+
+- Hardened config validation and operator feedback. Empty-string values that would render blank
+  instructions — `git.baseBranch`, `test.command`, `conventions` items, `review.conventionChecks`
+  items, and `backend.states.*` — now hard-fail at parse with the offending key path named
+  (schema `minLength`). `ticket-flow doctor` warns on a half-configured orchestrate split (exactly
+  one of `plannerModel` / `implementerModel` set, empty string counting as unset) and names the
+  missing role. `ticket-flow upgrade` notes an `output` block that predates the `inlineArtifacts`
+  key (defaults to on) and how to opt out — informational, no YAML mutation. `orchestrate-ticket`'s
+  half-config prose reads "No complete configured split (both roles must be set)", carries a
+  tool-neutral degrade for tools without a sub-agent primitive, and `review-ticket` normalizes a
+  convention check's terminal punctuation.
+
 - Resolved a batch of prose contradictions and unsatisfiable rules across the phase skills so
   every rule holds on real execution paths. `describe-ticket`'s well-specified path no longer
   deadlocks on a bare "wait for the user's answers" — the wait is conditional on having asked,

@@ -875,6 +875,27 @@ for (const type of ['linear', 'jira']) {
   });
 }
 
+// APU-795 (T13, AC-7): parity sweep — no backend's vocabulary leaks into the other's
+// renders, across every skill and every tool. Guards against a future template hardcoding a
+// backend-specific term where a fact belongs.
+for (const type of ['linear', 'jira']) {
+  test(`[${type}] parity sweep: no cross-backend vocabulary leaks in any skill/tool render`, () => {
+    for (const skill of SKILLS) {
+      for (const toolId of ['claude', 'copilot', 'opencode']) {
+        const out = renderSkill(skill, envType(type, toolId)).content;
+        if (type === 'jira') {
+          assert.doesNotMatch(out, /Urgent > High/, `${skill}/${toolId}: no Linear priority scale`);
+          assert.doesNotMatch(out, /target date|target-date/, `${skill}/${toolId}: no Linear target-date term`);
+          assert.doesNotMatch(out, /attachments/, `${skill}/${toolId}: no attachment-based PR scan`);
+        } else {
+          assert.doesNotMatch(out, /Highest > High/, `${skill}/${toolId}: no Jira priority scale`);
+          assert.doesNotMatch(out, /end date/, `${skill}/${toolId}: no Jira end-date term`);
+        }
+      }
+    }
+  });
+}
+
 // Fix loop N4: arg-guard now calls {{ask}}, and DOC_TOOL renders with the same partials —
 // a future doc template including arg-guard must not throw on a missing ask.
 test('DOC_TOOL carries an ask stub so doc templates survive {{ask}}', () => {
