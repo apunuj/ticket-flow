@@ -16,6 +16,7 @@ import { fileURLToPath } from 'node:url';
 import Handlebars from 'handlebars';
 import matter from 'gray-matter';
 import { ARTIFACT_SENTINEL } from '../artifact.js';
+import { tools } from '../render/index.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const PKG_ROOT = path.resolve(__dirname, '..', '..');
@@ -85,6 +86,12 @@ function makeEnv(config, backend, tool, rawMeta) {
     return states[name] || name;
   });
   hb.registerHelper('and', and);
+  // {{toolName "claude"}} -> the tool's human display name (e.g. "Claude Code"); falls back
+  // to the id for an unknown tool so onboarding lists never leak a bare config id.
+  hb.registerHelper('toolName', (id) => {
+    const t = tools[id];
+    return (t && t.displayName) || id;
+  });
   hb.registerHelper('lower', (s) => String(s == null ? '' : s).toLowerCase());
   hb.registerHelper('upper', (s) => String(s == null ? '' : s).toUpperCase());
   // exactly one trailing period, whether or not the config string carried its own

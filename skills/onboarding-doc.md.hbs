@@ -1,6 +1,6 @@
 # Working with tickets in this repo (Ticket-Flow)
 
-This repo uses **Ticket-Flow** — a five-phase, ticket-driven workflow backed by **{{backend.displayName}}**, available in {{#each tools}}{{#unless @first}}, {{/unless}}**{{this}}**{{/each}}. You drive it by talking to your AI assistant in normal language; slash commands are an optional shortcut.
+This repo uses **Ticket-Flow** — a five-phase, ticket-driven workflow backed by **{{backend.displayName}}**, available in {{#each tools}}{{#unless @first}}, {{/unless}}**{{toolName this}}**{{/each}}. You drive it by talking to your AI assistant in normal language; slash commands are an optional shortcut.
 
 ```
 next-ticket → describe-ticket → execute-ticket → review-ticket → merge-ticket

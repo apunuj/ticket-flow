@@ -5,6 +5,7 @@ import { frontmatter, usageLine } from './_frontmatter.js';
 
 export default {
   id: 'opencode',
+  displayName: 'opencode',
 
   argToken(meta) {
     return meta && meta.argMode === 'all' ? '$ARGUMENTS' : '$1';

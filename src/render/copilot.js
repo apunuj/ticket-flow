@@ -6,6 +6,7 @@ import { frontmatter, usageLine } from './_frontmatter.js';
 
 export default {
   id: 'copilot',
+  displayName: 'GitHub Copilot',
 
   argToken(meta) {
     return '${input:' + (meta.argName || 'ticket') + '}';

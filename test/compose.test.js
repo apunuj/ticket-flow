@@ -72,6 +72,15 @@ test('renderDoc produces a backend-aware team reference', () => {
   for (const skill of SKILLS) assert.ok(doc.includes(skill), `doc mentions ${skill}`);
 });
 
+// APU-795 (T11, finding 10): the onboarding doc lists tools by human display name, not the
+// bare config id — "Claude Code" / "GitHub Copilot", never "**claude**".
+test('renderDoc shows tool display names, not bare ids', () => {
+  const doc = renderDoc({ config, backend: getBackend(config.backend.type) });
+  assert.match(doc, /Claude Code/, 'claude display name');
+  assert.match(doc, /GitHub Copilot/, 'copilot display name');
+  assert.doesNotMatch(doc, /\*\*claude\*\*|\*\*copilot\*\*/, 'no bare tool ids rendered in bold');
+});
+
 test('renderGuide maps every phase with a tool-specific pointer', () => {
   const guide = renderGuide(env('opencode'));
   for (const skill of SKILLS) assert.ok(guide.includes(skill), `guide names ${skill}`);
