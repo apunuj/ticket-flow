@@ -812,6 +812,23 @@ for (const type of ['linear', 'jira']) {
     assert.match(both, /\*\*Configured split\.\*\*/, 'both-set path keeps the configured-split prose');
   });
 
+  // T10 (finding 9): the artifact-write partial's trailing newline split the orchestrate
+  // lifecycle's "— and check out the ticket branch per …" onto its own dangling line. The
+  // clause must stay on the artifact-write line.
+  test(`[${type}] orchestrate keeps the branch-checkout clause on the artifact-write line`, () => {
+    const out = renderSkill('orchestrate-ticket', envType(type)).content;
+    assert.doesNotMatch(
+      out,
+      /^\s*— and check out the ticket branch per/m,
+      'no dangling continuation line',
+    );
+    const line = out.split('\n').find((l) => /and check out the ticket branch per/.test(l));
+    assert.ok(line, 'the branch-checkout clause renders');
+    assert.match(line, /\*\*Update the work artifact\.\*\*/, 'shares the line with the artifact-write text');
+    // APU-791/793 pins unaffected by the newline change
+    assert.match(out, /\*\*Update the work artifact\.\*\*/, 'artifact-write phrase pin intact');
+  });
+
   // T9 (finding 6): a review conventionCheck that already ends in a period renders with one
   // period, not two — the sentence helper normalizes terminal punctuation.
   test(`[${type}] review conventionChecks render one period even when the item is punctuated`, () => {
