@@ -27,13 +27,13 @@ Project: {{arg}} — if no argument was given, {{#if backend.project}}default to
 4. **Group tickets by {{backend.groupingNoun}}.** Tickets with none go to a `No {{backend.groupingNoun}}` bucket, ordered last. Bucket order: open {{backend.groupingNounPlural}}{{#if backend.capabilities.groupTargetDates}} in target-date order{{/if}}, then `No {{backend.groupingNoun}}`.
 {{/if}}
 
-5. **Filter blocked items.** A ticket is blocked if its description or relations mark it `Blocked by` an open ticket. Blocked tickets don't count toward caps and aren't eligible for the recommendation — hold them for a final "blocked, not yet actionable" list.
+5. **Filter blocked items.** A ticket is blocked if its description or relations mark it `Blocked by` an open ticket. Blocked tickets don't count toward caps and aren't eligible for the recommendation — hold them for a "blocked, not yet actionable" list.
 
 6. **Apply caps.** Up to 3 unblocked tickets per {{#if backend.capabilities.groups}}{{backend.groupingNoun}} bucket, **and** {{/if}}no more than 8 unblocked tickets total. Trim from later buckets first; if trimming zeroes out a bucket, drop its header too.
 
 7. **Render** one section per surviving bucket. Per ticket: identifier + title; priority label; a one-sentence hook lifted from the description (the Why / first paragraph); any chain annotations (`Predecessor`, `Depends on`) parsed from the description.
 
-8. End with a single recommendation, considering in order: the earliest {{backend.groupingNoun}} with in-flight work; the ticket that unblocks the most downstream work; recent context (if the user just shipped something, prefer what it unblocks); else the top-priority unblocked ticket in the earliest {{backend.groupingNoun}}.
+8. **Recommend.** End with a single `Recommend:` line (the exact format is in Output shape), choosing the ticket by considering in order: the earliest {{backend.groupingNoun}} with in-flight work; the ticket that unblocks the most downstream work; recent context (if the user just shipped something, prefer what it unblocks); else the top-priority unblocked ticket in the earliest {{backend.groupingNoun}}.
 
 ## Output shape
 

@@ -966,4 +966,27 @@ for (const type of ['linear', 'jira']) {
       'display mandate preserved',
     );
   });
+
+  // T6 (finding 12): next-ticket cosmetics — "final" dropped from the blocked-list sentence
+  // (there is only one such list), and step 8's recommendation instruction aligned with the
+  // Output-shape "Recommend:" format so the two read as one coherent instruction.
+  test(`[${type}] next-ticket blocked-list and recommendation wording are reconciled`, () => {
+    const out = renderSkill('next-ticket', envType(type)).content;
+    assert.doesNotMatch(
+      out,
+      /a final "blocked, not yet actionable" list/i,
+      '"final" dropped from the blocked-list sentence',
+    );
+    assert.match(
+      out,
+      /a "blocked, not yet actionable" list/i,
+      'the blocked-list sentence survives without "final"',
+    );
+    // step 8 speaks in terms of the Output-shape Recommend: line
+    assert.match(
+      out,
+      /End with a single `Recommend:` line/i,
+      'step 8 aligns with the Output-shape Recommend: format',
+    );
+  });
 }

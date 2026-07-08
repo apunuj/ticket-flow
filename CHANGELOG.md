@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Resolved a batch of prose contradictions and unsatisfiable rules across the phase skills so
+  every rule holds on real execution paths. `describe-ticket`'s well-specified path no longer
+  deadlocks on a bare "wait for the user's answers" — the wait is conditional on having asked,
+  and the well-specified branch routes straight to the plan. The final-message render mandate
+  is scoped to turns that actually updated the work artifact (retrospective describes write
+  none); `merge-ticket` adds a merge-local scope note for same-turn cleanup. `orchestrate-ticket`
+  now resolves review depth itself (default **high**, per-run override) and passes it to the
+  Planner — `review-ticket`'s "always ask" carves out an orchestrator-resolved depth; merge
+  confirmation is a hard gate only when it isn't waived by the dormant-vs-live rule; the
+  stacking escape hatch is reconciled with "one phase of one ticket at a time" and named a hard
+  gate; the delegation contract's embedded-write exception is voided under orchestration; and
+  the model-split persist offer fires only when the split came from the interactive ask.
+  `execute-ticket`'s resume routes a clean-tree-with-open-PR to step 5 (not the mispointed step
+  4), with an idempotency rider on each step-5 write, and its commit confirm now fires only when
+  message phrasing or file attribution isn't obvious. `next-ticket` drops a stray "final" and
+  aligns its recommendation instruction with the Output-shape `Recommend:` line. Prose-only;
+  additive on all three tools; no new config keys.
+
 - Every gate question is now self-contained, and every gate answer is guaranteed to be
   visible. The `ask` helper gains an optional `context=` that appends a tool-neutral clause
   mandating the context be **displayed in the message body immediately before the question** —
