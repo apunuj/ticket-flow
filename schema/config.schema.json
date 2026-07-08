@@ -56,18 +56,22 @@
           "properties": {
             "backlog": {
               "type": "string",
+              "minLength": 1,
               "default": "Backlog"
             },
             "inProgress": {
               "type": "string",
+              "minLength": 1,
               "default": "In Progress"
             },
             "inReview": {
               "type": "string",
+              "minLength": 1,
               "default": "In Review"
             },
             "done": {
               "type": "string",
+              "minLength": 1,
               "default": "Done"
             }
           }
@@ -83,6 +87,7 @@
       "properties": {
         "baseBranch": {
           "type": "string",
+          "minLength": 1,
           "description": "Integration branch feature PRs target, e.g. stage or main."
         },
         "branchPattern": {
@@ -110,6 +115,7 @@
       "properties": {
         "command": {
           "type": "string",
+          "minLength": 1,
           "description": "Test-gate command run before shipping, e.g. ./dev.sh test."
         }
       }
@@ -117,7 +123,8 @@
     "conventions": {
       "type": "array",
       "items": {
-        "type": "string"
+        "type": "string",
+        "minLength": 1
       },
       "default": [],
       "description": "Short commit/PR conventions surfaced to the skills."
@@ -129,7 +136,8 @@
         "conventionChecks": {
           "type": "array",
           "items": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1
           },
           "default": [],
           "description": "Project-specific checks review-ticket asserts beyond the generic code review."
