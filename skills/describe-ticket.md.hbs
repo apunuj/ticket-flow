@@ -60,7 +60,7 @@ Describe ticket {{arg}} and orient on it.
 
 7. In parallel, gather implementation evidence:
    - `git log --grep="{{arg}}" --oneline -20` from the repo root.
-   - Scan the ticket description, attachments, and comments for linked PR URLs.
+   - {{titlecase (op "getAttachedPR")}}.
    - For the most relevant commit(s), `git show --stat <sha>` to see touched files; read 1–2 structurally important files if a key decision needs citing.
 
 8. Output four sections:

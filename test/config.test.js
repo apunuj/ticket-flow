@@ -104,6 +104,36 @@ rejects((o) => (o.tools = ['claude', 'claude']), 'duplicate tools (uniqueItems)'
 rejects((o) => (o.unexpected = true), 'unknown top-level key (additionalProperties)');
 rejects((o) => (o.backend.foo = 'x'), 'unknown backend key (additionalProperties)');
 
+// APU-795 (T4, finding 2 / Q1): explicit empty-string values that would render blank
+// instructions hard-fail at parse (schema minLength:1), with the offending key path named
+// in the error. Omitted keys still default via normalize — minLength only bites explicit "".
+const rejectsWithPath = (mutate, keyPath, label) =>
+  test(`rejects (key-named): ${label}`, () => {
+    const o = valid();
+    mutate(o);
+    try {
+      parse(o);
+      assert.fail('expected a throw');
+    } catch (e) {
+      assert.match(e.message, /Invalid config/, label);
+      assert.match(e.message, new RegExp(keyPath.replace(/\//g, '\\/')), `error names ${keyPath}`);
+    }
+  });
+
+rejectsWithPath((o) => (o.git.baseBranch = ''), '/git/baseBranch', 'empty git.baseBranch');
+rejectsWithPath((o) => (o.test.command = ''), '/test/command', 'empty test.command');
+rejectsWithPath((o) => (o.conventions = ['ok', '']), '/conventions/1', 'empty conventions item');
+rejectsWithPath(
+  (o) => (o.review = { conventionChecks: [''] }),
+  '/review/conventionChecks/0',
+  'empty review.conventionChecks item',
+);
+rejectsWithPath(
+  (o) => (o.backend.states = { inReview: '' }),
+  '/backend/states/inReview',
+  'empty backend.states value',
+);
+
 test('parseConfig on empty input fails required validation', () => {
   assert.throws(() => parseConfig(''), /Invalid config/);
 });

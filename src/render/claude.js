@@ -5,6 +5,7 @@ import { frontmatter } from './_frontmatter.js';
 
 export default {
   id: 'claude',
+  displayName: 'Claude Code',
 
   argToken(meta) {
     // argMode: all → the skill takes the full argument string (e.g. several ticket ids)

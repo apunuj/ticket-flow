@@ -35,7 +35,7 @@ After the review, add the ticket-scope layer the generic review doesn't know abo
 
 - **Scope check:** does the PR diff actually deliver each acceptance criterion / user story from step 3? List any criterion not covered by the diff.
 - **Convention check:** anything that violates the project conventions:
-{{#each review.conventionChecks}}  - {{this}}.
+{{#each review.conventionChecks}}  - {{sentence this}}
 {{/each}}{{#unless review.conventionChecks}}  - (none configured — skip).
 {{/unless}}
 

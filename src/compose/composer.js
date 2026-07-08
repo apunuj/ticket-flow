@@ -16,6 +16,7 @@ import { fileURLToPath } from 'node:url';
 import Handlebars from 'handlebars';
 import matter from 'gray-matter';
 import { ARTIFACT_SENTINEL } from '../artifact.js';
+import { tools } from '../render/index.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const PKG_ROOT = path.resolve(__dirname, '..', '..');
@@ -41,6 +42,15 @@ const GUIDE_TEMPLATE = 'workflow-guide.md.hbs';
 // trailing argument, so it is dropped before the check. Exported for unit tests.
 export const and = (...args) => args.slice(0, -1).every(Boolean);
 
+// Normalize a string to exactly one terminal punctuation mark. `?` and `!` already terminate a
+// sentence, so they are left as-is (never "?." / "!."); everything else gets a single trailing
+// "." (collapsing any run of trailing periods). Trailing whitespace is trimmed first. Exported
+// for unit tests.
+export const sentence = (s) => {
+  const str = String(s == null ? '' : s).replace(/\s+$/, '');
+  return /[?!]$/.test(str) ? str : str.replace(/\.+$/, '') + '.';
+};
+
 function buildContext(config, backend, tool, rawMeta) {
   // Illustrative ticket prefix for examples/hints. Uses the configured prefix when present,
   // else a neutral placeholder — ticketPrefix is optional, and real ids are read at runtime.
@@ -61,6 +71,9 @@ function buildContext(config, backend, tool, rawMeta) {
       groupingNounPlural: backend.groupingNounPlural,
       capabilities: backend.capabilities,
       requires: backend.requires,
+      priorityScale: backend.priorityScale,
+      groupDateNoun: backend.groupDateNoun,
+      groupClosedStatuses: backend.groupClosedStatuses,
     },
   };
 }
@@ -82,10 +95,16 @@ function makeEnv(config, backend, tool, rawMeta) {
     return states[name] || name;
   });
   hb.registerHelper('and', and);
+  // {{toolName "claude"}} -> the tool's human display name (e.g. "Claude Code"); falls back
+  // to the id for an unknown tool so onboarding lists never leak a bare config id.
+  hb.registerHelper('toolName', (id) => {
+    const t = tools[id];
+    return (t && t.displayName) || id;
+  });
   hb.registerHelper('lower', (s) => String(s == null ? '' : s).toLowerCase());
   hb.registerHelper('upper', (s) => String(s == null ? '' : s).toUpperCase());
-  // exactly one trailing period, whether or not the config string carried its own
-  hb.registerHelper('sentence', (s) => String(s == null ? '' : s).replace(/\.?\s*$/, '.'));
+  // exactly one terminal punctuation mark (`?`/`!` preserved, else a single trailing `.`)
+  hb.registerHelper('sentence', sentence);
   hb.registerHelper('titlecase', (s) => {
     const str = String(s == null ? '' : s);
     return str.charAt(0).toUpperCase() + str.slice(1);

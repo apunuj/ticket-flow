@@ -38,6 +38,31 @@ test('adapters expose distinct grouping + capabilities', () => {
   }
 });
 
+// APU-795 (T1/T2): backend-neutral facts read by shared templates. Each MUST exist as a
+// non-empty string on BOTH adapters — a fact present on only one renders `undefined`.
+const PARITY_FACTS = ['priorityScale', 'groupDateNoun', 'groupClosedStatuses'];
+for (const type of ['linear', 'jira']) {
+  test(`[${type}] exposes every backend-neutral parity fact as a non-empty string`, () => {
+    const b = getBackend(type);
+    for (const fact of PARITY_FACTS) {
+      assert.equal(typeof b[fact], 'string', `[${type}] ${fact} is a string`);
+      assert.ok(b[fact].length > 0, `[${type}] ${fact} is non-empty`);
+    }
+  });
+}
+
+test('priorityScale differs per backend (Linear Urgent→None, Jira Highest→Lowest)', () => {
+  assert.equal(backends.linear.priorityScale, 'Urgent > High > Medium > Low > None');
+  assert.equal(backends.jira.priorityScale, 'Highest > High > Medium > Low > Lowest');
+});
+
+test('group vocabulary differs per backend (target date / end date, closed statuses)', () => {
+  assert.equal(backends.linear.groupDateNoun, 'target date');
+  assert.equal(backends.jira.groupDateNoun, 'end date');
+  assert.match(backends.linear.groupClosedStatuses, /completed or cancelled/);
+  assert.match(backends.jira.groupClosedStatuses, /closed/);
+});
+
 for (const type of ['linear', 'jira']) {
   const b = getBackend(type);
 
@@ -86,6 +111,10 @@ test('backend-specific tool vocabulary differs (set vs transition, attach vs lin
   assert.match(lin.op('attachPR', {}, ctx()), /links/);
   assert.doesNotMatch(lin.op('attachPR', {}, ctx()), /create_attachment/);
   assert.match(jira.op('attachPR', {}, ctx()), /remote link/);
+  // APU-795 (T14/Q2): attachPR is idempotent at the op level on BOTH backends — a resume
+  // must never double-attach/-link the same PR.
+  assert.match(lin.op('attachPR', {}, ctx()), /skip if the same PR is already attached/i);
+  assert.match(jira.op('attachPR', {}, ctx()), /skip if the same PR is already linked/i);
   // Linear creates via save_issue (no id); Jira has a dedicated create-issue tool.
   assert.match(lin.op('createTicket', {}, ctx()), /save_issue/);
   assert.match(jira.op('createTicket', {}, ctx()), /create-issue/);

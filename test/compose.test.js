@@ -9,6 +9,7 @@ import { getTool } from '../src/render/index.js';
 import {
   SKILLS,
   and,
+  sentence,
   renderSkill,
   renderGuide,
   renderDoc,
@@ -70,6 +71,15 @@ test('renderDoc produces a backend-aware team reference', () => {
   assert.match(doc, /work artifact/, 'explains where state lives');
   assert.match(doc, /gh auth login/, 'lists the contributor prerequisites');
   for (const skill of SKILLS) assert.ok(doc.includes(skill), `doc mentions ${skill}`);
+});
+
+// APU-795 (T11, finding 10): the onboarding doc lists tools by human display name, not the
+// bare config id — "Claude Code" / "GitHub Copilot", never "**claude**".
+test('renderDoc shows tool display names, not bare ids', () => {
+  const doc = renderDoc({ config, backend: getBackend(config.backend.type) });
+  assert.match(doc, /Claude Code/, 'claude display name');
+  assert.match(doc, /GitHub Copilot/, 'copilot display name');
+  assert.doesNotMatch(doc, /\*\*claude\*\*|\*\*copilot\*\*/, 'no bare tool ids rendered in bold');
 });
 
 test('renderGuide maps every phase with a tool-specific pointer', () => {
@@ -348,6 +358,19 @@ test('and helper: every argument truthy, options object dropped', () => {
   assert.equal(and(0, 'sonnet', opts), false, 'zero is falsy');
   assert.equal(and('opus', opts), true, 'single truthy argument');
   assert.equal(and(false, opts), false, 'single falsy argument');
+});
+
+// APU-795 fix-loop N2: the sentence helper normalizes terminal punctuation — unpunctuated
+// gains a single ".", a trailing "." collapses to one, and "?"/"!" are preserved (never "?.").
+test('sentence helper: normalizes terminal punctuation', () => {
+  assert.equal(sentence('Migrations are reversible'), 'Migrations are reversible.', 'unpunctuated → .');
+  assert.equal(sentence('Migrations are reversible.'), 'Migrations are reversible.', 'trailing . → single .');
+  assert.equal(sentence('Migrations are reversible..'), 'Migrations are reversible.', 'collapses a run of periods');
+  assert.equal(sentence('Is it reversible?'), 'Is it reversible?', 'trailing ? preserved, no added period');
+  assert.equal(sentence('Ship it!'), 'Ship it!', 'trailing ! preserved, no added period');
+  assert.equal(sentence('Trailing space   '), 'Trailing space.', 'trims trailing whitespace then adds .');
+  assert.equal(sentence(''), '.', 'empty input → .');
+  assert.equal(sentence(null), '.', 'null input → .');
 });
 
 // APU-792: the Planner/Implementer model split is a cost/quality decision the operator
@@ -743,6 +766,155 @@ for (const type of ['linear', 'jira']) {
   });
 }
 
+// APU-795: backend/tool parity leaks. Every backend-specific fact that a shared template
+// renders must resolve to the backend's own vocabulary — no Linear terms leak into a Jira
+// render (or vice versa). Both backends looped.
+for (const type of ['linear', 'jira']) {
+  // T1 (finding 1): the priority scale is a backend fact, not a hardcoded Linear scale.
+  test(`[${type}] next-ticket renders the backend's own priority scale`, () => {
+    const out = renderSkill('next-ticket', envType(type)).content;
+    if (type === 'jira') {
+      assert.match(out, /Highest > High > Medium > Low > Lowest/, 'jira priority scale');
+      assert.doesNotMatch(out, /Urgent > High/, 'no Linear scale leaks into jira');
+    } else {
+      assert.match(out, /Urgent > High > Medium > Low > None/, 'linear priority scale');
+      assert.doesNotMatch(out, /Highest > High/, 'no Jira scale leaks into linear');
+    }
+  });
+
+  // T2 (finding 4): sprint/group vocabulary — the group's date noun and its closed-status
+  // phrasing follow the backend, not Linear's milestone terms.
+  test(`[${type}] next-ticket uses the backend's group date noun and closed-status phrasing`, () => {
+    const out = renderSkill('next-ticket', envType(type)).content;
+    if (type === 'jira') {
+      assert.match(out, /end date/, 'jira sprints carry an end date');
+      assert.doesNotMatch(out, /target date|target-date/, 'no Linear target-date term in jira');
+      assert.doesNotMatch(out, /completed\/cancelled/, 'no Linear closed phrasing in jira');
+      assert.match(out, /status is closed/, 'jira closed-sprint phrasing');
+      // N1: the group date noun is a variable — the sort tiebreak must not render "a end date".
+      assert.doesNotMatch(out, /\ba end\b/i, 'no "a end" article regression on jira');
+    } else {
+      assert.match(out, /target date/, 'linear milestones carry a target date');
+      assert.doesNotMatch(out, /end date/, 'no Jira end-date term in linear');
+      assert.match(out, /status is completed or cancelled/, 'linear closed phrasing');
+    }
+    // N1: article-free tiebreak scans on both backends.
+    assert.match(out, /ascending; those lacking one sort last/, 'tiebreak reworded to avoid the article');
+    assert.doesNotMatch(out, /without a (target|end) date/i, 'no articled date-noun phrasing survives');
+  });
+
+  // T3 (finding 5): retrospective PR discovery goes through the getAttachedPR op, so Jira
+  // points at the development panel / remote links rather than Linear-style attachments.
+  test(`[${type}] describe retrospective discovers the PR via the getAttachedPR op`, () => {
+    const out = renderSkill('describe-ticket', envType(type)).content;
+    assert.doesNotMatch(
+      out,
+      /attachments, and comments for linked PR/,
+      'the old hardcoded attachment-scan bullet is gone',
+    );
+    if (type === 'jira') {
+      assert.match(out, /development panel|remote link/i, 'jira discovers via dev panel / remote links');
+      assert.doesNotMatch(out, /attachments\/links/, 'no Linear attachment phrasing leaks into jira');
+    } else {
+      assert.match(out, /attachments\/links/, 'linear legitimately reads attachments/links (capability true)');
+    }
+  });
+
+  // T5 (finding 8): a half-configured split (exactly one model set) reads as "No complete
+  // configured split (both roles must be set)" — the old bare "No configured split" implied
+  // nothing was set even when one role was pinned.
+  test(`[${type}] half-config orchestrate names the incomplete split explicitly`, () => {
+    for (const partial of [
+      '\norchestrate:\n  plannerModel: opus\n',
+      '\norchestrate:\n  implementerModel: sonnet\n',
+    ]) {
+      const out = renderSkill('orchestrate-ticket', orchestrateEnv(type, partial)).content;
+      assert.match(
+        out,
+        /No complete configured split \(both roles must be set\)/i,
+        'partial config names the incomplete split',
+      );
+    }
+    // the both-set path still renders the "**Configured split.**" prose (capital C)
+    const both = renderSkill('orchestrate-ticket', orchestrateEnv(type, FULL_SPLIT)).content;
+    assert.match(both, /\*\*Configured split\.\*\*/, 'both-set path keeps the configured-split prose');
+  });
+
+  // T10 (finding 9): the artifact-write partial's trailing newline split the orchestrate
+  // lifecycle's "— and check out the ticket branch per …" onto its own dangling line. The
+  // clause must stay on the artifact-write line.
+  test(`[${type}] orchestrate keeps the branch-checkout clause on the artifact-write line`, () => {
+    const out = renderSkill('orchestrate-ticket', envType(type)).content;
+    assert.doesNotMatch(
+      out,
+      /^\s*— and check out the ticket branch per/m,
+      'no dangling continuation line',
+    );
+    const line = out.split('\n').find((l) => /and check out the ticket branch per/.test(l));
+    assert.ok(line, 'the branch-checkout clause renders');
+    assert.match(line, /\*\*Update the work artifact\.\*\*/, 'shares the line with the artifact-write text');
+    // APU-791/793 pins unaffected by the newline change
+    assert.match(out, /\*\*Update the work artifact\.\*\*/, 'artifact-write phrase pin intact');
+  });
+
+  // T9 (finding 6): a review conventionCheck that already ends in a period renders with one
+  // period, not two — the sentence helper normalizes terminal punctuation.
+  test(`[${type}] review conventionChecks render one period even when the item is punctuated`, () => {
+    const raw = exampleRaw
+      .replace('type: linear', `type: ${type}`)
+      .replace('"Database migrations are backwards-compatible"', '"Migrations are reversible."');
+    const cfg = parseConfig(raw);
+    const out = renderSkill('review-ticket', {
+      config: cfg, backend: getBackend(type), tool: getTool('claude'),
+    }).content;
+    assert.match(out, /Migrations are reversible\./, 'the punctuated check renders');
+    assert.doesNotMatch(out, /reversible\.\./, 'no doubled period');
+  });
+
+  // T7 (finding 3): spawning degrades tool-neutrally — a tool with no sub-agent primitive
+  // runs each role in the main loop, role-switching between phases. Present in every render.
+  test(`[${type}] orchestrate carries a tool-neutral no-subagent degrade in every render`, () => {
+    for (const toolId of ['claude', 'copilot', 'opencode']) {
+      for (const block of ['', FULL_SPLIT]) {
+        const out = renderSkill('orchestrate-ticket', orchestrateEnv(type, block, toolId)).content;
+        assert.match(
+          out,
+          /no sub-agent primitive.*run (each|the) (role|phase).*yourself|role-switch/i,
+          `${toolId}: tool-neutral no-subagent degrade present`,
+        );
+        // the pin-on-spawn degrade (a distinct line) still stands
+        assert.match(
+          out,
+          /pin the resolved model on each sub-agent spawn where your tool supports it/i,
+          `${toolId}: pin-on-spawn line intact`,
+        );
+        assert.match(out, /otherwise record the chosen split/i, `${toolId}: pin-on-spawn fallback intact`);
+      }
+    }
+  });
+}
+
+// APU-795 (T13, AC-7): parity sweep — no backend's vocabulary leaks into the other's
+// renders, across every skill and every tool. Guards against a future template hardcoding a
+// backend-specific term where a fact belongs.
+for (const type of ['linear', 'jira']) {
+  test(`[${type}] parity sweep: no cross-backend vocabulary leaks in any skill/tool render`, () => {
+    for (const skill of SKILLS) {
+      for (const toolId of ['claude', 'copilot', 'opencode']) {
+        const out = renderSkill(skill, envType(type, toolId)).content;
+        if (type === 'jira') {
+          assert.doesNotMatch(out, /Urgent > High/, `${skill}/${toolId}: no Linear priority scale`);
+          assert.doesNotMatch(out, /target date|target-date/, `${skill}/${toolId}: no Linear target-date term`);
+          assert.doesNotMatch(out, /attachments/, `${skill}/${toolId}: no attachment-based PR scan`);
+        } else {
+          assert.doesNotMatch(out, /Highest > High/, `${skill}/${toolId}: no Jira priority scale`);
+          assert.doesNotMatch(out, /end date/, `${skill}/${toolId}: no Jira end-date term`);
+        }
+      }
+    }
+  });
+}
+
 // Fix loop N4: arg-guard now calls {{ask}}, and DOC_TOOL renders with the same partials —
 // a future doc template including arg-guard must not throw on a missing ask.
 test('DOC_TOOL carries an ask stub so doc templates survive {{ask}}', () => {
@@ -934,8 +1106,14 @@ for (const type of ['linear', 'jira']) {
       /the ship already happened\. Skip to step 4/i,
       'the step-4 mispointer is gone',
     );
-    // idempotency riders on each step-5 write
-    assert.match(out, /skip if the PR is already attached/i, 'attachPR rider');
+    // idempotency riders on each step-5 write. attachPR's idempotency is now op-level
+    // (T14/Q2): the skip clause lives in the adapter op, so it renders on BOTH backends
+    // (Linear "attached", Jira "linked") without a template rider.
+    assert.match(
+      out,
+      /skip if the same PR is already (attached|linked)/i,
+      'attachPR op-level idempotency clause',
+    );
     assert.match(out, /skip if a shipping note already exists/i, 'shipping-note rider');
     assert.match(
       out,

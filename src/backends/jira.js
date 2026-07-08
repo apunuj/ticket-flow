@@ -17,6 +17,12 @@ export default {
   groupingNoun: 'sprint',
   groupingNounPlural: 'sprints',
   capabilities: { groups: true, attachments: false, groupTargetDates: true },
+  // Backend-neutral facts read by shared templates. Counterparts of linear.js's; Jira's
+  // priority scheme runs Highest→Lowest, sprints carry an end date, and closed sprints read
+  // "closed" rather than Linear's completed/cancelled.
+  priorityScale: 'Highest > High > Medium > Low > Lowest',
+  groupDateNoun: 'end date',
+  groupClosedStatuses: 'closed',
   requires:
     'an Atlassian/Jira MCP server connected in your tool, exposing get-issue, JQL search, transition-issue, create-issue, add-comment, and edit-comment operations (e.g. the Atlassian Remote MCP).',
   // Atlassian Rovo remote MCP server (streamable HTTP). OAuth on first connect. `ticket-flow
@@ -49,7 +55,7 @@ export default {
       }
 
       case 'attachPR':
-        return `link the PR to the issue: add it as a **remote link** (or a comment containing the PR URL) with the Jira MCP. If smart commits / the GitHub-for-Jira integration are enabled the development panel auto-links it; the comment guarantees a discoverable link regardless${RECEIPT}`;
+        return `link the PR to the issue: add it as a **remote link** (or a comment containing the PR URL) with the Jira MCP. If smart commits / the GitHub-for-Jira integration are enabled the development panel auto-links it; the comment guarantees a discoverable link regardless — skip if the same PR is already linked${RECEIPT}`;
 
       case 'getAttachedPR':
         return `read the issue's **development panel** / remote links / comments (Jira MCP **get-issue** on \`${t}\`) for the GitHub PR URL; cross-check with \`gh pr list --search "${t}"\` if missing`;
