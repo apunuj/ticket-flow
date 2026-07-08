@@ -101,7 +101,17 @@ export function runUpgrade({ configPath, out, cwd = process.cwd(), force = false
   }
   fs.writeFileSync(cfgPath, yaml);
 
-  return { fromVersion, toVersion: PKG_VERSION, written, pruned, migrated, forcedOver: force ? dirty : [] };
+  // Upgrade-summary notes (finding 7): informational only, mutate no YAML. An output block
+  // that predates the inlineArtifacts key defaults to inline echo on — surface how to opt out.
+  const notes = [];
+  if (/^\s*output:/m.test(yaml) && !/^\s*inlineArtifacts:/m.test(yaml)) {
+    notes.push(
+      'output: block has no inlineArtifacts key — it defaults to true (inline artifact echo on). ' +
+        'Add `inlineArtifacts: false` under output: to suppress the inline echo.',
+    );
+  }
+
+  return { fromVersion, toVersion: PKG_VERSION, written, pruned, migrated, notes, forcedOver: force ? dirty : [] };
 }
 
 // CLI wrapper: run + report.
@@ -112,6 +122,7 @@ export function upgrade(flags = {}) {
   if (res.pruned.length) for (const p of res.pruned) console.log(`  pruned ${p} (no longer generated)`);
   if (res.migrated.length) console.log(`  config: added optional block(s): ${res.migrated.join(', ')} (commented — edit to enable)`);
   if (res.forcedOver.length) console.log(`  --force overwrote ${res.forcedOver.length} file(s) that had uncommitted changes`);
+  if (res.notes && res.notes.length) for (const n of res.notes) console.log(`  note: ${n}`);
   console.log('\nReview the diff and commit. Run `ticket-flow doctor` to confirm.');
   return res;
 }

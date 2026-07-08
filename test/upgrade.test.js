@@ -145,6 +145,40 @@ test('upgrade does not duplicate an orchestrate block the config already carries
   });
 });
 
+// APU-795 (T8, finding 7): an output block that predates the inlineArtifacts key gets an
+// upgrade-summary NOTE (not a YAML migration) so the operator knows the default is on and
+// how to opt out. Idempotent — informational, mutates no YAML.
+test('upgrade notes an output block missing inlineArtifacts', () => {
+  withTmp((dir) => {
+    const stripped = exampleYaml().replace(/\n\s*inlineArtifacts: true.*/, '');
+    assert.match(stripped, /output:/, 'still carries an output block');
+    assert.doesNotMatch(stripped, /inlineArtifacts:/, 'inlineArtifacts key removed');
+    scaffold(dir, { yaml: '# ticket-flow.config.yaml — generated for Ticket-Flow 0.0.1.\n' + stripped });
+    build(parseConfig(exampleYaml()), { outputDir: dir });
+    execSync('git add -A && git commit -qm generated', { cwd: dir, stdio: 'ignore', shell: true });
+
+    const res = runUpgrade({ configPath: path.join(dir, 'ticket-flow.config.yaml'), out: dir, cwd: dir });
+    assert.ok((res.notes || []).some((n) => /inlineArtifacts/.test(n)), 'note mentions inlineArtifacts');
+    // no YAML mutation: the key is not written into the config
+    assert.doesNotMatch(fs.readFileSync(path.join(dir, 'ticket-flow.config.yaml'), 'utf8'), /^\s*inlineArtifacts:/m);
+    // idempotent — the note is stable on re-run
+    const res2 = runUpgrade({ configPath: path.join(dir, 'ticket-flow.config.yaml'), out: dir, cwd: dir });
+    assert.ok((res2.notes || []).some((n) => /inlineArtifacts/.test(n)), 'note stable on re-run');
+  });
+});
+
+test('upgrade emits no inlineArtifacts note when the key is already present', () => {
+  withTmp((dir) => {
+    assert.match(exampleYaml(), /inlineArtifacts:/, 'fixture carries the key');
+    scaffold(dir, { yaml: '# ticket-flow.config.yaml — generated for Ticket-Flow 0.0.1.\n' + exampleYaml() });
+    build(parseConfig(exampleYaml()), { outputDir: dir });
+    execSync('git add -A && git commit -qm generated', { cwd: dir, stdio: 'ignore', shell: true });
+
+    const res = runUpgrade({ configPath: path.join(dir, 'ticket-flow.config.yaml'), out: dir, cwd: dir });
+    assert.ok(!(res.notes || []).some((n) => /inlineArtifacts/.test(n)), 'no note when the key is present');
+  });
+});
+
 test('doctor checkVersion warns when the manifest is from another version', () => {
   withTmp((dir) => {
     build(parseConfig(exampleYaml()), { outputDir: dir });
