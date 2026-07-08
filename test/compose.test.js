@@ -812,6 +812,20 @@ for (const type of ['linear', 'jira']) {
     assert.match(both, /\*\*Configured split\.\*\*/, 'both-set path keeps the configured-split prose');
   });
 
+  // T9 (finding 6): a review conventionCheck that already ends in a period renders with one
+  // period, not two — the sentence helper normalizes terminal punctuation.
+  test(`[${type}] review conventionChecks render one period even when the item is punctuated`, () => {
+    const raw = exampleRaw
+      .replace('type: linear', `type: ${type}`)
+      .replace('"Database migrations are backwards-compatible"', '"Migrations are reversible."');
+    const cfg = parseConfig(raw);
+    const out = renderSkill('review-ticket', {
+      config: cfg, backend: getBackend(type), tool: getTool('claude'),
+    }).content;
+    assert.match(out, /Migrations are reversible\./, 'the punctuated check renders');
+    assert.doesNotMatch(out, /reversible\.\./, 'no doubled period');
+  });
+
   // T7 (finding 3): spawning degrades tool-neutrally — a tool with no sub-agent primitive
   // runs each role in the main loop, role-switching between phases. Present in every render.
   test(`[${type}] orchestrate carries a tool-neutral no-subagent degrade in every render`, () => {
