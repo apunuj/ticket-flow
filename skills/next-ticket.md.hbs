@@ -18,7 +18,7 @@ Project: {{arg}} — if no argument was given, {{#if backend.project}}default to
    {{> preflight}}
 
 {{#if backend.capabilities.groups}}
-2. **Filter {{backend.groupingNounPlural}}.** Drop any {{backend.groupingNoun}} whose status is {{backend.groupClosedStatuses}}, and any open one with zero backlog tickets attached.{{#if backend.capabilities.groupTargetDates}} Sort survivors by {{backend.groupDateNoun}} ascending; those without a {{backend.groupDateNoun}} sort last.{{else}} Sort survivors by name.{{/if}}
+2. **Filter {{backend.groupingNounPlural}}.** Drop any {{backend.groupingNoun}} whose status is {{backend.groupClosedStatuses}}, and any open one with zero backlog tickets attached.{{#if backend.capabilities.groupTargetDates}} Sort survivors by {{backend.groupDateNoun}} ascending; those lacking one sort last.{{else}} Sort survivors by name.{{/if}}
 {{/if}}
 
 3. **Sort tickets** by priority ({{backend.priorityScale}}), then by last-updated descending.

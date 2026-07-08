@@ -9,6 +9,7 @@ import { getTool } from '../src/render/index.js';
 import {
   SKILLS,
   and,
+  sentence,
   renderSkill,
   renderGuide,
   renderDoc,
@@ -357,6 +358,19 @@ test('and helper: every argument truthy, options object dropped', () => {
   assert.equal(and(0, 'sonnet', opts), false, 'zero is falsy');
   assert.equal(and('opus', opts), true, 'single truthy argument');
   assert.equal(and(false, opts), false, 'single falsy argument');
+});
+
+// APU-795 fix-loop N2: the sentence helper normalizes terminal punctuation — unpunctuated
+// gains a single ".", a trailing "." collapses to one, and "?"/"!" are preserved (never "?.").
+test('sentence helper: normalizes terminal punctuation', () => {
+  assert.equal(sentence('Migrations are reversible'), 'Migrations are reversible.', 'unpunctuated → .');
+  assert.equal(sentence('Migrations are reversible.'), 'Migrations are reversible.', 'trailing . → single .');
+  assert.equal(sentence('Migrations are reversible..'), 'Migrations are reversible.', 'collapses a run of periods');
+  assert.equal(sentence('Is it reversible?'), 'Is it reversible?', 'trailing ? preserved, no added period');
+  assert.equal(sentence('Ship it!'), 'Ship it!', 'trailing ! preserved, no added period');
+  assert.equal(sentence('Trailing space   '), 'Trailing space.', 'trims trailing whitespace then adds .');
+  assert.equal(sentence(''), '.', 'empty input → .');
+  assert.equal(sentence(null), '.', 'null input → .');
 });
 
 // APU-792: the Planner/Implementer model split is a cost/quality decision the operator
@@ -777,11 +791,16 @@ for (const type of ['linear', 'jira']) {
       assert.doesNotMatch(out, /target date|target-date/, 'no Linear target-date term in jira');
       assert.doesNotMatch(out, /completed\/cancelled/, 'no Linear closed phrasing in jira');
       assert.match(out, /status is closed/, 'jira closed-sprint phrasing');
+      // N1: the group date noun is a variable — the sort tiebreak must not render "a end date".
+      assert.doesNotMatch(out, /\ba end\b/i, 'no "a end" article regression on jira');
     } else {
       assert.match(out, /target date/, 'linear milestones carry a target date');
       assert.doesNotMatch(out, /end date/, 'no Jira end-date term in linear');
       assert.match(out, /status is completed or cancelled/, 'linear closed phrasing');
     }
+    // N1: article-free tiebreak scans on both backends.
+    assert.match(out, /ascending; those lacking one sort last/, 'tiebreak reworded to avoid the article');
+    assert.doesNotMatch(out, /without a (target|end) date/i, 'no articled date-noun phrasing survives');
   });
 
   // T3 (finding 5): retrospective PR discovery goes through the getAttachedPR op, so Jira
