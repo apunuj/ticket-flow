@@ -749,3 +749,36 @@ test('DOC_TOOL carries an ask stub so doc templates survive {{ask}}', () => {
   assert.equal(typeof DOC_TOOL.ask, 'function', 'DOC_TOOL implements ask');
   assert.match(DOC_TOOL.ask('which one?'), /present the options and wait/i, 'present-and-wait prose');
 });
+
+// APU-794: resolve contradictions & unsatisfiable rules across the phase skills. Each block
+// pins a rule that previously contradicted another rule or could not be satisfied on a real
+// execution path. Both backends looped.
+for (const type of ['linear', 'jira']) {
+  // T1 (finding 1): a well-specified describe (no clarifying questions) must not deadlock on
+  // "wait for the user's answers" — the wait is conditional on having asked, and the
+  // well-specified branch routes straight to the plan.
+  test(`[${type}] describe well-specified path routes to the plan, not a bare wait`, () => {
+    const out = renderSkill('describe-ticket', envType(type)).content;
+    // the well-specified branch names the plan (5b), not a bare "skip to step 5"
+    assert.match(out, /skip to step 5b/i, 'well-specified branch names the plan (5b)');
+    // the STOP-and-wait opener is conditional on having asked clarifying questions
+    assert.match(
+      out,
+      /if you asked clarifying questions, STOP and wait for their answers/i,
+      'the wait is conditional on having asked questions',
+    );
+    assert.match(
+      out,
+      /if everything was well-specified, proceed directly to the plan/i,
+      'the well-specified branch proceeds directly to the plan',
+    );
+    // no unconditional bare "STOP. Wait for the user's answers." opener survives
+    assert.doesNotMatch(
+      out,
+      /\*\*STOP\.\*\* Wait for the user's answers\./,
+      'the unconditional bare-wait opener is gone',
+    );
+    // the ratify STOP (APU-793) still holds unconditionally
+    assert.match(out, /there is no trivial-clarifications escape/i, 'ratify gate intact');
+  });
+}
