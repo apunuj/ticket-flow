@@ -20,7 +20,7 @@ Run the opening probe and branch on what you find:
 
 Decide the entry point (idempotent — do the least work needed):
 
-- **Clean tree + an open PR already exists** → the ship already happened. Skip to step 4 and just make sure the ticket reflects it.
+- **Clean tree + an open PR already exists** → the ship already happened. Skip to step 5 and just make sure the ticket reflects it (attach, shipping note, state, artifact — each idempotent).
 - **Commits ahead of `{{git.baseBranch}}` exist and the build looks complete** → skip the build loop; go to step 3 (test gate + ship).
 - **Otherwise** → ensure you're on the ticket branch, then build (step 2).
 
@@ -55,7 +55,7 @@ Run `{{test.command}}` once more as the gate.
 
 This repo uses a PR flow — feature PRs target **`{{git.baseBranch}}`**. Never push directly to it.
 
-- If uncommitted changes remain, scope them to {{arg}} using the artifact's task→file map (fallback: read the diff and confirm which files belong to {{arg}} vs other tickets — default to staging only {{arg}}'s files). Before committing, {{ask "commit the staged changes with this message?" context="the full proposed commit message — its title and body"}} Use a heredoc so the body formats correctly.
+- If uncommitted changes remain, scope them to {{arg}} using the artifact's task→file map (fallback: read the diff and confirm which files belong to {{arg}} vs other tickets — default to staging only {{arg}}'s files). Before committing, when the commit message's phrasing or the file attribution isn't obvious — the Stop-and-ask cases below — {{ask "commit the staged changes with this message?" context="the full proposed commit message — its title and body"}} When both are obvious (the message clearly references {{arg}} and matches the recent commit style, and every staged file plainly belongs to {{arg}}), commit without a separate confirm. Use a heredoc so the body formats correctly.
 - Push: `git push -u origin <branch>`.
 - Open the PR with `gh pr create --base {{git.baseBranch}}`, title referencing {{arg}}, body containing:
   - **Summary** — what landed, mapped to the ticket's acceptance criteria.
@@ -69,10 +69,10 @@ This repo uses a PR flow — feature PRs target **`{{git.baseBranch}}`**. Never 
 
 Attaching the PR is an invariant — `/review-ticket` and `/merge-ticket` resolve the PR from here.
 
-- {{op "attachPR"}}.
-- {{op "addComment"}}: a short shipping note — PR link, what landed (mapped to acceptance criteria), what was deferred.
-- {{op "setState" state="inReview"}}.
-- {{> artifact-write}} — set `status: in-review` and fill the `PR` section; if the artifact changed since the PR body was written, refresh its `## Work artifact` section (`gh pr edit --body`).
+- {{op "attachPR"}} — skip if the PR is already attached to {{arg}} (a resume must not double-attach).
+- {{op "addComment"}}: a short shipping note — PR link, what landed (mapped to acceptance criteria), what was deferred. Skip if a shipping note already exists for this PR (scan the ticket comments first); a resume posts no duplicate.
+- {{op "setState" state="inReview"}} — idempotent: skip if the ticket is already in {{state "inReview"}} or beyond.
+- {{> artifact-write}} — set `status: in-review` and fill the `PR` section (idempotent in place: the upsert refreshes the same work-artifact comment, never a duplicate); if the artifact changed since the PR body was written, refresh its `## Work artifact` section (`gh pr edit --body`).
 {{~> final-message}}
 
 

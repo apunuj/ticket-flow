@@ -917,4 +917,53 @@ for (const type of ['linear', 'jira']) {
     assert.match(orch, /back on the base branch/i, 'base-branch pin intact');
     assert.match(orch, /Never edit the config mid-run/i, 'never-edit-mid-run pin intact');
   });
+
+  // T4 (finding 11): on resume, a clean tree with an open PR means the ship already ran, so
+  // the entry point routes to step 5 (attach/notify/state), not step 4 (push/open); and the
+  // step-5 writes each carry an idempotency rider so a resume posts no duplicate.
+  test(`[${type}] execute resume routes to step 5 and step-5 writes are idempotent`, () => {
+    const out = renderSkill('execute-ticket', envType(type)).content;
+    // the clean-tree + open-PR entry point points at step 5, not the mispointed step 4
+    assert.match(
+      out,
+      /the ship already happened\. Skip to step 5/i,
+      'clean-tree+PR resume routes to step 5',
+    );
+    assert.doesNotMatch(
+      out,
+      /the ship already happened\. Skip to step 4/i,
+      'the step-4 mispointer is gone',
+    );
+    // idempotency riders on each step-5 write
+    assert.match(out, /skip if the PR is already attached/i, 'attachPR rider');
+    assert.match(out, /skip if a shipping note already exists/i, 'shipping-note rider');
+    assert.match(
+      out,
+      /idempotent(ly)? in place|updated in place/i,
+      'artifact-write is idempotent in place',
+    );
+  });
+
+  // T5 (finding 8): the execute commit confirm is conditional — it fires only when the
+  // message phrasing or file attribution isn't obvious (the Stop-and-ask cases), not on every
+  // commit. Self-containment (full message + display mandate) is preserved.
+  test(`[${type}] execute commit confirm fires only when phrasing/attribution isn't obvious`, () => {
+    const out = renderSkill('execute-ticket', envType(type)).content;
+    assert.match(
+      out,
+      /when the commit message('s)? phrasing or (the )?file attribution isn't obvious/i,
+      'commit confirm is gated on non-obvious phrasing/attribution',
+    );
+    // preserved self-containment pins (APU-793)
+    assert.match(
+      out,
+      /the full proposed commit message — its title and body/i,
+      'commit confirm still carries the full message',
+    );
+    assert.match(
+      out,
+      /in the message body immediately before this question/i,
+      'display mandate preserved',
+    );
+  });
 }
