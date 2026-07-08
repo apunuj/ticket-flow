@@ -749,3 +749,244 @@ test('DOC_TOOL carries an ask stub so doc templates survive {{ask}}', () => {
   assert.equal(typeof DOC_TOOL.ask, 'function', 'DOC_TOOL implements ask');
   assert.match(DOC_TOOL.ask('which one?'), /present the options and wait/i, 'present-and-wait prose');
 });
+
+// APU-794: resolve contradictions & unsatisfiable rules across the phase skills. Each block
+// pins a rule that previously contradicted another rule or could not be satisfied on a real
+// execution path. Both backends looped.
+for (const type of ['linear', 'jira']) {
+  // T1 (finding 1): a well-specified describe (no clarifying questions) must not deadlock on
+  // "wait for the user's answers" — the wait is conditional on having asked, and the
+  // well-specified branch routes straight to the plan.
+  test(`[${type}] describe well-specified path routes to the plan, not a bare wait`, () => {
+    const out = renderSkill('describe-ticket', envType(type)).content;
+    // the well-specified branch names the plan (5b), not a bare "skip to step 5"
+    assert.match(out, /skip to step 5b/i, 'well-specified branch names the plan (5b)');
+    // the STOP-and-wait opener is conditional on having asked clarifying questions
+    assert.match(
+      out,
+      /if you asked clarifying questions, STOP and wait for their answers/i,
+      'the wait is conditional on having asked questions',
+    );
+    assert.match(
+      out,
+      /if everything was well-specified, proceed directly to the plan/i,
+      'the well-specified branch proceeds directly to the plan',
+    );
+    // no unconditional bare "STOP. Wait for the user's answers." opener survives
+    assert.doesNotMatch(
+      out,
+      /\*\*STOP\.\*\* Wait for the user's answers\./,
+      'the unconditional bare-wait opener is gone',
+    );
+    // the ratify STOP (APU-793) still holds unconditionally
+    assert.match(out, /there is no trivial-clarifications escape/i, 'ratify gate intact');
+  });
+
+  // T2 (finding 7): the final-message render mandate is scoped to turns that actually
+  // updated the work artifact — a retrospective describe (which writes no artifact) must
+  // not be commanded to render one.
+  test(`[${type}] final-message render mandate is scoped to artifact-updating turns`, () => {
+    for (const skill of ['execute-ticket', 'review-ticket', 'merge-ticket', 'describe-ticket']) {
+      const out = renderSkill(skill, envType(type)).content;
+      assert.match(
+        out,
+        /In any turn that updated the work artifact, the artifact render must land/i,
+        `${skill}: render mandate scoped to artifact-updating turns`,
+      );
+      // APU-791 pins preserved
+      assert.match(out, /turn's final message/i, `${skill}: turn's final message pin intact`);
+      assert.match(out, /after all backend writes and tool calls/i, `${skill}: sequencing pin intact`);
+      assert.match(out, /bare receipt/i, `${skill}: bare-receipt pin intact`);
+    }
+  });
+
+  // T2b (finding 2): merge's render lands after step 5's writes but cleanup (steps 6–7) may
+  // continue in the same turn under pre-authorization. A merge-local scope sentence resolves
+  // the "end on the render" rule against that continuation — re-render at the turn's true end.
+  test(`[${type}] merge scopes the render to the close-out write-turn and re-renders after same-turn cleanup`, () => {
+    const out = renderSkill('merge-ticket', envType(type)).content;
+    assert.match(
+      out,
+      /ends the write-turn that closed the ticket/i,
+      'merge-local scope names the close-out write-turn',
+    );
+    assert.match(
+      out,
+      /re-render .*at that turn's true end/i,
+      'same-turn cleanup re-renders at the turn true end',
+    );
+    // the shared final-message pins still hold on merge
+    assert.match(out, /turn's final message/i, 'turn-final-message pin intact');
+    assert.match(out, /bare receipt/i, 'bare-receipt pin intact');
+  });
+
+  // T3a (finding 3, R1): orchestrate resolves review depth itself (default high, per-run
+  // override); review-ticket's "always ask" carries the carve-out for a resolved depth.
+  test(`[${type}] orchestrate resolves review depth itself; review-ticket carves it out (R1)`, () => {
+    const orch = renderSkill('orchestrate-ticket', envType(type)).content;
+    // R1 verbatim in orchestrate's rendered prose
+    assert.match(
+      orch,
+      /orchestrate resolves review depth itself — default high; a per-run instruction in the invocation can override/i,
+      'R1 encoded verbatim in orchestrate',
+    );
+    const review = renderSkill('review-ticket', envType(type)).content;
+    // the always-ask still stands, but with a carve-out for an orchestrator-resolved depth
+    assert.match(review, /Ask for review depth — always/i, 'review still asks by default');
+    assert.match(
+      review,
+      /unless an orchestrator has already resolved depth/i,
+      'review carves out the orchestrator-resolved depth',
+    );
+  });
+
+  // T3b (finding 4): merge confirmation is not an unconditional hard gate — it is waivable
+  // per the dormant-vs-live rule; the lifecycle merge opener is no longer a bare "Confirm".
+  test(`[${type}] orchestrate merge confirmation is waivable per dormant-vs-live, not "regardless"`, () => {
+    const orch = renderSkill('orchestrate-ticket', envType(type)).content;
+    assert.doesNotMatch(
+      orch,
+      /stop the run regardless/i,
+      'hard-gates line no longer claims merge confirmation stops the run regardless',
+    );
+    assert.match(
+      orch,
+      /merge confirmation \(waivable/i,
+      'hard-gates line marks merge confirmation waivable',
+    );
+    assert.doesNotMatch(
+      orch,
+      /5\. \*\*Merge\.\*\* Confirm with the user, then follow/,
+      'lifecycle merge opener is no longer an unconditional confirm',
+    );
+    // dormant/live pins survive
+    assert.match(orch, /distinguish dormant from live/i, 'dormant-vs-live pin intact');
+    assert.match(orch, /alters live production behavior always gets an explicit confirm/i, 'live-confirm pin intact');
+  });
+
+  // T3c (finding 5): the stacking escape hatch is reconciled with "one phase of one ticket
+  // at a time" and named as a hard gate that stops the run.
+  test(`[${type}] orchestrate reconciles the stacking hatch with one-phase-at-a-time`, () => {
+    const orch = renderSkill('orchestrate-ticket', envType(type)).content;
+    assert.match(
+      orch,
+      /except under the approved stacking hatch/i,
+      'one-phase rule carries the stacking-hatch exception',
+    );
+    assert.match(
+      orch,
+      /stacking approval/i,
+      'hard-gates line names stacking approval a gate',
+    );
+    // the rebase --onto pin survives
+    assert.match(orch, /git rebase --onto origin\//, 'rebase --onto pin intact');
+  });
+
+  // T3d (finding 9): under orchestration the delegation contract's embedded-write exception
+  // does not apply — the orchestrator keeps every write.
+  test(`[${type}] orchestrate overrides the delegation embedded-write exception`, () => {
+    const orch = renderSkill('orchestrate-ticket', envType(type)).content;
+    assert.match(
+      orch,
+      /embedded-write exception does not apply under orchestration/i,
+      'orchestrate voids the embedded-write exception',
+    );
+    assert.match(orch, /keeps every .*write|keep every .*write/i, 'orchestrator keeps every write');
+    // pins survive
+    assert.match(orch, /never push, open PRs/i, 'sub-agent no-push pin intact');
+    assert.match(orch, /Delegation contract/, 'delegation contract pin intact');
+  });
+
+  // T3e (finding 10, R2): the persist offer fires ONLY when the split came from the
+  // interactive ask — never after a per-run override, never for a config-pinned split.
+  test(`[${type}] orchestrate persist offer fires only when the split came from the interactive ask (R2)`, () => {
+    const orch = renderSkill('orchestrate-ticket', envType(type)).content;
+    assert.match(
+      orch,
+      /the persist offer fires only when the split came from the interactive ask — never after a per-run override, never for a config-pinned split/i,
+      'R2 encoded verbatim in orchestrate',
+    );
+    assert.doesNotMatch(
+      orch,
+      /When the run's split is not already pinned in config, offer to save/i,
+      'the old not-already-pinned trigger is gone',
+    );
+    // pinned phrases survive
+    assert.match(orch, /after the run completes/i, 'after-run-completes pin intact');
+    assert.match(orch, /final boundary summary/i, 'final-boundary-summary pin intact');
+    assert.match(orch, /back on the base branch/i, 'base-branch pin intact');
+    assert.match(orch, /Never edit the config mid-run/i, 'never-edit-mid-run pin intact');
+  });
+
+  // T4 (finding 11): on resume, a clean tree with an open PR means the ship already ran, so
+  // the entry point routes to step 5 (attach/notify/state), not step 4 (push/open); and the
+  // step-5 writes each carry an idempotency rider so a resume posts no duplicate.
+  test(`[${type}] execute resume routes to step 5 and step-5 writes are idempotent`, () => {
+    const out = renderSkill('execute-ticket', envType(type)).content;
+    // the clean-tree + open-PR entry point points at step 5, not the mispointed step 4
+    assert.match(
+      out,
+      /the ship already happened\. Skip to step 5/i,
+      'clean-tree+PR resume routes to step 5',
+    );
+    assert.doesNotMatch(
+      out,
+      /the ship already happened\. Skip to step 4/i,
+      'the step-4 mispointer is gone',
+    );
+    // idempotency riders on each step-5 write
+    assert.match(out, /skip if the PR is already attached/i, 'attachPR rider');
+    assert.match(out, /skip if a shipping note already exists/i, 'shipping-note rider');
+    assert.match(
+      out,
+      /idempotent(ly)? in place|updated in place/i,
+      'artifact-write is idempotent in place',
+    );
+  });
+
+  // T5 (finding 8): the execute commit confirm is conditional — it fires only when the
+  // message phrasing or file attribution isn't obvious (the Stop-and-ask cases), not on every
+  // commit. Self-containment (full message + display mandate) is preserved.
+  test(`[${type}] execute commit confirm fires only when phrasing/attribution isn't obvious`, () => {
+    const out = renderSkill('execute-ticket', envType(type)).content;
+    assert.match(
+      out,
+      /when the commit message('s)? phrasing or (the )?file attribution isn't obvious/i,
+      'commit confirm is gated on non-obvious phrasing/attribution',
+    );
+    // preserved self-containment pins (APU-793)
+    assert.match(
+      out,
+      /the full proposed commit message — its title and body/i,
+      'commit confirm still carries the full message',
+    );
+    assert.match(
+      out,
+      /in the message body immediately before this question/i,
+      'display mandate preserved',
+    );
+  });
+
+  // T6 (finding 12): next-ticket cosmetics — "final" dropped from the blocked-list sentence
+  // (there is only one such list), and step 8's recommendation instruction aligned with the
+  // Output-shape "Recommend:" format so the two read as one coherent instruction.
+  test(`[${type}] next-ticket blocked-list and recommendation wording are reconciled`, () => {
+    const out = renderSkill('next-ticket', envType(type)).content;
+    assert.doesNotMatch(
+      out,
+      /a final "blocked, not yet actionable" list/i,
+      '"final" dropped from the blocked-list sentence',
+    );
+    assert.match(
+      out,
+      /a "blocked, not yet actionable" list/i,
+      'the blocked-list sentence survives without "final"',
+    );
+    // step 8 speaks in terms of the Output-shape Recommend: line
+    assert.match(
+      out,
+      /End with a single `Recommend:` line/i,
+      'step 8 aligns with the Output-shape Recommend: format',
+    );
+  });
+}

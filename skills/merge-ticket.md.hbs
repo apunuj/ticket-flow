@@ -43,6 +43,10 @@ Never merge on ambiguous evidence — when in doubt, ask.
 - {{op "setState" state="done"}}.
 - {{> artifact-write}} — set `status: merged`.
 {{~> final-message}}
+{{#if output.inlineArtifacts}}
+
+   **Merge-local scope.** That render ends the write-turn that closed the ticket (step 5's writes). Cleanup (steps 6–7) may run in a later turn, or — when pre-authorized this turn — continue in the same turn; if it does, re-render the artifact at that turn's true end so the final message still reflects the latest state.
+{{/if}}
 
 
 {{> checkpoint next="start cleanup" require="the closing comment, the done state, and the artifact's `status: merged` update are receipted"}}
