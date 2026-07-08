@@ -819,4 +819,102 @@ for (const type of ['linear', 'jira']) {
     assert.match(out, /turn's final message/i, 'turn-final-message pin intact');
     assert.match(out, /bare receipt/i, 'bare-receipt pin intact');
   });
+
+  // T3a (finding 3, R1): orchestrate resolves review depth itself (default high, per-run
+  // override); review-ticket's "always ask" carries the carve-out for a resolved depth.
+  test(`[${type}] orchestrate resolves review depth itself; review-ticket carves it out (R1)`, () => {
+    const orch = renderSkill('orchestrate-ticket', envType(type)).content;
+    // R1 verbatim in orchestrate's rendered prose
+    assert.match(
+      orch,
+      /orchestrate resolves review depth itself — default high; a per-run instruction in the invocation can override/i,
+      'R1 encoded verbatim in orchestrate',
+    );
+    const review = renderSkill('review-ticket', envType(type)).content;
+    // the always-ask still stands, but with a carve-out for an orchestrator-resolved depth
+    assert.match(review, /Ask for review depth — always/i, 'review still asks by default');
+    assert.match(
+      review,
+      /unless an orchestrator has already resolved depth/i,
+      'review carves out the orchestrator-resolved depth',
+    );
+  });
+
+  // T3b (finding 4): merge confirmation is not an unconditional hard gate — it is waivable
+  // per the dormant-vs-live rule; the lifecycle merge opener is no longer a bare "Confirm".
+  test(`[${type}] orchestrate merge confirmation is waivable per dormant-vs-live, not "regardless"`, () => {
+    const orch = renderSkill('orchestrate-ticket', envType(type)).content;
+    assert.doesNotMatch(
+      orch,
+      /stop the run regardless/i,
+      'hard-gates line no longer claims merge confirmation stops the run regardless',
+    );
+    assert.match(
+      orch,
+      /merge confirmation \(waivable/i,
+      'hard-gates line marks merge confirmation waivable',
+    );
+    assert.doesNotMatch(
+      orch,
+      /5\. \*\*Merge\.\*\* Confirm with the user, then follow/,
+      'lifecycle merge opener is no longer an unconditional confirm',
+    );
+    // dormant/live pins survive
+    assert.match(orch, /distinguish dormant from live/i, 'dormant-vs-live pin intact');
+    assert.match(orch, /alters live production behavior always gets an explicit confirm/i, 'live-confirm pin intact');
+  });
+
+  // T3c (finding 5): the stacking escape hatch is reconciled with "one phase of one ticket
+  // at a time" and named as a hard gate that stops the run.
+  test(`[${type}] orchestrate reconciles the stacking hatch with one-phase-at-a-time`, () => {
+    const orch = renderSkill('orchestrate-ticket', envType(type)).content;
+    assert.match(
+      orch,
+      /except under the approved stacking hatch/i,
+      'one-phase rule carries the stacking-hatch exception',
+    );
+    assert.match(
+      orch,
+      /stacking approval/i,
+      'hard-gates line names stacking approval a gate',
+    );
+    // the rebase --onto pin survives
+    assert.match(orch, /git rebase --onto origin\//, 'rebase --onto pin intact');
+  });
+
+  // T3d (finding 9): under orchestration the delegation contract's embedded-write exception
+  // does not apply — the orchestrator keeps every write.
+  test(`[${type}] orchestrate overrides the delegation embedded-write exception`, () => {
+    const orch = renderSkill('orchestrate-ticket', envType(type)).content;
+    assert.match(
+      orch,
+      /embedded-write exception does not apply under orchestration/i,
+      'orchestrate voids the embedded-write exception',
+    );
+    assert.match(orch, /keeps every .*write|keep every .*write/i, 'orchestrator keeps every write');
+    // pins survive
+    assert.match(orch, /never push, open PRs/i, 'sub-agent no-push pin intact');
+    assert.match(orch, /Delegation contract/, 'delegation contract pin intact');
+  });
+
+  // T3e (finding 10, R2): the persist offer fires ONLY when the split came from the
+  // interactive ask — never after a per-run override, never for a config-pinned split.
+  test(`[${type}] orchestrate persist offer fires only when the split came from the interactive ask (R2)`, () => {
+    const orch = renderSkill('orchestrate-ticket', envType(type)).content;
+    assert.match(
+      orch,
+      /the persist offer fires only when the split came from the interactive ask — never after a per-run override, never for a config-pinned split/i,
+      'R2 encoded verbatim in orchestrate',
+    );
+    assert.doesNotMatch(
+      orch,
+      /When the run's split is not already pinned in config, offer to save/i,
+      'the old not-already-pinned trigger is gone',
+    );
+    // pinned phrases survive
+    assert.match(orch, /after the run completes/i, 'after-run-completes pin intact');
+    assert.match(orch, /final boundary summary/i, 'final-boundary-summary pin intact');
+    assert.match(orch, /back on the base branch/i, 'base-branch pin intact');
+    assert.match(orch, /Never edit the config mid-run/i, 'never-edit-mid-run pin intact');
+  });
 }
