@@ -87,8 +87,8 @@ Or skip the terminal entirely: the bootstrap is itself agent-friendly. Tell your
 and it can drive `init`/`build`/`doctor`, tune the config to the repo, and commit the result —
 no manual command-running required.
 
-`init` detects sensible defaults from the repo, including project name, base branch, ticket prefix,
-and test command. Use `init --defaults` to skip prompts, or edit `ticket-flow.config.yaml` before
+`init` detects sensible defaults from the repo, including project name, base branch, and test
+command. Use `init --defaults` to skip prompts, or edit `ticket-flow.config.yaml` before
 building.
 
 `build` writes the configured tool files, backend MCP config, and `TICKET-FLOW.md`. Generated files
@@ -102,9 +102,10 @@ npx ticket-flow@latest upgrade
 
 `upgrade` regenerates everything at the newest version and, on top of a plain `build`: refuses to
 overwrite generated files that carry uncommitted changes (possible hand edits — `--force` to
-override), prunes files an earlier version generated that no longer exist, and appends newly
-introduced optional config blocks to `ticket-flow.config.yaml` as commented snippets. `doctor`
-warns when the generated pack predates the running version.
+override), prunes files an earlier version generated that no longer exist, appends newly
+introduced optional config blocks to `ticket-flow.config.yaml` as commented snippets, and flags
+newly introduced optional keys inside existing blocks (e.g. `output.inlineArtifacts`) as review
+notes. `doctor` warns when the generated pack predates the running version.
 
 ## Generated Files
 

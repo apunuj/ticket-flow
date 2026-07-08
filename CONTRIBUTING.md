@@ -17,8 +17,8 @@ npm install
 npm test
 ```
 
-The test suite is the ground truth for behavior. All 99+ tests should pass on a
-clean checkout before you start.
+The test suite is the ground truth for behavior. The full test suite should pass
+on a clean checkout before you start.
 
 ## Development workflow
 
@@ -29,6 +29,7 @@ clean checkout before you start.
   ```bash
   node bin/cli.js init
   node bin/cli.js build
+  node bin/cli.js upgrade
   node bin/cli.js check
   node bin/cli.js doctor
   ```
@@ -36,7 +37,7 @@ clean checkout before you start.
 ## Project layout
 
 - `bin/cli.js` — CLI entry point and command routing.
-- `src/cli/` — `init`, `build`, `check`, and `doctor` command implementations.
+- `src/cli/` — `init`, `build`, `check`, `doctor`, and `upgrade` command implementations.
 - `src/backends/` — Linear and Jira adapters. Add new backends here.
 - `src/render/` — per-tool renderers (Claude Code, Copilot, opencode).
 - `src/compose/` — composes canonical skill templates into rendered output.
