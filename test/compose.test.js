@@ -781,4 +781,42 @@ for (const type of ['linear', 'jira']) {
     // the ratify STOP (APU-793) still holds unconditionally
     assert.match(out, /there is no trivial-clarifications escape/i, 'ratify gate intact');
   });
+
+  // T2 (finding 7): the final-message render mandate is scoped to turns that actually
+  // updated the work artifact — a retrospective describe (which writes no artifact) must
+  // not be commanded to render one.
+  test(`[${type}] final-message render mandate is scoped to artifact-updating turns`, () => {
+    for (const skill of ['execute-ticket', 'review-ticket', 'merge-ticket', 'describe-ticket']) {
+      const out = renderSkill(skill, envType(type)).content;
+      assert.match(
+        out,
+        /In any turn that updated the work artifact, the artifact render must land/i,
+        `${skill}: render mandate scoped to artifact-updating turns`,
+      );
+      // APU-791 pins preserved
+      assert.match(out, /turn's final message/i, `${skill}: turn's final message pin intact`);
+      assert.match(out, /after all backend writes and tool calls/i, `${skill}: sequencing pin intact`);
+      assert.match(out, /bare receipt/i, `${skill}: bare-receipt pin intact`);
+    }
+  });
+
+  // T2b (finding 2): merge's render lands after step 5's writes but cleanup (steps 6–7) may
+  // continue in the same turn under pre-authorization. A merge-local scope sentence resolves
+  // the "end on the render" rule against that continuation — re-render at the turn's true end.
+  test(`[${type}] merge scopes the render to the close-out write-turn and re-renders after same-turn cleanup`, () => {
+    const out = renderSkill('merge-ticket', envType(type)).content;
+    assert.match(
+      out,
+      /ends the write-turn that closed the ticket/i,
+      'merge-local scope names the close-out write-turn',
+    );
+    assert.match(
+      out,
+      /re-render .*at that turn's true end/i,
+      'same-turn cleanup re-renders at the turn true end',
+    );
+    // the shared final-message pins still hold on merge
+    assert.match(out, /turn's final message/i, 'turn-final-message pin intact');
+    assert.match(out, /bare receipt/i, 'bare-receipt pin intact');
+  });
 }
