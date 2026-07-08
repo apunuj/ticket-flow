@@ -28,6 +28,14 @@ test('no args prints usage and exits 0', () => {
   assert.match(out, /next-ticket → describe-ticket/);
 });
 
+// APU-796 (finding 9, CLI): the help text names orchestrate-ticket — both in the lifecycle
+// line and as a driven command — so the CLI's own summary doesn't omit a shipped skill.
+test('help names orchestrate-ticket in the lifecycle it drives', () => {
+  const { code, out } = run(['help']);
+  assert.equal(code, 0);
+  assert.match(out, /orchestrate-ticket/, 'help names the orchestrate-ticket skill');
+});
+
 test('help is reachable via `help`, `--help`, and `-h`', () => {
   for (const arg of ['help', '--help', '-h']) {
     const { code, out } = run([arg]);

@@ -1168,3 +1168,45 @@ for (const type of ['linear', 'jira']) {
     );
   });
 }
+
+// APU-796: docs-drift sweep on the generated prose. Both backends looped.
+for (const type of ['linear', 'jira']) {
+  // Findings 2+3: the orchestrate description and the onboarding orchestrate row scope the
+  // bubbling to mid-run — an unqualified "bubble questions to the user" over-claims, since the
+  // kickoff model-split ask and the run-end persist offer are neither mid-run class.
+  test(`[${type}] orchestrate-ticket description scopes its bubbles to mid-run`, () => {
+    const f = renderSkill('orchestrate-ticket', envType(type));
+    // the frontmatter block is everything between the opening and closing `---`; the
+    // description is YAML-folded across several lines, so scope the assertion to the block.
+    const fm = f.content.split('\n---', 1)[0];
+    assert.match(fm, /^description:/m, 'frontmatter carries a description');
+    assert.match(fm, /mid-run/, 'description scopes the bubbles to mid-run');
+  });
+
+  test(`[${type}] onboarding orchestrate row names mid-run bubbling plus the kickoff model-split`, () => {
+    const doc = renderDoc({ config: configFor(type), backend: getBackend(type) });
+    const row = doc.split('\n').find((l) => /orchestrate-ticket/.test(l) && /Planner/.test(l));
+    assert.ok(row, 'onboarding doc has the orchestrate-ticket phase row');
+    assert.match(row, /mid-run/, 'orchestrate row scopes bubbling to mid-run');
+    assert.match(row, /model-split/, 'row names the kickoff model-split choice');
+  });
+
+  // Finding 4: the workflow is not literally five phases (fix-ticket + orchestrate-ticket
+  // exist), so neither the guide nor the onboarding doc claims a fixed phase count.
+  test(`[${type}] neither the workflow guide nor the onboarding doc claims a fixed phase count`, () => {
+    const guide = renderGuide(envType(type));
+    const doc = renderDoc({ config: configFor(type), backend: getBackend(type) });
+    assert.doesNotMatch(guide, /five-phase/i, 'guide drops the phase count');
+    assert.doesNotMatch(doc, /five-phase/i, 'onboarding doc drops the phase count');
+  });
+
+  // Finding 9 (onboarding): the "invoke a phase directly" list must name every phase — it was
+  // missing fix-ticket and orchestrate-ticket.
+  test(`[${type}] onboarding invoke-directly list names fix-ticket and orchestrate-ticket`, () => {
+    const doc = renderDoc({ config: configFor(type), backend: getBackend(type) });
+    const line = doc.split('\n').find((l) => /Invoke a phase directly/.test(l));
+    assert.ok(line, 'the invoke-directly line renders');
+    assert.match(line, /\/fix-ticket/, 'invoke-directly list names fix-ticket');
+    assert.match(line, /\/orchestrate-ticket/, 'invoke-directly list names orchestrate-ticket');
+  });
+}
