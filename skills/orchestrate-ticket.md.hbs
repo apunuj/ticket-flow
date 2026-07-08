@@ -22,7 +22,7 @@ Which model runs each role is a cost/quality decision the operator owns — neve
 {{#if (and orchestrate.plannerModel orchestrate.implementerModel)}}
 - **Configured split.** This project pins both roles in config — Planner: `{{orchestrate.plannerModel}}`, Implementer: `{{orchestrate.implementerModel}}`. Absent a per-run instruction, use it without asking.
 {{else}}
-- **Ask first.** No configured split — before any phase work, {{ask "which model split to use for this run — **Split** (recommended): the strongest model plans and reviews, the worker model builds and fixes; **All-strongest**: the strongest model for both roles; **Budget**: the worker model for both roles; **Custom**: name a model per role, with optional per-phase overrides"}}. Do not proceed until the user has answered.
+- **Ask first.** No complete configured split (both roles must be set) — before any phase work, {{ask "which model split to use for this run — **Split** (recommended): the strongest model plans and reviews, the worker model builds and fixes; **All-strongest**: the strongest model for both roles; **Budget**: the worker model for both roles; **Custom**: name a model per role, with optional per-phase overrides"}}. Do not proceed until the user has answered.
 {{/if}}
 - **Pin on spawn.** Pin the resolved model on each sub-agent spawn where your tool supports it; otherwise record the chosen split in the sub-agent brief and the kickoff summary and proceed.
 - **Kickoff summary.** Open the run by naming the resolved split and where it came from (per-run instruction, config, or the user's answer). The kickoff summary and every boundary summary must name which model ran each phase.
@@ -35,6 +35,8 @@ Which model runs each role is a cost/quality decision the operator owns — neve
 - **You (orchestrator)** — sequencing, every {{backend.displayName}} write (with receipts), git/PR operations, and all user interaction.
 
 ## Sub-agent briefs
+
+If your tool has no sub-agent primitive, run each role yourself — role-switch between the Planner and Implementer phases in your own loop, keeping every backend write with you; the briefs below then become your own per-phase checklists.
 
 Sub-agent prompts must embed the relevant phase skill's procedure — read the phase skill file and carry its instructions verbatim where the sub-agent needs them; sub-agents return their results as data. Every brief must:
 

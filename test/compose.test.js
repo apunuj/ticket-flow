@@ -791,6 +791,48 @@ for (const type of ['linear', 'jira']) {
       assert.match(out, /attachments\/links/, 'linear legitimately reads attachments/links (capability true)');
     }
   });
+
+  // T5 (finding 8): a half-configured split (exactly one model set) reads as "No complete
+  // configured split (both roles must be set)" — the old bare "No configured split" implied
+  // nothing was set even when one role was pinned.
+  test(`[${type}] half-config orchestrate names the incomplete split explicitly`, () => {
+    for (const partial of [
+      '\norchestrate:\n  plannerModel: opus\n',
+      '\norchestrate:\n  implementerModel: sonnet\n',
+    ]) {
+      const out = renderSkill('orchestrate-ticket', orchestrateEnv(type, partial)).content;
+      assert.match(
+        out,
+        /No complete configured split \(both roles must be set\)/i,
+        'partial config names the incomplete split',
+      );
+    }
+    // the both-set path still renders the "**Configured split.**" prose (capital C)
+    const both = renderSkill('orchestrate-ticket', orchestrateEnv(type, FULL_SPLIT)).content;
+    assert.match(both, /\*\*Configured split\.\*\*/, 'both-set path keeps the configured-split prose');
+  });
+
+  // T7 (finding 3): spawning degrades tool-neutrally — a tool with no sub-agent primitive
+  // runs each role in the main loop, role-switching between phases. Present in every render.
+  test(`[${type}] orchestrate carries a tool-neutral no-subagent degrade in every render`, () => {
+    for (const toolId of ['claude', 'copilot', 'opencode']) {
+      for (const block of ['', FULL_SPLIT]) {
+        const out = renderSkill('orchestrate-ticket', orchestrateEnv(type, block, toolId)).content;
+        assert.match(
+          out,
+          /no sub-agent primitive.*run (each|the) (role|phase).*yourself|role-switch/i,
+          `${toolId}: tool-neutral no-subagent degrade present`,
+        );
+        // the pin-on-spawn degrade (a distinct line) still stands
+        assert.match(
+          out,
+          /pin the resolved model on each sub-agent spawn where your tool supports it/i,
+          `${toolId}: pin-on-spawn line intact`,
+        );
+        assert.match(out, /otherwise record the chosen split/i, `${toolId}: pin-on-spawn fallback intact`);
+      }
+    }
+  });
 }
 
 // Fix loop N4: arg-guard now calls {{ask}}, and DOC_TOOL renders with the same partials —
