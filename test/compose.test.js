@@ -1066,8 +1066,14 @@ for (const type of ['linear', 'jira']) {
       /the ship already happened\. Skip to step 4/i,
       'the step-4 mispointer is gone',
     );
-    // idempotency riders on each step-5 write
-    assert.match(out, /skip if the PR is already attached/i, 'attachPR rider');
+    // idempotency riders on each step-5 write. attachPR's idempotency is now op-level
+    // (T14/Q2): the skip clause lives in the adapter op, so it renders on BOTH backends
+    // (Linear "attached", Jira "linked") without a template rider.
+    assert.match(
+      out,
+      /skip if the same PR is already (attached|linked)/i,
+      'attachPR op-level idempotency clause',
+    );
     assert.match(out, /skip if a shipping note already exists/i, 'shipping-note rider');
     assert.match(
       out,

@@ -69,7 +69,7 @@ This repo uses a PR flow — feature PRs target **`{{git.baseBranch}}`**. Never 
 
 Attaching the PR is an invariant — `/review-ticket` and `/merge-ticket` resolve the PR from here.
 
-- {{op "attachPR"}} — skip if the PR is already attached to {{arg}} (a resume must not double-attach).
+- {{op "attachPR"}}.
 - {{op "addComment"}}: a short shipping note — PR link, what landed (mapped to acceptance criteria), what was deferred. Skip if a shipping note already exists for this PR (scan the ticket comments first); a resume posts no duplicate.
 - {{op "setState" state="inReview"}} — idempotent: skip if the ticket is already in {{state "inReview"}} or beyond.
 - {{> artifact-write}} — set `status: in-review` and fill the `PR` section (idempotent in place: the upsert refreshes the same work-artifact comment, never a duplicate); if the artifact changed since the PR body was written, refresh its `## Work artifact` section (`gh pr edit --body`).

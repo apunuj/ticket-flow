@@ -111,6 +111,10 @@ test('backend-specific tool vocabulary differs (set vs transition, attach vs lin
   assert.match(lin.op('attachPR', {}, ctx()), /links/);
   assert.doesNotMatch(lin.op('attachPR', {}, ctx()), /create_attachment/);
   assert.match(jira.op('attachPR', {}, ctx()), /remote link/);
+  // APU-795 (T14/Q2): attachPR is idempotent at the op level on BOTH backends — a resume
+  // must never double-attach/-link the same PR.
+  assert.match(lin.op('attachPR', {}, ctx()), /skip if the same PR is already attached/i);
+  assert.match(jira.op('attachPR', {}, ctx()), /skip if the same PR is already linked/i);
   // Linear creates via save_issue (no id); Jira has a dedicated create-issue tool.
   assert.match(lin.op('createTicket', {}, ctx()), /save_issue/);
   assert.match(jira.op('createTicket', {}, ctx()), /create-issue/);
