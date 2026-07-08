@@ -19,7 +19,7 @@ export default {
   codeReview() {
     return [
       "Use Copilot's built-in code review on the PR (the `/review` prompt, or the Copilot code review agent) at the requested depth.",
-      'Collect its findings and carry them into the scope check below.',
+      'Collect its findings and carry them into the scope check below. **Always** post each finding as an inline PR review comment anchored to its `file:line` (`gh api repos/{owner}/{repo}/pulls/<PR#>/comments`) — this is mandatory, not a user choice.',
     ].join(' ');
   },
 

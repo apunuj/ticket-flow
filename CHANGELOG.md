@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-07-08
+
+### Changed
+
+- Posting review findings to the PR is now mandatory, not a user choice. `review-ticket` asks
+  **only** for review depth (low/medium/high/max); it no longer asks whether findings go to chat
+  only or also to the PR. The generated code-review invocation always passes `--comment` for
+  Claude, and the opencode/copilot renders always post each finding as an inline PR review comment
+  anchored to its `file:line` (`gh api …/pulls/<PR#>/comments`), so the "always posted" contract
+  holds across all three tools. The step-5 durable-record and verdict notes drop their
+  "if you chose them" conditionals. Backend-neutral; no new config keys.
+
+- Tightened the `orchestrate-ticket` review-findings bubble to match the display guard already
+  carried by plan ratification and `fix-ticket`'s scope confirmation: the fix/skip/defer question
+  must display every finding — grouped blocking vs nice-to-have, each with `file:line` and a
+  recommendation — in the message body immediately before the question; asking without displaying
+  it is non-compliant, and it must never rely on earlier (possibly hidden) mid-turn text. Closes a
+  gap where an orchestrated review could take a fix decision without reliably surfacing the
+  sub-agent's findings first.
+
 ## [0.5.0] - 2026-07-08
 
 ### Changed

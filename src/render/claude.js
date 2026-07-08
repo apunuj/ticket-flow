@@ -19,7 +19,7 @@ export default {
   codeReview() {
     return [
       'Invoke the built-in **code-review** skill via the Skill tool — do not re-implement review instructions; that skill carries them.',
-      'Pass the PR number, the chosen effort level (low/medium/high/max), and `--comment` if the user opted into inline PR comments (e.g. `args: "<PR#> high --comment"`).',
+      'Pass the PR number, the chosen effort level (low/medium/high/max), and `--comment` — **always** pass `--comment` so findings land as inline PR comments (e.g. `args: "<PR#> high --comment"`); it is not conditional.',
       'For the deepest multi-agent cloud review the user can run `/code-review ultra <PR#>` themselves (it is user-triggered and billed).',
     ].join(' ');
   },

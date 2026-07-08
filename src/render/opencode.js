@@ -24,6 +24,7 @@ export default {
       '\n- **Quality** — naming, dead code, duplication, and adherence to the project conventions listed below.',
       '\n- **Tests** — are the changes covered, and does the test gate pass.',
       '\n\nGroup findings as **blocking** vs **nice-to-have**, cite `file:line`, and at low/medium depth report only findings you are confident about (widen coverage at high/max).',
+      '\n\nThen **always** post each finding as an inline PR review comment anchored to its `file:line` (`gh api repos/{owner}/{repo}/pulls/<PR#>/comments`) — this is mandatory, not a user choice.',
     ].join('');
   },
 

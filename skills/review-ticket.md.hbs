@@ -18,7 +18,9 @@ Review the PR attached to ticket {{arg}}. This skill works **only** on top of a 
 
 ## 2. Ask for review depth — always
 
-Even if a depth seems obvious, {{ask "review depth — low (shallow, high-confidence only), medium (standard), high (broader, may include uncertain findings), or max (deepest single pass); and whether findings go to chat only or also as inline PR comments"}} — unless an orchestrator has already resolved depth (it resolves depth itself and passes it in the brief); then use the depth you were given and do not ask.
+Even if a depth seems obvious, {{ask "review depth — low (shallow, high-confidence only), medium (standard), high (broader, may include uncertain findings), or max (deepest single pass)"}} — unless an orchestrator has already resolved depth (it resolves depth itself and passes it in the brief); then use the depth you were given and do not ask.
+
+Depth is the **only** thing you ask about. Findings are **always** posted as inline PR comments — this is mandatory and not a user choice; never ask whether comments should go to chat only or also to the PR.
 
 ## 3. Gather ticket context
 
@@ -44,9 +46,9 @@ End with a clear verdict, stated in chat AND recorded:
 - `✅ Ready to merge` — no blocking findings, scope delivered; or
 - `🟡 Needs changes` — list the blocking findings and uncovered criteria.
 
-Record the **full review on the ticket** (not just in chat): {{op "addComment"}} with a structured review comment containing — the **verdict**; the **blocking** and **nice-to-have** findings grouped, each with a repo-root-relative `file:line`; any **uncovered acceptance criteria**; any **convention violations**; and the **PR link**. This comment is the durable record — inline PR comments (if you chose them in step 2) are *in addition*, not instead.
+Record the **full review on the ticket** (not just in chat): {{op "addComment"}} with a structured review comment containing — the **verdict**; the **blocking** and **nice-to-have** findings grouped, each with a repo-root-relative `file:line`; any **uncovered acceptance criteria**; any **convention violations**; and the **PR link**. This comment is the durable record — the inline PR comments (always posted, per step 2) are *in addition*, not instead.
 
-The verdict must ALSO be recorded on the PR — post a PR comment with the verdict line (`gh pr comment <pr> --body "..."`, or append it to the PR description), regardless of whether inline PR comments were chosen in step 2.
+The verdict must ALSO be recorded on the PR — post a PR comment with the verdict line (`gh pr comment <pr> --body "..."`, or append it to the PR description). This top-level verdict comment is in addition to the per-finding inline PR comments (always posted, per step 2).
 
 Then {{> artifact-write}} — fill the `Review verdict` section with the verdict **and the list of blocking findings / uncovered criteria**, so `/merge-ticket` can confirm they were addressed. `/merge-ticket` reads this verdict to decide whether review is done.
 
