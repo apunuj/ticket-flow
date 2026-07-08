@@ -17,6 +17,12 @@ export default {
   groupingNoun: 'sprint',
   groupingNounPlural: 'sprints',
   capabilities: { groups: true, attachments: false, groupTargetDates: true },
+  // Backend-neutral facts read by shared templates. Counterparts of linear.js's; Jira's
+  // priority scheme runs Highest→Lowest, sprints carry an end date, and closed sprints read
+  // "closed" rather than Linear's completed/cancelled.
+  priorityScale: 'Highest > High > Medium > Low > Lowest',
+  groupDateNoun: 'end date',
+  groupClosedStatuses: 'closed',
   requires:
     'an Atlassian/Jira MCP server connected in your tool, exposing get-issue, JQL search, transition-issue, create-issue, add-comment, and edit-comment operations (e.g. the Atlassian Remote MCP).',
   // Atlassian Rovo remote MCP server (streamable HTTP). OAuth on first connect. `ticket-flow

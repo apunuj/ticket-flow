@@ -14,6 +14,11 @@ export default {
   groupingNoun: 'milestone',
   groupingNounPlural: 'milestones',
   capabilities: { groups: true, attachments: true, groupTargetDates: true },
+  // Backend-neutral facts read by shared templates. Every one MUST have a jira.js counterpart
+  // and be spread into buildContext — a fact on one adapter only renders `undefined`.
+  priorityScale: 'Urgent > High > Medium > Low > None',
+  groupDateNoun: 'target date',
+  groupClosedStatuses: 'completed or cancelled',
   // surfaced by `ticket-flow check` and in generated docs
   requires:
     'a Linear MCP server connected in your tool (Claude Code, Copilot, or opencode), exposing get_issue / list_issues / list_comments / list_milestones / save_issue / save_comment.',

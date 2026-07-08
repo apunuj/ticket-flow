@@ -18,13 +18,13 @@ Project: {{arg}} — if no argument was given, {{#if backend.project}}default to
    {{> preflight}}
 
 {{#if backend.capabilities.groups}}
-2. **Filter {{backend.groupingNounPlural}}.** Drop any {{backend.groupingNoun}} whose status is completed/cancelled, and any open one with zero backlog tickets attached.{{#if backend.capabilities.groupTargetDates}} Sort survivors by target date ascending; those without a target date sort last.{{else}} Sort survivors by name.{{/if}}
+2. **Filter {{backend.groupingNounPlural}}.** Drop any {{backend.groupingNoun}} whose status is {{backend.groupClosedStatuses}}, and any open one with zero backlog tickets attached.{{#if backend.capabilities.groupTargetDates}} Sort survivors by {{backend.groupDateNoun}} ascending; those without a {{backend.groupDateNoun}} sort last.{{else}} Sort survivors by name.{{/if}}
 {{/if}}
 
-3. **Sort tickets** by priority (Urgent > High > Medium > Low > None), then by last-updated descending.
+3. **Sort tickets** by priority ({{backend.priorityScale}}), then by last-updated descending.
 
 {{#if backend.capabilities.groups}}
-4. **Group tickets by {{backend.groupingNoun}}.** Tickets with none go to a `No {{backend.groupingNoun}}` bucket, ordered last. Bucket order: open {{backend.groupingNounPlural}}{{#if backend.capabilities.groupTargetDates}} in target-date order{{/if}}, then `No {{backend.groupingNoun}}`.
+4. **Group tickets by {{backend.groupingNoun}}.** Tickets with none go to a `No {{backend.groupingNoun}}` bucket, ordered last. Bucket order: open {{backend.groupingNounPlural}}{{#if backend.capabilities.groupTargetDates}} in {{backend.groupDateNoun}} order{{/if}}, then `No {{backend.groupingNoun}}`.
 {{/if}}
 
 5. **Filter blocked items.** A ticket is blocked if its description or relations mark it `Blocked by` an open ticket. Blocked tickets don't count toward caps and aren't eligible for the recommendation — hold them for a "blocked, not yet actionable" list.
@@ -40,7 +40,7 @@ Project: {{arg}} — if no argument was given, {{#if backend.project}}default to
 Under 400 words. Tight bullet lists, {{backend.groupingNoun}} headers, no per-ticket sub-headers:
 
 ```
-## {{#if backend.capabilities.groups}}{{titlecase backend.groupingNoun}}: <name>{{#if backend.capabilities.groupTargetDates}} (target: YYYY-MM-DD){{/if}}{{else}}Backlog{{/if}}
+## {{#if backend.capabilities.groups}}{{titlecase backend.groupingNoun}}: <name>{{#if backend.capabilities.groupTargetDates}} ({{backend.groupDateNoun}}: YYYY-MM-DD){{/if}}{{else}}Backlog{{/if}}
 
 {{eg.prefixUpper}}-XXX [High] Title
   → one-sentence hook

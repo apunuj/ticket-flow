@@ -61,6 +61,9 @@ function buildContext(config, backend, tool, rawMeta) {
       groupingNounPlural: backend.groupingNounPlural,
       capabilities: backend.capabilities,
       requires: backend.requires,
+      priorityScale: backend.priorityScale,
+      groupDateNoun: backend.groupDateNoun,
+      groupClosedStatuses: backend.groupClosedStatuses,
     },
   };
 }

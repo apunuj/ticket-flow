@@ -743,6 +743,56 @@ for (const type of ['linear', 'jira']) {
   });
 }
 
+// APU-795: backend/tool parity leaks. Every backend-specific fact that a shared template
+// renders must resolve to the backend's own vocabulary — no Linear terms leak into a Jira
+// render (or vice versa). Both backends looped.
+for (const type of ['linear', 'jira']) {
+  // T1 (finding 1): the priority scale is a backend fact, not a hardcoded Linear scale.
+  test(`[${type}] next-ticket renders the backend's own priority scale`, () => {
+    const out = renderSkill('next-ticket', envType(type)).content;
+    if (type === 'jira') {
+      assert.match(out, /Highest > High > Medium > Low > Lowest/, 'jira priority scale');
+      assert.doesNotMatch(out, /Urgent > High/, 'no Linear scale leaks into jira');
+    } else {
+      assert.match(out, /Urgent > High > Medium > Low > None/, 'linear priority scale');
+      assert.doesNotMatch(out, /Highest > High/, 'no Jira scale leaks into linear');
+    }
+  });
+
+  // T2 (finding 4): sprint/group vocabulary — the group's date noun and its closed-status
+  // phrasing follow the backend, not Linear's milestone terms.
+  test(`[${type}] next-ticket uses the backend's group date noun and closed-status phrasing`, () => {
+    const out = renderSkill('next-ticket', envType(type)).content;
+    if (type === 'jira') {
+      assert.match(out, /end date/, 'jira sprints carry an end date');
+      assert.doesNotMatch(out, /target date|target-date/, 'no Linear target-date term in jira');
+      assert.doesNotMatch(out, /completed\/cancelled/, 'no Linear closed phrasing in jira');
+      assert.match(out, /status is closed/, 'jira closed-sprint phrasing');
+    } else {
+      assert.match(out, /target date/, 'linear milestones carry a target date');
+      assert.doesNotMatch(out, /end date/, 'no Jira end-date term in linear');
+      assert.match(out, /status is completed or cancelled/, 'linear closed phrasing');
+    }
+  });
+
+  // T3 (finding 5): retrospective PR discovery goes through the getAttachedPR op, so Jira
+  // points at the development panel / remote links rather than Linear-style attachments.
+  test(`[${type}] describe retrospective discovers the PR via the getAttachedPR op`, () => {
+    const out = renderSkill('describe-ticket', envType(type)).content;
+    assert.doesNotMatch(
+      out,
+      /attachments, and comments for linked PR/,
+      'the old hardcoded attachment-scan bullet is gone',
+    );
+    if (type === 'jira') {
+      assert.match(out, /development panel|remote link/i, 'jira discovers via dev panel / remote links');
+      assert.doesNotMatch(out, /attachments\/links/, 'no Linear attachment phrasing leaks into jira');
+    } else {
+      assert.match(out, /attachments\/links/, 'linear legitimately reads attachments/links (capability true)');
+    }
+  });
+}
+
 // Fix loop N4: arg-guard now calls {{ask}}, and DOC_TOOL renders with the same partials —
 // a future doc template including arg-guard must not throw on a missing ask.
 test('DOC_TOOL carries an ask stub so doc templates survive {{ask}}', () => {
