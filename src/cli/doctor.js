@@ -119,6 +119,28 @@ export function checkMcp(config, root) {
   return ok('backend MCP configured', `${backend.displayName} scaffolded for ${config.tools.join(', ')}`);
 }
 
+// A half-configured orchestrate split (exactly one model set) silently falls back to asking
+// every run — warn and name the missing role. Empty string counts as unset, mirroring the
+// render `and` helper, which treats "" as falsy. Both set or both unset is fine.
+export function checkOrchestrate(config) {
+  const o = (config && config.orchestrate) || {};
+  const plannerSet = Boolean(o.plannerModel);
+  const implementerSet = Boolean(o.implementerModel);
+  if (plannerSet === implementerSet) {
+    return ok(
+      'orchestrate split',
+      plannerSet ? `Planner ${o.plannerModel} · Implementer ${o.implementerModel}` : 'unset — asked per run',
+    );
+  }
+  const missing = plannerSet ? 'implementerModel' : 'plannerModel';
+  const set = plannerSet ? 'plannerModel' : 'implementerModel';
+  return warn(
+    'orchestrate split',
+    `only ${set} set — ${missing} missing (falls back to asking each run)`,
+    'set both orchestrate models or neither',
+  );
+}
+
 const SYM = { ok: '✓', warn: '!', fail: '✗' };
 
 export function doctor({ configPath, out } = {}) {
@@ -131,6 +153,7 @@ export function doctor({ configPath, out } = {}) {
   if (cfg.config) {
     const root = path.resolve(out || cfg.config.output.dir || '.');
     results.push(checkDrift(cfg.config, root), checkMcp(cfg.config, root), checkVersion(root));
+    results.push(checkOrchestrate(cfg.config));
   }
 
   console.log('ticket-flow doctor\n');
