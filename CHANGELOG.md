@@ -7,7 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-07-08
+
 ### Changed
+
+- Swept docs drift across generated prose, the CLI help, and the repo docs so they match
+  shipped behavior. The `orchestrate-ticket` description and the onboarding orchestrate row now
+  scope their bubbling to **mid-run** questions and name the kickoff model-split choice (unless
+  pinned in config); the workflow guide and onboarding doc drop the inaccurate "five-phase"
+  count (fix-ticket and orchestrate-ticket exist beyond the five); the onboarding
+  invoke-directly list and the CLI `--help` lifecycle now name every skill including
+  `fix-ticket` and `orchestrate-ticket`. README drops "ticket prefix" from the init-detects
+  list (unset since 0.2.0) and notes that `upgrade` flags newly introduced optional keys inside
+  existing blocks (e.g. `output.inlineArtifacts`) as review notes; CONTRIBUTING replaces the
+  stale test count with "the full test suite" and adds `upgrade` to its CLI layout and
+  exercise list. Docs/prose-only; backend-neutral; no new config keys.
 
 - Closed a batch of backend/tool parity leaks and empty-config robustness gaps. Backend-specific
   vocabulary that shared templates render is now carried by adapter facts rather than hardcoded
@@ -174,7 +188,8 @@ Initial release.
 - Shared work artifact stored as a marked comment on the ticket so every tool
   can find and update the same plan, branch, PR, and review state.
 
-[Unreleased]: https://github.com/apunuj/ticket-flow/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/apunuj/ticket-flow/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/apunuj/ticket-flow/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/apunuj/ticket-flow/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/apunuj/ticket-flow/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/apunuj/ticket-flow/compare/v0.1.0...v0.2.0
