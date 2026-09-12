@@ -80,6 +80,45 @@ export function mergeMcpServer(filePath, key, name, server) {
   return { action: existed ? 'merged' : 'created' };
 }
 
+// Add a remote MCP server to a TOML config by appending its `[<key>.<name>]` table.
+// A text append rather than a parse/serialize round-trip: it needs no TOML dependency and
+// preserves every existing key, comment, and blank line in the file byte for byte.
+// Non-clobbering — an existing table for that server is left alone. Returns { action }.
+export function appendMcpTomlServer(filePath, key, name, server) {
+  const header = `[${key}.${name}]`;
+  const existed = fs.existsSync(filePath);
+  const current = existed ? fs.readFileSync(filePath, 'utf8') : '';
+  if (current.includes(header)) return { action: 'already configured' };
+
+  // JSON string/number/boolean literals are valid TOML values, so they serialize as-is.
+  const table = `${header}\n` + Object.entries(server).map(([k, v]) => `${k} = ${JSON.stringify(v)}`).join('\n') + '\n';
+  const gap = !current || current.endsWith('\n\n') ? '' : current.endsWith('\n') ? '\n' : '\n\n';
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, current + gap + table);
+  return { action: existed ? 'merged' : 'created' };
+}
+
+// Delete generated files a previous build owned that the current build no longer renders,
+// then remove any directory left empty behind them. Reads the freshly written manifest, so it
+// must run AFTER build(). Returns the pruned repo-relative paths. Shared by `upgrade` (a tool
+// or skill disappeared between versions) and `remove` (a tool was dropped from the config).
+export function pruneStale(root, prevFiles) {
+  const current = new Set(JSON.parse(fs.readFileSync(path.join(root, MANIFEST_FILE), 'utf8')).files);
+  const pruned = [];
+  for (const rel of prevFiles) {
+    const abs = path.join(root, rel);
+    if (current.has(rel) || !fs.existsSync(abs)) continue;
+    fs.rmSync(abs);
+    let dir = path.dirname(abs);
+    while (dir !== root && fs.existsSync(dir) && fs.readdirSync(dir).length === 0) {
+      fs.rmdirSync(dir);
+      dir = path.dirname(dir);
+    }
+    pruned.push(rel);
+  }
+  return pruned;
+}
+
 // Render and write to disk under outputDir (defaults to config.output.dir).
 export function build(config, { outputDir } = {}) {
   const root = path.resolve(outputDir || config.output.dir || '.');
@@ -103,7 +142,11 @@ export function build(config, { outputDir } = {}) {
   for (const toolId of config.tools) {
     const spec = getTool(toolId).mcpFile?.(backend);
     if (!spec) continue;
-    const r = mergeMcpServer(path.join(root, spec.path), spec.key, spec.name, spec.server);
+    const dest = path.join(root, spec.path);
+    const r =
+      spec.format === 'toml'
+        ? appendMcpTomlServer(dest, spec.key, spec.name, spec.server)
+        : mergeMcpServer(dest, spec.key, spec.name, spec.server);
     written.push({ tool: toolId, kind: 'mcp', path: spec.path, note: `MCP: ${r.action}` });
   }
 

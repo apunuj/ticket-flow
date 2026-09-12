@@ -1,7 +1,7 @@
 // Linear backend adapter. Realizes the abstract ticket-operation interface as tool-neutral
 // natural-language instructions naming the concrete Linear MCP tool. The instructions avoid a
 // host-specific prefix (e.g. mcp__claude_ai_Linear__) so the same text works whether the Linear
-// MCP is mounted under Claude Code, Copilot, or opencode — the agent resolves "the Linear MCP".
+// MCP is mounted under whichever tool is running — the agent resolves "the Linear MCP".
 
 import { ARTIFACT_SENTINEL } from '../artifact.js';
 import { RECEIPT } from './_receipt.js';
@@ -21,7 +21,7 @@ export default {
   groupClosedStatuses: 'completed or cancelled',
   // surfaced by `ticket-flow check` and in generated docs
   requires:
-    'a Linear MCP server connected in your tool (Claude Code, Copilot, or opencode), exposing get_issue / list_issues / list_comments / list_milestones / save_issue / save_comment.',
+    'a Linear MCP server connected in your tool, exposing get_issue / list_issues / list_comments / list_milestones / save_issue / save_comment.',
   // Official remote MCP server (streamable HTTP). OAuth on first connect. `ticket-flow build`
   // scaffolds this into each tool's MCP config so connecting is a one-time approval.
   mcp: { name: 'linear', url: 'https://mcp.linear.app/mcp' },

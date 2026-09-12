@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
 import { loadConfig } from '../config.js';
-import { build, MANIFEST_FILE, PKG_VERSION } from '../build.js';
+import { build, pruneStale, MANIFEST_FILE, PKG_VERSION } from '../build.js';
 
 // Optional top-level config blocks introduced after a config may have been generated.
 // Each appends a commented snippet, so the config stays valid and the user opts in by
@@ -72,19 +72,7 @@ export function runUpgrade({ configPath, out, cwd = process.cwd(), force = false
   const written = build(config, { outputDir: root });
 
   // Prune only what the previous manifest owned and this build no longer renders.
-  const current = new Set(JSON.parse(fs.readFileSync(manifestPath, 'utf8')).files);
-  const pruned = [];
-  for (const rel of prevFiles) {
-    const abs = path.join(root, rel);
-    if (current.has(rel) || !fs.existsSync(abs)) continue;
-    fs.rmSync(abs);
-    let dir = path.dirname(abs);
-    while (dir !== root && fs.existsSync(dir) && fs.readdirSync(dir).length === 0) {
-      fs.rmdirSync(dir);
-      dir = path.dirname(dir);
-    }
-    pruned.push(rel);
-  }
+  const pruned = pruneStale(root, prevFiles);
 
   // Config migration: new optional blocks + a current version stamp.
   const migrated = [];

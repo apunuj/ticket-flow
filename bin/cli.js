@@ -4,15 +4,21 @@ import { runBuild } from '../src/cli/build.js';
 import { check } from '../src/cli/check.js';
 import { doctor } from '../src/cli/doctor.js';
 import { upgrade } from '../src/cli/upgrade.js';
+import { add, remove } from '../src/cli/tools.js';
 
-const HELP = `ticket-flow — portable ticket-driven workflow skills for Claude Code, Copilot, and opencode
+const HELP = `ticket-flow — portable ticket-driven workflow skills for Claude Code, Codex, Copilot, Cursor, and opencode
 
 Usage:
-  ticket-flow init [--force] [--defaults]  Set up ticket-flow.config.yaml (interactive; --defaults to skip prompts)
+  ticket-flow init [--force] [--defaults] [--all]  Set up ticket-flow.config.yaml (interactive; --defaults to skip prompts, --all to generate for every agent)
   ticket-flow build [--config <p>] [--out <dir>]   Generate the skills for your configured tools
+  ticket-flow add <tool>...               Generate for another agent too (e.g. 'add codex') — updates the config and builds
+  ticket-flow remove <tool>...            Stop generating for an agent and delete its files
   ticket-flow upgrade [--force]           Regenerate after a new ticket-flow version: migrate config, prune stale files (--force to overwrite uncommitted hand edits)
   ticket-flow doctor [--config <p>] [--out <dir>]  Preflight checklist: config, git, gh, generated files, MCP
   ticket-flow check [--config <p>]        Validate config + report backend/tool requirements
+
+Agents: claude, codex, copilot, cursor, opencode. Switching agents mid-project is
+'ticket-flow add <agent>'; set 'tools: all' in the config to generate for every agent always.
 
 Lifecycle the generated skills drive:
   next-ticket → describe-ticket → execute-ticket → review-ticket → merge-ticket
@@ -26,9 +32,11 @@ function parseFlags(argv) {
     const a = argv[i];
     if (a === '--force') flags.force = true;
     else if (a === '--defaults' || a === '--yes' || a === '-y') flags.defaults = true;
+    else if (a === '--all') flags.all = true;
     else if (a === '--config') flags.configPath = argv[++i];
     else if (a === '--out') flags.out = argv[++i];
     else if (a === '-h' || a === '--help') flags.help = true;
+    else if (!a.startsWith('-')) (flags.tools = flags.tools || []).push(a);
   }
   return flags;
 }
@@ -43,6 +51,10 @@ async function main() {
     await runInit(flags);
   } else if (cmd === 'build') {
     runBuild(flags);
+  } else if (cmd === 'add') {
+    add(flags);
+  } else if (cmd === 'remove') {
+    remove(flags);
   } else if (cmd === 'upgrade') {
     upgrade(flags);
   } else if (cmd === 'check') {

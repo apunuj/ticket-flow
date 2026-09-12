@@ -20,11 +20,16 @@ function renderFor(backendType) {
 
 for (const backend of ['linear', 'jira']) {
   test(`[${backend}] renders all skills for all tools`, () => {
+    const cfg = baseConfig();
     const skills = renderFor(backend).filter((f) => f.kind === 'skill');
-    assert.equal(skills.length, SKILLS.length * 3, 'expect 5 skills × 3 tools');
+    assert.equal(
+      skills.length,
+      SKILLS.length * cfg.tools.length,
+      `expect ${SKILLS.length} skills × ${cfg.tools.length} tools`,
+    );
   });
 
-  test(`[${backend}] emits an always-on conversational guide for copilot and opencode (not claude)`, () => {
+  test(`[${backend}] emits an always-on guide for copilot/cursor/opencode, an overview skill for claude/codex`, () => {
     const files = renderFor(backend);
 
     const copilotGuide = files.find((f) => f.tool === 'copilot' && f.kind === 'guide');
@@ -39,14 +44,27 @@ for (const backend of ['linear', 'jira']) {
     assert.equal(opencodeGuide.path, '.opencode/ticket-flow.md');
     assert.match(opencodeGuide.content, /\.opencode\/command\/next-ticket\.md/, 'points at the command file');
 
-    const claudeOverview = files.find((f) => f.tool === 'claude' && f.kind === 'overview');
-    assert.ok(claudeOverview, 'claude gets an overview skill for discovery/education');
-    assert.equal(claudeOverview.path, '.claude/skills/ticket-flow/SKILL.md');
-    assert.match(claudeOverview.content, /name: ticket-flow/);
-    assert.ok(
-      !files.some((f) => f.tool === 'claude' && f.kind === 'guide'),
-      'claude has no always-on guide file — its skills auto-invoke from their description',
-    );
+    const cursorGuide = files.find((f) => f.tool === 'cursor' && f.kind === 'guide');
+    assert.ok(cursorGuide, 'cursor has an always-on guide');
+    assert.equal(cursorGuide.path, '.cursor/rules/ticket-flow.mdc');
+    assert.match(cursorGuide.content, /alwaysApply: true/, 'cursor rule is always-on');
+    assert.match(cursorGuide.content, /\.cursor\/commands\/next-ticket\.md/, 'points at the command file');
+
+    // claude and codex both pick a phase from its skill description, so neither needs an
+    // always-on guide — each gets a discovery/overview skill instead.
+    for (const [tool, overviewPath] of [
+      ['claude', '.claude/skills/ticket-flow/SKILL.md'],
+      ['codex', '.agents/skills/ticket-flow/SKILL.md'],
+    ]) {
+      const overview = files.find((f) => f.tool === tool && f.kind === 'overview');
+      assert.ok(overview, `${tool} gets an overview skill for discovery/education`);
+      assert.equal(overview.path, overviewPath);
+      assert.match(overview.content, /name: ticket-flow/);
+      assert.ok(
+        !files.some((f) => f.tool === tool && f.kind === 'guide'),
+        `${tool} has no always-on guide file — its skills auto-invoke from their description`,
+      );
+    }
   });
 
   test(`[${backend}] no host-specific or unresolved tokens leak`, () => {
@@ -58,15 +76,19 @@ for (const backend of ['linear', 'jira']) {
   });
 
   test(`[${backend}] tool-specific arg syntax`, () => {
-    for (const f of renderFor(backend)) {
-      if (f.tool === 'copilot') {
-        assert.ok(!/\$1\b/.test(f.content), `${f.path} (copilot) must not use positional $1`);
+    const files = renderFor(backend);
+    // copilot, cursor and codex all lack positional substitution — a literal $1 would reach
+    // the agent unexpanded and be read as part of the ticket id.
+    for (const f of files) {
+      if (['copilot', 'cursor', 'codex'].includes(f.tool)) {
+        assert.ok(!/\$1\b/.test(f.content), `${f.path} (${f.tool}) must not use positional $1`);
       }
     }
-    const copilotExec = renderFor(backend).find(
-      (f) => f.tool === 'copilot' && f.path.includes('execute-ticket'),
-    );
-    assert.match(copilotExec.content, /\$\{input:ticket\}/, 'copilot uses ${input:ticket}');
+    const exec = (tool) => files.find((f) => f.tool === tool && f.path.includes('execute-ticket'));
+    assert.match(exec('copilot').content, /\$\{input:ticket\}/, 'copilot uses ${input:ticket}');
+    for (const tool of ['cursor', 'codex']) {
+      assert.match(exec(tool).content, /<ticket-id>/, `${tool} uses the <ticket-id> placeholder`);
+    }
   });
 
   test(`[${backend}] code-review tail differs by tool`, () => {
@@ -75,10 +97,20 @@ for (const backend of ['linear', 'jira']) {
     const opencodeReview = files.find((f) => f.tool === 'opencode' && f.path.includes('review-ticket'));
     assert.match(claudeReview.content, /built-in \*\*code-review\*\* skill/, 'claude delegates');
     assert.match(opencodeReview.content, /no built-in code-review/, 'opencode inlines the checklist');
-    assert.ok(
-      !opencodeReview.content.includes('built-in **code-review** skill'),
-      'opencode must not delegate to a Claude-only skill',
-    );
+
+    const cursorReview = files.find((f) => f.tool === 'cursor' && f.path.includes('review-ticket'));
+    const codexReview = files.find((f) => f.tool === 'codex' && f.path.includes('review-ticket'));
+    assert.match(cursorReview.content, /Cursor has no built-in code-review/, 'cursor inlines the checklist');
+    assert.match(codexReview.content, /built-in \*\*`\/review`\*\*/, 'codex delegates to its own /review');
+    assert.doesNotMatch(codexReview.content, /no built-in code-review/, 'codex does not inline the checklist');
+
+    // no tool but claude may point at the Claude-only code-review skill
+    for (const f of files.filter((f) => f.tool !== 'claude')) {
+      assert.ok(
+        !f.content.includes('built-in **code-review** skill'),
+        `${f.path} (${f.tool}) must not delegate to a Claude-only skill`,
+      );
+    }
   });
 
   test(`[${backend}] output paths are correct per tool`, () => {
@@ -86,6 +118,8 @@ for (const backend of ['linear', 'jira']) {
       if (f.tool === 'claude') assert.match(f.path, /^\.claude\/skills\/[\w-]+\/SKILL\.md$/);
       if (f.tool === 'copilot') assert.match(f.path, /^\.github\/prompts\/[\w-]+\.prompt\.md$/);
       if (f.tool === 'opencode') assert.match(f.path, /^\.opencode\/command\/[\w-]+\.md$/);
+      if (f.tool === 'cursor') assert.match(f.path, /^\.cursor\/commands\/[\w-]+\.md$/);
+      if (f.tool === 'codex') assert.match(f.path, /^\.agents\/skills\/[\w-]+\/SKILL\.md$/);
     }
   });
 }

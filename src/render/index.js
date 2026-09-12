@@ -1,8 +1,10 @@
 import claude from './claude.js';
+import codex from './codex.js';
 import copilot from './copilot.js';
+import cursor from './cursor.js';
 import opencode from './opencode.js';
 
-export const tools = { claude, copilot, opencode };
+export const tools = { claude, codex, copilot, cursor, opencode };
 
 export function getTool(id) {
   const t = tools[id];

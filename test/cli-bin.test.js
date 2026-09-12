@@ -116,7 +116,7 @@ test('build renders from --config to --out end to end', () => {
   try {
     const { code, out } = run(['build', '--config', EXAMPLE, '--out', dir]);
     assert.equal(code, 0);
-    assert.match(out, /Built 30 files/); // 7 skills × 3 tools + extras + MCP + doc + manifest
+    assert.match(out, /Built 48 files/); // 7 skills × 5 tools + extras + MCP + wiring + doc + manifest
     assert.match(out, /always-on guide/);
     assert.match(out, /Try it now/);
     assert.ok(fs.existsSync(path.join(dir, '.claude/skills/merge-ticket/SKILL.md')));
@@ -139,3 +139,57 @@ test('doctor runs the preflight checklist against built output', () => {
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('add/remove drive the agent switch end to end through the real binary', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tf-bin-'));
+  try {
+    assert.equal(run(['init', '--defaults'], { cwd: dir }).code, 0);
+    assert.equal(run(['build'], { cwd: dir }).code, 0);
+    assert.ok(fs.existsSync(path.join(dir, '.claude/skills/next-ticket/SKILL.md')));
+
+    // Codex limits run out mid-project: one command, no config surgery.
+    const added = run(['add', 'codex'], { cwd: dir });
+    assert.equal(added.code, 0);
+    assert.match(added.out, /Added codex/);
+    assert.match(added.out, /\.agents\/skills\/next-ticket\/SKILL\.md/);
+    assert.ok(fs.existsSync(path.join(dir, '.agents/skills/next-ticket/SKILL.md')));
+    assert.deepEqual(
+      parseConfig(fs.readFileSync(path.join(dir, 'ticket-flow.config.yaml'), 'utf8')).tools,
+      ['claude', 'codex'],
+    );
+
+    const removed = run(['remove', 'claude'], { cwd: dir });
+    assert.equal(removed.code, 0);
+    assert.match(removed.out, /Removed claude/);
+    assert.ok(!fs.existsSync(path.join(dir, '.claude')), 'claude output pruned');
+
+    assert.equal(run(['add', 'nope'], { cwd: dir }).code, 1, 'an unknown agent exits non-zero');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('init --all writes `tools: all` so every agent is generated', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tf-bin-'));
+  try {
+    assert.equal(run(['init', '--defaults', '--all'], { cwd: dir }).code, 0);
+    const raw = fs.readFileSync(path.join(dir, 'ticket-flow.config.yaml'), 'utf8');
+    assert.match(raw, /^tools: all$/m, 'stays literal so future tools are picked up too');
+
+    const { code, out } = run(['build'], { cwd: dir });
+    assert.equal(code, 0);
+    assert.match(out, /Built 48 files/);
+    for (const rel of [
+      '.claude/skills/next-ticket/SKILL.md',
+      '.agents/skills/next-ticket/SKILL.md',
+      '.github/prompts/next-ticket.prompt.md',
+      '.cursor/commands/next-ticket.md',
+      '.opencode/command/next-ticket.md',
+    ]) {
+      assert.ok(fs.existsSync(path.join(dir, rel)), `${rel} generated`);
+    }
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+

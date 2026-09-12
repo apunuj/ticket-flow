@@ -601,9 +601,41 @@ for (const type of ['linear', 'jira']) {
     );
     assert.match(
       out,
-      /the step-3 output — the summary/i,
-      'step-4 clarifying ask carries the step-3 output as context',
+      /plain numbered questions in the message body, not through a question dialog/i,
+      'step-4 clarifying questions are plain text so the step-3 output stays visible',
     );
+    assert.match(
+      out,
+      /the step-3 output — the summary/i,
+      'step-4 clarifying questions follow the step-3 output',
+    );
+  });
+
+  test(`[${type}] clarifying questions are asked inline on every tool, never through a dialog`, () => {
+    // {{askInline}} is deliberately tool-neutral: on a host that hides text preceding a tool
+    // call, a question dialog would strand the user stories the user has to read to answer.
+    for (const toolId of ['claude', 'codex', 'copilot', 'cursor', 'opencode']) {
+      const describe = renderSkill('describe-ticket', { ...envType(type), tool: getTool(toolId) }).content;
+      const orchestrate = renderSkill('orchestrate-ticket', { ...envType(type), tool: getTool(toolId) }).content;
+      for (const [name, out] of [['describe-ticket', describe], ['orchestrate-ticket', orchestrate]]) {
+        assert.match(
+          out,
+          /plain numbered questions in the message body, not through a question dialog/i,
+          `${toolId} ${name} asks the clarifying questions inline`,
+        );
+        assert.match(
+          out,
+          /followed by the numbered questions as its last lines/i,
+          `${toolId} ${name} puts the stories above the questions`,
+        );
+      }
+      // claude is the only tool with a question dialog, so it is the only one that could
+      // regress here — its clarifying step must not reach for AskUserQuestion.
+      if (toolId === 'claude') {
+        const step4 = describe.slice(describe.indexOf('4. **Clarifying questions.**'), describe.indexOf('5. **If you asked'));
+        assert.doesNotMatch(step4, /AskUserQuestion/, 'claude step 4 does not use the question dialog');
+      }
+    }
   });
 
   test(`[${type}] describe always stops for plan ratification`, () => {
@@ -674,11 +706,17 @@ for (const type of ['linear', 'jira']) {
       /sub-agent output is invisible to the user unless you relay it/i,
       'the bubble must relay the Planner output',
     );
-    // the lifecycle bubble carries the Planner's summary/stories/ACs as ask context
+    // the lifecycle bubble asks inline, under the Planner's summary/stories/ACs — never in a
+    // dialog, which would hide the output the user has to read to answer
     assert.match(
       out,
-      /the Planner's summary, user stories, and acceptance criteria, plus the clarifying questions/i,
-      'bubble ask carries the Planner output as context',
+      /plain numbered questions in the message body, not through a question dialog/i,
+      'bubble asks inline, not through a dialog',
+    );
+    assert.match(
+      out,
+      /the message is the Planner's summary, user stories, and acceptance criteria, followed by the numbered questions/i,
+      'bubble puts the Planner output above the questions',
     );
     // a ratification STOP exists and precedes the lifecycle artifact write
     assert.match(

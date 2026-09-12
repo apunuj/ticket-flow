@@ -1,7 +1,8 @@
 # Ticket-Flow
 
 Ticket-Flow generates portable, ticket-driven development workflows for
-[Claude Code](https://claude.com/claude-code), [GitHub Copilot](https://github.com/features/copilot),
+[Claude Code](https://claude.com/claude-code), [Codex](https://developers.openai.com/codex),
+[GitHub Copilot](https://github.com/features/copilot), [Cursor](https://cursor.com),
 and [opencode](https://opencode.ai) from one canonical config file.
 
 Define your project conventions once, choose a ticket backend, and run `ticket-flow build`.
@@ -39,8 +40,8 @@ Agent workflows are easiest to trust when every tool follows the same lifecycle 
 project rules. Ticket-Flow keeps that lifecycle in one source of truth, then renders it into the
 formats your coding assistants already understand.
 
-- **One config, many tools.** Generate Claude Code skills, Copilot prompts/instructions, and
-  opencode commands from the same source.
+- **One config, many tools.** Generate Claude Code skills, Codex skills, Copilot
+  prompts/instructions, Cursor commands/rules, and opencode commands from the same source.
 - **Ticket-backed state.** Plans, branches, PR links, review decisions, and follow-up work live in
   a shared work artifact on the ticket itself.
 - **Backend-aware output.** Linear and Jira differences are handled by backend adapters, so the
@@ -77,7 +78,7 @@ npx ticket-flow doctor
 ```
 
 Or skip the terminal entirely: the bootstrap is itself agent-friendly. Tell your coding agent
-(Claude Code, Copilot, opencode) something like
+(Claude Code, Codex, Copilot, Cursor, opencode) something like
 
 > Set up ticket-flow in this repo: run `npx ticket-flow init --defaults`, adjust
 > `ticket-flow.config.yaml` to this project (backend, base branch, test command), then run
@@ -93,6 +94,37 @@ building.
 
 `build` writes the configured tool files, backend MCP config, and `TICKET-FLOW.md`. Generated files
 are created or merged; existing unrelated config is preserved.
+
+### Switching or Adding an Agent
+
+Agent choice is not a one-time decision — you hit a usage limit in one assistant and move to
+another mid-project. Adding one is a single command, not a config edit you have to remember:
+
+```bash
+npx ticket-flow add codex        # claude | codex | copilot | cursor | opencode
+npx ticket-flow remove copilot   # stops generating for it and deletes its files
+```
+
+`add` updates `tools:` in `ticket-flow.config.yaml`, generates that agent's format and MCP
+config, and leaves every other agent's files untouched. It is idempotent, validates every id
+before writing anything, and preserves your config's comments. `remove` prunes the files that
+agent owned (leaving its MCP config, which holds your own settings) and refuses to empty the
+list.
+
+Because all workflow state lives on the ticket rather than in the tool, you can plan a ticket in
+one assistant and execute it in another mid-ticket without losing the plan, branch, or PR link.
+
+**Don't want to think about it at all?** Set `tools: all`:
+
+```yaml
+tools: all    # every agent ticket-flow supports, including ones added in future versions
+```
+
+or start that way with `npx ticket-flow init --all`. Every agent is generated on every build, so
+whichever one you open just works — at the cost of carrying all five output directories in the
+repo. `ticket-flow doctor` also has an **agent coverage** check that warns when an agent is set
+up in the repo (a `.cursor/`, `.codex/`, `.opencode/` directory) but ticket-flow is not
+generating its format, and names the exact `add` command to fix it.
 
 ### Upgrade to a New Version
 
@@ -112,8 +144,21 @@ notes. `doctor` warns when the generated pack predates the running version.
 | Tool | Slash Skills / Commands | Always-On Guidance | MCP Config |
 |---|---|---|---|
 | Claude Code | `.claude/skills/<name>/SKILL.md` | `.claude/skills/ticket-flow/SKILL.md` | `.mcp.json` |
+| Codex | `.agents/skills/<name>/SKILL.md` | `.agents/skills/ticket-flow/SKILL.md` | `.codex/config.toml` |
 | GitHub Copilot | `.github/prompts/<name>.prompt.md` | `.github/instructions/ticket-flow.instructions.md` | `.vscode/mcp.json` |
+| Cursor | `.cursor/commands/<name>.md` | `.cursor/rules/ticket-flow.mdc` | `.cursor/mcp.json` |
 | opencode | `.opencode/command/<name>.md` | `.opencode/ticket-flow.md` | `opencode.json` |
+
+Claude Code and Codex pick a phase from its skill description, so their "always-on" entry is a
+discovery/overview skill rather than an instructions file; Copilot, Cursor, and opencode get a
+real always-on file that maps plain-language intent to a phase.
+
+Codex reads repo-local skills only from the shared `.agents/skills/` directory — there is no
+`.codex/skills/`, and its custom-prompt folder is user-global, so skills are the only form that
+can be committed to a repo. Cursor scans `.agents/skills/` too, so configuring **both** `cursor`
+and `codex` makes Cursor list each phase twice (once from `.cursor/commands/`, once from the
+Codex skills). It is harmless — `ticket-flow doctor` flags it — but drop one of the two tools if
+the duplicate slash entries bother you.
 
 Ticket-Flow also writes a repo-level `TICKET-FLOW.md` reference for the generated workflow.
 
@@ -192,7 +237,7 @@ project:  { name: My Project, ticketPrefix: PROJ }
 backend:  { type: linear, project: "My Project" }   # linear | jira
 git:      { baseBranch: main, mergeStrategy: squash }
 test:     { command: "npm test" }
-tools:    [claude, copilot, opencode]
+tools:    [claude, codex, copilot, cursor, opencode]   # any subset, or `all`
 ```
 
 ## How It Works
@@ -205,8 +250,9 @@ tools:    [claude, copilot, opencode]
   `describe-ticket` was skipped.
 - **Backend-neutral workflow text.** Canonical skill templates describe abstract ticket operations;
   backend adapters render the concrete Linear or Jira instructions.
-- **Tool-native output.** Claude Code, GitHub Copilot, and opencode each receive files in the
-  format they expect, while the source workflow remains shared.
+- **Tool-native output.** Each tool receives files in the format it expects — Claude Code and
+  Codex skills, Copilot prompts, Cursor commands, opencode commands — while the source workflow
+  remains shared.
 
 ## Roadmap
 

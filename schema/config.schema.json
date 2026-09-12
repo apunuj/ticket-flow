@@ -145,18 +145,27 @@
       }
     },
     "tools": {
-      "type": "array",
-      "minItems": 1,
-      "uniqueItems": true,
-      "items": {
-        "type": "string",
-        "enum": [
-          "claude",
-          "copilot",
-          "opencode"
-        ]
-      },
-      "description": "Which tool formats to render."
+      "description": "Which tool formats to render: a list of tool ids, or the string \"all\" to render every tool ticket-flow supports (including ones added in future versions).",
+      "oneOf": [
+        {
+          "const": "all"
+        },
+        {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "claude",
+              "codex",
+              "copilot",
+              "cursor",
+              "opencode"
+            ]
+          }
+        }
+      ]
     },
     "output": {
       "type": "object",
