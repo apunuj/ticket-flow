@@ -8,6 +8,7 @@ import { init, detectDefaults, assembleConfig, configToYaml } from '../src/cli/i
 import { check } from '../src/cli/check.js';
 import { runBuild } from '../src/cli/build.js';
 import { parseConfig } from '../src/config.js';
+import { SKILLS } from '../src/compose/composer.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const TEMPLATE = fs.readFileSync(path.join(ROOT, 'templates', 'ticket-flow.config.yaml'), 'utf8');
@@ -223,15 +224,27 @@ test('runBuild renders to --out and reports every written file', () => {
     const written = silence(() =>
       runBuild({ configPath: 'ticket-flow.config.yaml', out: outDir }),
     );
-    // 18 skills (6×3) + 3 tool extras (claude overview, copilot + opencode guides)
-    // + opencode.json wiring + 3 MCP configs + TICKET-FLOW.md
-    assert.equal(written.length, 30);
-    assert.ok(fs.existsSync(path.join(outDir, '.claude/skills/next-ticket/SKILL.md')));
-    assert.ok(fs.existsSync(path.join(outDir, '.claude/skills/ticket-flow/SKILL.md')));
-    assert.ok(fs.existsSync(path.join(outDir, '.github/instructions/ticket-flow.instructions.md')));
-    assert.ok(fs.existsSync(path.join(outDir, '.mcp.json')));
-    assert.ok(fs.existsSync(path.join(outDir, '.vscode/mcp.json')));
-    assert.ok(fs.existsSync(path.join(outDir, 'opencode.json')));
-    assert.ok(fs.existsSync(path.join(outDir, 'TICKET-FLOW.md')));
+    // per tool: one file per skill + one extra (overview or always-on guide) + one MCP config;
+    // then opencode.json's instructions wiring, TICKET-FLOW.md, and the build manifest.
+    const tools = parseConfig(EXAMPLE).tools;
+    const expected = tools.length * (SKILLS.length + 2) + 3;
+    assert.equal(written.length, expected);
+    for (const rel of [
+      '.claude/skills/next-ticket/SKILL.md',
+      '.claude/skills/ticket-flow/SKILL.md',
+      '.agents/skills/next-ticket/SKILL.md',
+      '.agents/skills/ticket-flow/SKILL.md',
+      '.github/instructions/ticket-flow.instructions.md',
+      '.cursor/commands/next-ticket.md',
+      '.cursor/rules/ticket-flow.mdc',
+      '.mcp.json',
+      '.codex/config.toml',
+      '.vscode/mcp.json',
+      '.cursor/mcp.json',
+      'opencode.json',
+      'TICKET-FLOW.md',
+    ]) {
+      assert.ok(fs.existsSync(path.join(outDir, rel)), `${rel} written`);
+    }
   });
 });

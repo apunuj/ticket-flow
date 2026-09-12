@@ -7,6 +7,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Cursor and Codex support.** `tools:` now accepts `cursor` and `codex` alongside `claude`,
+  `copilot`, and `opencode`.
+  - **Cursor** gets one plain-markdown command per phase in `.cursor/commands/<name>.md`, an
+    always-on project rule at `.cursor/rules/ticket-flow.mdc` (`alwaysApply: true`) that maps
+    plain-language intent to a phase, and its MCP server in `.cursor/mcp.json`. Cursor has no
+    built-in code review, so `review-ticket` carries the full checklist inline, as opencode's
+    does.
+  - **Codex** gets one skill per phase at `.agents/skills/<name>/SKILL.md` plus a `ticket-flow`
+    overview skill, and its MCP server in `.codex/config.toml`. Codex picks a phase from the
+    skill description, so — like Claude Code — it needs no always-on instructions file.
+    `review-ticket` delegates to Codex's built-in `/review` against the PR's base branch.
+  - Neither tool substitutes `$1`/`$ARGUMENTS` into its command files, so both render the ticket
+    argument as a readable `<ticket-id>` placeholder that the existing argument guard recovers
+    from the invocation text. A literal `$1` would otherwise reach the agent unexpanded.
+  - `build` and `doctor` learned to read and append-merge a TOML MCP config for Codex, leaving
+    every existing key and comment in `.codex/config.toml` untouched. No new dependency.
+  - Codex reads repo-local skills only from the shared `.agents/skills/` directory and Cursor
+    scans it too, so configuring both tools makes Cursor list each phase twice. `doctor` now has
+    a `tool output paths` check that names this.
+
+- **`ticket-flow add <tool>` and `ticket-flow remove <tool>`.** Agent choice is not a one-time
+  decision — you exhaust a usage limit in one assistant and move to another mid-project.
+  Switching is now one command instead of a config edit you have to remember. `add` updates the
+  `tools:` list in `ticket-flow.config.yaml` (preserving its comments), generates that agent's
+  format and MCP config, and leaves every other agent's files alone; it is idempotent and
+  validates every id before writing anything, so a typo in a batch applies nothing. `remove`
+  prunes the files that agent owned, cleans up directories left empty, refuses to empty the
+  tools list, and leaves the agent's MCP config in place because that file holds your own
+  settings.
+
+- **`tools: all`.** Renders every tool ticket-flow supports — including ones added in later
+  versions, since the value stays literal in the YAML rather than being expanded on write. Start
+  that way with `ticket-flow init --all`. Whichever agent you open just works, at the cost of
+  carrying every output directory in the repo.
+
+- **`doctor` agent-coverage check.** Warns when an agent is set up in the repo (a `.cursor/`,
+  `.codex/`, `.opencode/` directory, Copilot's own `.github/` paths) but ticket-flow is not
+  generating its format, and names the exact `ticket-flow add` command to fix it. Detection is
+  deliberately narrow — a plain `.github/workflows` is not read as Copilot.
+
+### Changed
+
+- **Clarifying questions are now asked inline, never through a question dialog.** In
+  `describe-ticket` step 4 — and the matching Planner bubble in `orchestrate-ticket` — the
+  summary, user stories, and acceptance criteria are written into the message body with the
+  numbered questions as its last lines. A host that hides text preceding a tool call was leaving
+  users answering questions about user stories they had never seen; the dialog is what made that
+  possible, so it is gone from this step on every tool. Other questions (review depth, fix scope,
+  merge gates, branch cleanup) still use each tool's native prompt.
+
+
 ## [0.5.1] - 2026-07-08
 
 ### Changed

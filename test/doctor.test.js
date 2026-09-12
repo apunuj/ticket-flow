@@ -6,7 +6,14 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseConfig } from '../src/config.js';
 import { build } from '../src/build.js';
-import { checkConfig, checkDrift, checkMcp, checkOrchestrate } from '../src/cli/doctor.js';
+import {
+  checkConfig,
+  checkDrift,
+  checkMcp,
+  checkOrchestrate,
+  checkToolOverlap,
+  checkUngeneratedAgents,
+} from '../src/cli/doctor.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const baseConfig = () =>
@@ -82,5 +89,63 @@ test('checkMcp: ok after build, warns when a tool MCP config is absent', () => {
     const r = checkMcp(cfg, dir);
     assert.equal(r.status, 'warn');
     assert.match(r.detail, /claude/);
+  });
+});
+
+test('checkMcp reads codex\'s TOML config, not JSON', () => {
+  withTmp((dir) => {
+    const cfg = baseConfig();
+    cfg.tools = ['codex'];
+    build(cfg, { outputDir: dir });
+    assert.equal(checkMcp(cfg, dir).status, 'ok', 'a TOML table counts as configured');
+
+    // a config.toml without the server table reads as missing, not as unparseable JSON
+    fs.writeFileSync(path.join(dir, '.codex/config.toml'), 'model = "gpt-5"\n');
+    const r = checkMcp(cfg, dir);
+    assert.equal(r.status, 'warn');
+    assert.match(r.detail, /codex \(\.codex\/config\.toml\)/);
+  });
+});
+
+test('checkToolOverlap: warns only when cursor and codex are configured together', () => {
+  const cfg = baseConfig();
+  assert.equal(checkToolOverlap({ tools: ['cursor', 'codex'] }).status, 'warn');
+  assert.match(checkToolOverlap({ tools: ['cursor', 'codex'] }).detail, /\.agents\/skills\//);
+  assert.equal(checkToolOverlap(cfg).status, 'warn', 'the example config enables both');
+  for (const tools of [['cursor'], ['codex'], ['claude', 'copilot', 'opencode'], []]) {
+    assert.equal(checkToolOverlap({ tools }).status, 'ok', `${tools.join('+') || 'none'} has no overlap`);
+  }
+});
+
+test('checkUngeneratedAgents: flags an agent set up in the repo that is not generated for', () => {
+  withTmp((dir) => {
+    const cfg = baseConfig();
+    cfg.tools = ['claude'];
+
+    assert.equal(checkUngeneratedAgents(cfg, dir).status, 'ok', 'nothing else present');
+
+    // the developer set Cursor up themselves — ticket-flow never wrote .cursor/ here
+    fs.mkdirSync(path.join(dir, '.cursor'), { recursive: true });
+    const r = checkUngeneratedAgents(cfg, dir);
+    assert.equal(r.status, 'warn');
+    assert.match(r.detail, /cursor/);
+    assert.match(r.fix, /ticket-flow add cursor/, 'names the exact command to fix it');
+
+    // a configured tool's own directory is never reported back at you
+    cfg.tools = ['claude', 'cursor'];
+    assert.equal(checkUngeneratedAgents(cfg, dir).status, 'ok');
+  });
+});
+
+test('checkUngeneratedAgents does not mistake a plain .github for Copilot', () => {
+  withTmp((dir) => {
+    const cfg = baseConfig();
+    cfg.tools = ['claude'];
+    // almost every repo has .github/workflows — only Copilot's own paths count as a signal
+    fs.mkdirSync(path.join(dir, '.github', 'workflows'), { recursive: true });
+    assert.equal(checkUngeneratedAgents(cfg, dir).status, 'ok');
+
+    fs.mkdirSync(path.join(dir, '.github', 'prompts'), { recursive: true });
+    assert.equal(checkUngeneratedAgents(cfg, dir).status, 'warn');
   });
 });

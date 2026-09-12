@@ -31,13 +31,15 @@ conventions:
 review:
   conventionChecks: []         # project-specific checks review-ticket asserts (see examples/)
 
-tools:
+tools:                         # claude | codex | copilot | cursor | opencode
+                               # use `tools: all` to generate for every agent, including
+                               # ones added in future ticket-flow versions
   - claude
   - copilot
   - opencode
 
 output:
-  dir: "."                     # repo root the .claude/.github/.opencode dirs are written under
+  dir: "."                     # repo root each tool's output dir is written under
   inlineArtifacts: true        # echo updated artifact sections inline in chat; set false to quieten
 
 # Optional: model split for /orchestrate-ticket. Leave unset to be asked per run;

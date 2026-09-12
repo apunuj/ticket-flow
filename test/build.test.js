@@ -5,7 +5,13 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseConfig } from '../src/config.js';
-import { renderAll, build, wireOpencodeInstructions, mergeMcpServer } from '../src/build.js';
+import {
+  renderAll,
+  build,
+  wireOpencodeInstructions,
+  mergeMcpServer,
+  appendMcpTomlServer,
+} from '../src/build.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const baseConfig = () =>
@@ -72,6 +78,39 @@ test('build scaffolds each tool MCP config with the right shape', () => {
     const oc = JSON.parse(fs.readFileSync(path.join(dir, 'opencode.json'), 'utf8'));
     assert.deepEqual(oc.mcp.linear, { type: 'remote', url: 'https://mcp.linear.app/mcp', enabled: true });
     assert.ok(Array.isArray(oc.instructions), 'instructions wiring preserved alongside mcp');
+
+    const cursor = JSON.parse(fs.readFileSync(path.join(dir, '.cursor/mcp.json'), 'utf8'));
+    assert.deepEqual(cursor.mcpServers.linear, { url: 'https://mcp.linear.app/mcp' });
+
+    // codex is TOML, not JSON
+    const codex = fs.readFileSync(path.join(dir, '.codex/config.toml'), 'utf8');
+    assert.match(codex, /\[mcp_servers\.linear\]\nurl = "https:\/\/mcp\.linear\.app\/mcp"/);
+  });
+});
+
+test('appendMcpTomlServer: create, idempotent, and append without disturbing existing content', () => {
+  withTmp((dir) => {
+    const f = path.join(dir, '.codex', 'config.toml');
+    const server = { url: 'https://mcp.linear.app/mcp' };
+
+    assert.equal(appendMcpTomlServer(f, 'mcp_servers', 'linear', server).action, 'created');
+    assert.equal(fs.readFileSync(f, 'utf8'), '[mcp_servers.linear]\nurl = "https://mcp.linear.app/mcp"\n');
+
+    // a second call is a no-op, even with a different url — an existing table is never rewritten
+    assert.equal(
+      appendMcpTomlServer(f, 'mcp_servers', 'linear', { url: 'https://other.example/mcp' }).action,
+      'already configured',
+    );
+    assert.doesNotMatch(fs.readFileSync(f, 'utf8'), /other\.example/);
+
+    // an existing hand-written config keeps every key and comment, byte for byte
+    const existing = '# my codex config\nmodel = "gpt-5"\n\n[mcp_servers.figma]\nurl = "https://mcp.figma.com/mcp"\n';
+    const g = path.join(dir, 'other.toml');
+    fs.writeFileSync(g, existing);
+    assert.equal(appendMcpTomlServer(g, 'mcp_servers', 'linear', server).action, 'merged');
+    const after = fs.readFileSync(g, 'utf8');
+    assert.ok(after.startsWith(existing), 'existing content preserved verbatim');
+    assert.match(after, /\n\[mcp_servers\.linear\]\nurl = "https:\/\/mcp\.linear\.app\/mcp"\n$/);
   });
 });
 

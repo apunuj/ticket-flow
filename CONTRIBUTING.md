@@ -39,7 +39,8 @@ on a clean checkout before you start.
 - `bin/cli.js` — CLI entry point and command routing.
 - `src/cli/` — `init`, `build`, `check`, `doctor`, and `upgrade` command implementations.
 - `src/backends/` — Linear and Jira adapters. Add new backends here.
-- `src/render/` — per-tool renderers (Claude Code, Copilot, opencode).
+- `src/render/` — per-tool renderers (Claude Code, Codex, Copilot, Cursor, opencode). Adding
+  one here is all a new agent needs: `tools: all` configs and `ticket-flow add` pick it up.
 - `src/compose/` — composes canonical skill templates into rendered output.
 - `skills/` — canonical Handlebars skill templates shared across all tools.
 - `schema/config.schema.json` — JSON Schema for `ticket-flow.config.yaml`.

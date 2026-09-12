@@ -129,6 +129,22 @@ function makeEnv(config, backend, tool, rawMeta) {
     }
     return new Handlebars.SafeString(out);
   });
+  // {{askInline "…" context="…"}} -> ask in the message body as plain numbered questions,
+  // never through a question dialog. Deliberately tool-neutral (it does NOT go through
+  // tool.ask): used where the questions must land underneath content the user has to read
+  // first — user stories, acceptance criteria. Hosts can hide text that precedes a tool call,
+  // so a dialog would strand that content mid-turn and the user would answer blind.
+  hb.registerHelper('askInline', (question, options) => {
+    const context = options && options.hash && options.hash.context;
+    return new Handlebars.SafeString(
+      `ask ${question} as **plain numbered questions in the message body, not through a question ` +
+        'dialog**, and end the turn on them' +
+        (context ? `: the message is ${context}, followed by the numbered questions as its last lines` : '') +
+        '. Hosts can hide text that precedes a tool call, so a dialog would leave the user ' +
+        'answering questions about content they never saw. Asking through a dialog here is ' +
+        'non-compliant.',
+    );
+  });
   hb.registerHelper('codeReview', (options) =>
     new Handlebars.SafeString(tool.codeReview((options && options.hash) || {}, { config })),
   );

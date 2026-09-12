@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import YAML from 'yaml';
 import Ajv from 'ajv';
+import { tools as RENDERERS } from './render/index.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SCHEMA_PATH = path.resolve(__dirname, '..', 'schema', 'config.schema.json');
@@ -25,6 +26,10 @@ function normalize(config) {
   config.review = config.review || {};
   config.review.conventionChecks = config.review.conventionChecks || [];
   config.orchestrate = config.orchestrate || {};
+  // `tools: all` means "every tool this version of ticket-flow supports" — it stays literal in
+  // the YAML so a tool added in a later release is picked up on the next build, with nothing to
+  // remember. Everything downstream sees a plain array.
+  if (config.tools === 'all') config.tools = Object.keys(RENDERERS);
   config.output = config.output || {};
   config.output.dir = config.output.dir || '.';
   config.output.inlineArtifacts = config.output.inlineArtifacts !== false;

@@ -105,11 +105,16 @@ export function checkMcp(config, root) {
     const p = path.join(root, spec.path);
     let present = false;
     if (fs.existsSync(p)) {
-      try {
-        const j = JSON.parse(fs.readFileSync(p, 'utf8'));
-        present = !!(j[spec.key] && j[spec.key][spec.name]);
-      } catch {
-        /* unparseable -> treat as missing */
+      const raw = fs.readFileSync(p, 'utf8');
+      if (spec.format === 'toml') {
+        present = raw.includes(`[${spec.key}.${spec.name}]`);
+      } else {
+        try {
+          const j = JSON.parse(raw);
+          present = !!(j[spec.key] && j[spec.key][spec.name]);
+        } catch {
+          /* unparseable -> treat as missing */
+        }
       }
     }
     if (!present) missing.push(`${toolId} (${spec.path})`);
@@ -117,6 +122,48 @@ export function checkMcp(config, root) {
   if (missing.length)
     return warn('backend MCP configured', `not found for: ${missing.join(', ')}`, 'run `ticket-flow build`');
   return ok('backend MCP configured', `${backend.displayName} scaffolded for ${config.tools.join(', ')}`);
+}
+
+// Repo-local footprints that mean an agent is set up here. Deliberately narrow: `.github/`
+// exists in most repos, so copilot is detected from its own subpaths rather than the parent.
+// For a tool that is NOT configured, ticket-flow never wrote these — so their presence means
+// the developer set that agent up themselves.
+const AGENT_FOOTPRINTS = {
+  claude: ['.claude'],
+  codex: ['.codex'],
+  copilot: ['.github/prompts', '.github/copilot-instructions.md'],
+  cursor: ['.cursor'],
+  opencode: ['.opencode', 'opencode.json'],
+};
+
+// Catch the "switched agents and forgot to regenerate" case: an agent is configured in this
+// repo but ticket-flow is not generating its format, so none of the phases exist there.
+export function checkUngeneratedAgents(config, root) {
+  const configured = new Set((config && config.tools) || []);
+  const found = Object.entries(AGENT_FOOTPRINTS)
+    .filter(([id]) => !configured.has(id))
+    .filter(([, paths]) => paths.some((rel) => fs.existsSync(path.join(root, rel))))
+    .map(([id]) => id);
+
+  if (!found.length) return ok('agent coverage', `generating for ${[...configured].join(', ')}`);
+  return warn(
+    'agent coverage',
+    `${found.join(', ')} set up in this repo but not generated for — the workflow is unavailable there`,
+    `run \`ticket-flow add ${found.join(' ')}\`, or set \`tools: all\` to cover every agent`,
+  );
+}
+
+// Codex only reads repo-local skills from `.agents/skills/`, and Cursor scans that directory
+// too — so with both tools configured, Cursor lists every phase twice: once from its own
+// `.cursor/commands/` and once from the Codex skills. Harmless but confusing, so name it.
+export function checkToolOverlap(config) {
+  const tools = (config && config.tools) || [];
+  if (!(tools.includes('cursor') && tools.includes('codex'))) return ok('tool output paths', 'no overlap');
+  return warn(
+    'tool output paths',
+    'Cursor also scans `.agents/skills/`, so the Codex skills show up as a second copy of each phase in Cursor',
+    'expected with cursor + codex together — drop one tool from `tools` if the duplicate slash entries bother you',
+  );
 }
 
 // A half-configured orchestrate split (exactly one model set) silently falls back to asking
@@ -153,7 +200,8 @@ export function doctor({ configPath, out } = {}) {
   if (cfg.config) {
     const root = path.resolve(out || cfg.config.output.dir || '.');
     results.push(checkDrift(cfg.config, root), checkMcp(cfg.config, root), checkVersion(root));
-    results.push(checkOrchestrate(cfg.config));
+    results.push(checkOrchestrate(cfg.config), checkToolOverlap(cfg.config));
+    results.push(checkUngeneratedAgents(cfg.config, root));
   }
 
   console.log('ticket-flow doctor\n');

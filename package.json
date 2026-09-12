@@ -1,7 +1,7 @@
 {
   "name": "ticket-flow",
   "version": "0.5.1",
-  "description": "Generate a portable ticket-driven development workflow (next → describe → execute → review → merge) for Claude Code, GitHub Copilot, and opencode from one canonical source.",
+  "description": "Generate a portable ticket-driven development workflow (next \u2192 describe \u2192 execute \u2192 review \u2192 merge) for Claude Code, Codex, GitHub Copilot, Cursor, and opencode from one canonical source.",
   "type": "module",
   "bin": {
     "ticket-flow": "bin/cli.js"
@@ -23,7 +23,9 @@
   },
   "keywords": [
     "claude-code",
+    "codex",
     "github-copilot",
+    "cursor",
     "opencode",
     "linear",
     "tickets",

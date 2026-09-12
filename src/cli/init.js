@@ -100,13 +100,20 @@ export function configToYaml(config) {
   return HEADER + YAML.stringify(config);
 }
 
-function answersFromDetected(d) {
+// "all" stays the literal string in the written config rather than expanding to today's tool
+// list, so a tool added in a later ticket-flow release is picked up on the next build.
+export function parseTools(raw) {
+  const ids = String(raw || '').split(',').map((s) => s.trim()).filter(Boolean);
+  return ids.length === 1 && ids[0].toLowerCase() === 'all' ? 'all' : ids;
+}
+
+function answersFromDetected(d, flags = {}) {
   return {
     projectName: d.projectName,
     backendType: 'linear',
     baseBranch: d.baseBranch,
     testCommand: d.testCommand,
-    tools: ['claude'],
+    tools: flags.all ? 'all' : ['claude'],
   };
 }
 
@@ -118,13 +125,16 @@ async function promptAnswers(d) {
     const backendType = await ask('Backend [linear/jira]', 'linear');
     const baseBranch = await ask('Base branch', d.baseBranch);
     const testCommand = await ask('Test command', d.testCommand);
-    const toolsRaw = await ask('Tools (comma-separated: claude,copilot,opencode)', 'claude');
+    const toolsRaw = await ask(
+      'Tools (comma-separated: claude,codex,copilot,cursor,opencode — or "all")',
+      'claude',
+    );
     return {
       projectName,
       backendType,
       baseBranch,
       testCommand,
-      tools: toolsRaw.split(',').map((s) => s.trim()).filter(Boolean),
+      tools: parseTools(toolsRaw),
     };
   } finally {
     rl.close();
@@ -141,6 +151,7 @@ export async function initInteractive(flags = {}) {
 
   console.log('Setting up ticket-flow — press enter to accept each default.\n');
   const answers = await promptAnswers(detectDefaults(process.cwd()));
+  if (flags.all) answers.tools = 'all';
   const yaml = configToYaml(assembleConfig(answers));
   parseConfig(yaml); // throws with a readable message if the answers are invalid
 
@@ -163,7 +174,7 @@ export function initDefaults(flags = {}) {
     return dest;
   }
   const detected = detectDefaults(process.cwd());
-  fs.writeFileSync(dest, configToYaml(assembleConfig(answersFromDetected(detected))));
+  fs.writeFileSync(dest, configToYaml(assembleConfig(answersFromDetected(detected, flags))));
   console.log(`Created ${path.relative(process.cwd(), dest)} (from detected defaults)`);
   if (!detected.testCommandDetected) {
     console.log('⚠ could not detect a test command — edit test.command in ticket-flow.config.yaml');
@@ -172,7 +183,7 @@ export function initDefaults(flags = {}) {
 }
 
 // Original behavior: copy the annotated template verbatim.
-export function init({ force = false } = {}) {
+export function init({ force = false, all = false } = {}) {
   const src = path.join(PKG_ROOT, 'templates', 'ticket-flow.config.yaml');
   const dest = DEST();
 
@@ -181,6 +192,10 @@ export function init({ force = false } = {}) {
     return dest;
   }
   fs.copyFileSync(src, dest);
+  if (all) {
+    const yaml = fs.readFileSync(dest, 'utf8').replace(/^tools:.*?(?=\n\w|\n#|\n$)/ms, 'tools: all\n');
+    fs.writeFileSync(dest, yaml);
+  }
   console.log(`Created ${path.relative(process.cwd(), dest)}`);
   console.log(`\nNext:`);
   console.log(`  1. Edit ticket-flow.config.yaml for your project (name, backend, baseBranch, testCommand).`);
