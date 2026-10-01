@@ -38,7 +38,7 @@ Describe ticket {{arg}} and orient on it.
 
    **b. Execution plan (test-driven by default).** A short ordered task list mapped to the confirmed stories, with file/module pointers (repo-root relative, `src/.../Service.ext:42` style). Each task cites the `US-N` it implements. **Default to TDD: for each story, the first task writes a failing test that encodes its acceptance criterion, and the implementation task that follows makes it pass (red → green → refactor).** Name the specific test file/case in each test task. If a story is genuinely untestable (pure config, docs, a throwaway spike), say so and note why TDD is skipped for it. Tight, not exhaustive.
 
-   **Ratify — STOP.** Display the refined user stories (a) and the execution plan (b) together in this message, then STOP and wait for the user to ratify or redirect the plan — always, even when there were no clarifying questions to ask; there is no trivial-clarifications escape. Do not write the work artifact, check out a branch, or start implementing before the plan is ratified.
+   **Ratify — STOP.** Display the refined user stories (a) and the execution plan (b) together in this message, then STOP and wait for the user to ratify or redirect the plan — always, even when there were no clarifying questions to ask; there is no trivial-clarifications escape. Offer `/review-plan {{arg}}` for a deeper pass on current-code grounding, regressions/edge cases, architecture, and verification depth. If requested at this point, review the draft and bring the revised plan back to this ratification step. Do not write the work artifact, check out a branch, or start implementing before the plan is ratified.
 
    **c. Record the work artifact.** {{> artifact-format}}
 
@@ -75,6 +75,7 @@ Describe ticket {{arg}} and orient on it.
 - File references repo-root relative, never absolute.
 - **Stories + plan floor.** The message that delivers the plan always includes the confirmed user stories and the plan's task summary — the ticket URL alone is never the whole answer.
 - End with the ticket URL.
+- For prospective plans, suggest `/review-plan {{arg}}` before `/execute-ticket {{arg}}`; Review Plan can revise the recorded plan as well as an unratified draft.
 {{~> final-message}}
 
 

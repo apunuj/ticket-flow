@@ -102,6 +102,46 @@ test('upgrade aborts when generated files carry uncommitted changes; --force pro
   });
 });
 
+test('upgrade replaces legacy fix-ticket for every tool and preserves unowned files', () => {
+  withTmp((dir) => {
+    scaffold(dir);
+    const config = parseConfig(exampleYaml());
+    const written = build(config, { outputDir: dir });
+    const manifestPath = path.join(dir, MANIFEST_FILE);
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    // Model an installed pre-split workflow: fix-ticket exists; none of the replacement phases do.
+    const newPaths = written.filter((f) => f.kind === 'skill' &&
+      /(?:plan-fix|review-plan|execute-fix)/.test(f.path)).map((f) => f.path);
+    assert.equal(newPaths.length, 3 * config.tools.length, 'all three phases installed for every tool');
+    const oldPaths = newPaths.filter((p) => p.includes('plan-fix'))
+      .map((p) => p.replace('plan-fix', 'fix-ticket'));
+    assert.equal(oldPaths.length, config.tools.length);
+    for (const rel of oldPaths) {
+      fs.mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true });
+      fs.writeFileSync(path.join(dir, rel), 'legacy fix-ticket');
+    }
+    for (const rel of newPaths) fs.rmSync(path.join(dir, rel));
+    fs.writeFileSync(manifestPath, JSON.stringify({ ...manifest,
+      files: [...manifest.files.filter((p) => !newPaths.includes(p)), ...oldPaths],
+    }));
+    const userFile = path.join(dir, '.claude/skills/fix-ticket/notes.md');
+    fs.writeFileSync(userFile, 'user notes');
+    execSync('git add -A && git commit -qm legacy', { cwd: dir, stdio: 'ignore' });
+
+    const args = { configPath: path.join(dir, 'ticket-flow.config.yaml'), out: dir, cwd: dir };
+    const result = runUpgrade(args);
+    assert.deepEqual(new Set(result.pruned), new Set(oldPaths));
+    for (const rel of oldPaths) assert.ok(!fs.existsSync(path.join(dir, rel)), rel);
+    for (const rel of newPaths) assert.ok(fs.readFileSync(path.join(dir, rel), 'utf8').length > 0, rel);
+    assert.equal(fs.readFileSync(userFile, 'utf8'), 'user notes');
+    const updated = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    for (const rel of newPaths) assert.ok(updated.files.includes(rel), rel);
+    assert.ok(!updated.files.some((rel) => oldPaths.includes(rel)));
+    execSync('git add -A && git commit -qm upgraded', { cwd: dir, stdio: 'ignore' });
+    assert.deepEqual(runUpgrade(args).pruned, [], 'second upgrade is idempotent');
+  });
+});
+
 test('upgrade migrates the config: missing orchestrate block appended, stamp refreshed', () => {
   withTmp((dir) => {
     // Simulate a pre-0.4 config: the example fixture now ships the commented orchestrate

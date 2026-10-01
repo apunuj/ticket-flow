@@ -38,9 +38,11 @@ test('packed helpers and schemas run without npm cache in a non-Node consumer', 
     const manifest = JSON.parse(output)[0];
     for (const file of ['src/feature/hash.js', 'src/feature/records.js', 'src/feature/validate.js',
       'src/cli/feature.js', 'src/cli/feature-limits.js', 'schema/feature/common.schema.json', 'schema/feature/record.schema.json',
-      'schema/feature/transport.schema.json', 'schema/feature/helper.schema.json', 'schema/feature/README.md']) {
+      'schema/feature/transport.schema.json', 'schema/feature/helper.schema.json', 'schema/feature/README.md',
+      'skills/review-plan.md.hbs', 'skills/plan-fix.md.hbs', 'skills/execute-fix.md.hbs']) {
       assert.ok(manifest.files.some(f => f.path === file), 'shipped ' + file);
     }
+    assert.ok(!manifest.files.some(f => f.path === 'skills/fix-ticket.md.hbs'), 'legacy skill is not shipped');
     const tarball = path.join(dir, manifest.filename);
     // npm ci caches tarballs, not necessarily registry metadata required by offline
     // npm exec. Isolate the real packed source and the already-installed dependencies

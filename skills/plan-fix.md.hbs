@@ -1,0 +1,69 @@
+---
+name: plan-fix
+description: Plan fixes for the open feedback on a {{backend.displayName}} ticket's PR — failing CI checks, unresolved review comments, change requests, merge conflicts — by triaging findings, asking which to fix, and recording a test-driven execution plan for review-plan and execute-fix. Planning only; does not apply fixes. PR-only. Use when the user wants to act on review comments or fix a red/blocked PR — e.g. "fix the review comments on {{eg.prefixUpper}}-312", "address the PR feedback", "fix the failing CI", "fix {{eg.prefixUpper}}-312".
+argument-hint: "{{eg.prefixUpper}}-NNN"
+---
+
+Plan fixes for ticket {{arg}}'s PR feedback. This skill works **only** on top of a PR and ends with a scoped execution plan. Use `/review-plan` to deepen the plan and `/execute-fix` to implement it.
+
+{{> arg-guard}}
+
+{{> delegation}}
+
+## 1. Resolve the PR
+
+- {{op "getAttachedPR"}}. {{> preflight}}
+- If no PR is found, ask the user for the PR number or URL.
+- If none can be supplied — **hard stop**: "No PR found for {{arg}}. Run `/execute-ticket {{arg}}` first; plan-fix only works on top of a PR."
+
+## 2. Gather everything that needs fixing — in parallel
+
+- **Failing / pending CI:** `gh pr checks <PR#>` — list each failing or pending check; for failures, pull enough detail to know the cause (`gh run view <run-id> --log-failed`, or the check's output).
+- **Review comments & threads:** `gh pr view <PR#> --json reviews,reviewDecision,comments,mergeable` plus the inline threads (`gh api repos/{owner}/{repo}/pulls/<PR#>/comments`). Note any `CHANGES_REQUESTED`. Fetch `reviewThreads` with their `isResolved` state through the GitHub GraphQL API (paginate all connections); REST inline comments alone do not establish which threads are unresolved.
+- **Recorded verdict:** {{> artifact-read}} Read the `Review verdict` (blocking findings / uncovered criteria) and scan the ticket comments for the latest `/review-ticket {{arg}}` verdict.
+- **Merge state:** note `mergeable: CONFLICTING` — a rebase/merge of `{{git.baseBranch}}` will be needed.
+
+## 3. Triage — tell me what can be fixed
+
+Present a grouped, deduplicated list; assign a stable finding ID (`F-1`, etc.) and source link to each item, with a one-line **proposed fix**:
+
+- **Failing checks** — job → likely cause → fix.
+- **Blocking review findings / change requests** — `file:line` → fix.
+- **Unresolved threads** — the ask → fix.
+- **Uncovered acceptance criteria** (from the verdict) → fix.
+- **Merge conflicts** — the branches involved.
+
+Flag anything **not** auto-fixable — needs a product decision, is out of scope (name the owning ticket), or contradicts the confirmed plan. Those become questions, never silent skips.
+
+## 4. Confirm scope — STOP unless already selected
+
+If scope has already been explicitly selected in this conversation or an orchestrator brief, display and reuse it. Otherwise {{ask "which items to fix now (default: all failing checks + all blocking findings/threads); call out anything to skip or defer" context="the full step-3 triage list — every grouped item with its proposed fix, including the ones flagged not auto-fixable"}} Wait for the answer before making the execution plan. Do not infer selection from silence or from the recommended default.
+
+## 5. Produce the fix execution plan
+
+For the selected scope, inspect the current PR head and relevant implementation, callers, and tests. Record the PR head/base SHAs and cite current repo-root-relative `file:line` evidence. Separate a real product defect from a stale finding, flaky check, or infrastructure failure; pending checks need observation, not an invented code fix.
+
+Create an ordered, **test-driven** plan. For each selected finding, name the reproducing test file/case, concrete input or failure condition, observable expected behavior, implementation task, and verification command. Map tasks to stable finding IDs (`F-1`, etc.) and preserve original story/criterion IDs. Include regression checks for adjacent behavior and relevant layer/interface impacts. State when a problem cannot be reproduced or verified and what evidence is missing; never promise a green test without a meaningful assertion.
+
+Return the full plan together with the selected, skipped, and deferred items (and reasons). Unresolved product choices remain blockers; do not invent decisions. Scope confirmation authorizes planning only: do not modify implementation, run a rebase, commit, push, reply to or resolve PR threads, or open a new PR.
+
+## 6. Record + hand off
+
+- If the artifact is missing, reconstruct it from the ticket and existing PR before recording the fix plan. Preserve the original stories, criteria, plan and completion history; do not replace the original `Plan` with fix tasks.
+- Add/update `Fix plan` with a revision identifier, existing PR link/head/base SHAs, confirmed scope and finding IDs/source links, deferrals with reasons, ordered `F-T-N` tasks (new tasks unchecked; preserve completed tasks on resume), verification cases, and unresolved decisions. Set its own state to `planned` (or `blocked` for unresolved decisions). Keep the ticket's lifecycle status `in-review`; do not move it back to planning.
+- Retain the actual code-review verdict and its blockers. Invalidate any earlier `Plan review` assessment for a changed fix plan. {{> artifact-write}}
+- {{> checkpoint next="hand off the fix plan" require="the confirmed scope and fix plan are receipted in the ticket's work artifact"}}
+- End with the full fix plan and scope decisions plus the PR and ticket URLs. Suggest `/review-plan {{arg}}` for a deeper pass, then `/execute-fix {{arg}}` to implement the revised plan on the existing PR branch, followed by `/review-ticket {{arg}}`.
+{{~> final-message}}
+
+## Stop and ask
+
+- A review finding needs a product decision or contradicts confirmed scope.
+- A check fails for an environmental/flaky reason with no supported in-repo fix — surface the evidence and options.
+- The PR contains commits that do not reference {{arg}} and their ownership is unclear.
+
+## Resume / idempotency
+
+- Re-read live findings/checks and the existing fix plan. Keep stable IDs and completed tasks; skip already addressed items only with current evidence.
+- Honor scope selections already explicitly supplied in this conversation or by the orchestrator; show that scope and do not ask again unless new findings or a changed scope need a decision. With no selection, step 4 must wait for the user's answer; its default is a recommendation, never consent.
+- Refresh the same `Fix plan` section. New findings must be triaged and selected before adding them to executable scope.

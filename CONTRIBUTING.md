@@ -69,6 +69,32 @@ on a clean checkout before you start.
 5. Open a pull request describing the change and the motivation. CI runs the
    test suite on Node 18, 20, and 22.
 
+## Releases
+
+GitHub Releases are the release entry point. Publish from a committed, tested tag;
+do not run `npm publish` from a local working tree.
+
+1. Update `package.json`, both root versions in `package-lock.json`, and CHANGELOG.
+   Use a new npm version; published versions cannot be replaced.
+2. Open and merge a release PR after the Node 18/20/22 CI matrix passes.
+3. Create a `vX.Y.Z` tag at that merged commit and publish its GitHub Release.
+   The tag must match the committed package and lockfile versions. Prereleases
+   are not published by this workflow.
+4. Watch `.github/workflows/release.yml`. It tests the tagged source on Node
+   18/20/22, attaches the npm tarball and SHA-256 checksum to the release, and
+   publishes that same tarball to npm using OIDC trusted publishing.
+5. Verify the GitHub release assets, npm version, and installed-package smoke.
+   A GitHub release page alone does not prove that npm publishing succeeded.
+
+One-time npm setup: configure a GitHub Actions trusted publisher for package
+`ticket-flow`, repository `apunuj/ticket-flow`, workflow filename `release.yml`,
+with publishing allowed and no environment restriction. No npm token is stored
+in GitHub. See [npm's trusted publishing setup](https://docs.npmjs.com/trusted-publishers/).
+
+Historical note: npm 0.7.0 was published on 2026-09-30 before its workflow changes
+were committed to GitHub. Version 0.8.0 reconciles those skills with APU-1102's
+portable helpers. There is no historical `v0.7.0` Git tag to recreate accurately.
+
 ## Reporting bugs
 
 Open an issue at https://github.com/apunuj/ticket-flow/issues with steps to

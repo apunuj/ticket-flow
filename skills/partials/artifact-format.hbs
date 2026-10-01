@@ -19,6 +19,17 @@ A single **marked comment on the ticket** holds the shared work state (the "work
 ### PR
 <filled by execute-ticket: PR url + number>
 
+### Fix plan
+<filled by plan-fix when needed: revision, state planned|blocked|executing|completed,
+PR head/base SHAs, selected F-N findings + source links, deferrals + reasons,
+F-T-N test/implementation tasks, verification cases, unresolved decisions;
+preserve the original Plan and its completion history>
+
+### Plan review
+<filled by review-plan: target Plan/Fix plan + revision, code baseline SHAs/dirty state,
+ready for execution|blocked, incorporated changes, verification matrix, limitations;
+this assessment never replaces the code-review verdict>
+
 ### Review verdict
 <filled by review-ticket: ready | needs-changes + the blocking findings / uncovered criteria>
 ```
