@@ -29,11 +29,11 @@ test('all generated host/backend guides pin the actual package helper version', 
     assert.ok(renderDoc({ config, backend }).includes(command));
   }
 });
-test('packed helpers and schemas run through offline npm exec in a non-Node consumer', { timeout: 60000 }, () => {
+test('packed helpers and schemas run without npm cache in a non-Node consumer', { timeout: 60000 }, () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tf-feature-package-'));
   try {
     const consumer = path.join(dir, 'consumer'); fs.mkdirSync(consumer);
-    const output = execFileSync('npm', ['pack', '--ignore-scripts', '--json', '--pack-destination', dir],
+    const output = execFileSync('npm', ['pack', '--offline', '--ignore-scripts', '--json', '--cache', path.join(dir, 'empty-cache'), '--pack-destination', dir],
       { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
     const manifest = JSON.parse(output)[0];
     for (const file of ['src/feature/hash.js', 'src/feature/records.js', 'src/feature/validate.js',
@@ -42,10 +42,16 @@ test('packed helpers and schemas run through offline npm exec in a non-Node cons
       assert.ok(manifest.files.some(f => f.path === file), 'shipped ' + file);
     }
     const tarball = path.join(dir, manifest.filename);
-    const exec = (command, request) => JSON.parse(execFileSync('npm',
-      ['exec', '--offline', '--yes', '--package', tarball, '--', 'ticket-flow', 'feature', command, '--input', '-'],
+    // npm ci caches tarballs, not necessarily registry metadata required by offline
+    // npm exec. Isolate the real packed source and the already-installed dependencies
+    // instead of depending on a developer's warm registry cache or network access.
+    execFileSync('tar', ['-xzf', tarball, '-C', dir]);
+    const installed = path.join(dir, 'package');
+    fs.cpSync(path.join(ROOT, 'node_modules'), path.join(installed, 'node_modules'), { recursive: true });
+    const exec = (command, request) => JSON.parse(execFileSync(process.execPath,
+      [path.join(installed, 'bin/cli.js'), 'feature', command, '--input', '-'],
       { cwd: consumer, encoding: 'utf8', input: JSON.stringify(request), maxBuffer: 8 * 1024 * 1024,
-        stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env, npm_config_audit: 'false', npm_config_fund: 'false', npm_config_ignore_scripts: 'true' } }));
+        stdio: ['pipe', 'pipe', 'pipe'] }));
     const record = revision(('Unicode 😀 café\n' + String.fromCharCode(96).repeat(9) + '\n').repeat(500));
     const prepared = exec('pack-record', { schemaVersion: 1, record });
     const partRefs = prepared.result.parts.map(p => trackerRef(p.partId));
