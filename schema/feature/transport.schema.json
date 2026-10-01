@@ -1,0 +1,187 @@
+{
+  "$id": "feature-transport-v1",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "part": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "recordId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revisionId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "partId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "hash": {
+          "$ref": "feature-common-v1#/definitions/hash"
+        },
+        "payload": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "recordId",
+        "revisionId",
+        "partId",
+        "index",
+        "count",
+        "hash",
+        "payload"
+      ],
+      "additionalProperties": false
+    },
+    "descriptor": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "recordId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revisionId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "featureId": {
+          "$ref": "feature-common-v1#/definitions/uuid"
+        },
+        "recordType": {
+          "enum": [
+            "artifact",
+            "revision",
+            "approval",
+            "checkpoint",
+            "review"
+          ]
+        },
+        "hash": {
+          "$ref": "feature-common-v1#/definitions/hash"
+        },
+        "parts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "properties": {
+              "index": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "partId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "hash": {
+                "$ref": "feature-common-v1#/definitions/hash"
+              },
+              "ref": {
+                "$ref": "feature-common-v1#/definitions/trackerRef"
+              }
+            },
+            "required": [
+              "index",
+              "partId",
+              "hash",
+              "ref"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "recordId",
+        "revisionId",
+        "featureId",
+        "recordType",
+        "hash",
+        "parts"
+      ],
+      "additionalProperties": false
+    },
+    "pack": {
+      "type": "object",
+      "properties": {
+        "record": {},
+        "references": {
+          "type": "array"
+        },
+        "maxPartBytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "partRefs": {
+          "type": "array",
+          "items": {
+            "$ref": "feature-common-v1#/definitions/trackerRef"
+          }
+        },
+        "previousDescriptor": {
+          "$ref": "#/definitions/descriptor"
+        }
+      },
+      "required": [
+        "record"
+      ],
+      "additionalProperties": false
+    },
+    "unpack": {
+      "type": "object",
+      "properties": {
+        "descriptor": {
+          "$ref": "#/definitions/descriptor"
+        },
+        "parts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "ref": {
+                "$ref": "feature-common-v1#/definitions/trackerRef"
+              },
+              "text": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "ref",
+              "text"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "references": {
+          "type": "array"
+        }
+      },
+      "required": [
+        "descriptor",
+        "parts"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

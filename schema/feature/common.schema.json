@@ -1,0 +1,90 @@
+{
+  "$id": "feature-common-v1",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "uuid": {
+      "type": "string",
+      "pattern": "^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "trackerRef": {
+      "type": "object",
+      "properties": {
+        "backend": {
+          "enum": [
+            "linear",
+            "jira"
+          ]
+        },
+        "workspaceId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parentId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "objectKind": {
+          "enum": [
+            "document",
+            "comment",
+            "issue",
+            "milestone"
+          ]
+        },
+        "objectId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "pattern": "^https?://[^\\s]+$"
+        }
+      },
+      "required": [
+        "backend",
+        "workspaceId",
+        "parentId",
+        "objectKind",
+        "objectId"
+      ],
+      "additionalProperties": false
+    },
+    "revisionRef": {
+      "type": "object",
+      "properties": {
+        "artifactId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revisionId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "bodyHash": {
+          "$ref": "feature-common-v1#/definitions/hash"
+        },
+        "snapshotRef": {
+          "$ref": "feature-common-v1#/definitions/trackerRef"
+        }
+      },
+      "required": [
+        "artifactId",
+        "revisionId",
+        "bodyHash"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

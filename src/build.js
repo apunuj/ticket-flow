@@ -2,12 +2,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { getBackend } from './backends/index.js';
 import { getTool } from './render/index.js';
-import { renderForTool, renderDoc, PKG_ROOT } from './compose/composer.js';
+import { renderForTool, renderDoc } from './compose/composer.js';
+
+import { PKG_VERSION } from './version.js';
+export { PKG_VERSION };
 
 export const MANIFEST_FILE = '.ticket-flow.manifest.json';
-export const PKG_VERSION = JSON.parse(
-  fs.readFileSync(path.join(PKG_ROOT, 'package.json'), 'utf8'),
-).version;
 
 // Render every configured skill for every configured tool, against the configured backend.
 // Returns [{ tool, kind, path, content }] without touching disk.

@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **APU-1102: portable feature records.** Four stateless JSON-stdin helpers provide
+  canonical hashing, common v1 record validation, and exact immutable part round trips.
+  Complete escaped wrappers respect configurable byte budgets; strict decoding and
+  interruption fixtures preserve previous readable revisions. Packaged schemas and
+  generated version-pinned invocation support non-Node consumer repositories.
+  Tracker clients, feature conversations, publication and action gates remain later slices.
+
+### Fixed
+
+- **APU-1102: recoverable CLI packing.** Reject packed records whose escaped unpack
+  request exceeds the 16 MiB input limit. Preparation checks a lower bound and
+  finalization checks actual references and evidence before returning a descriptor.
+
 ## [0.6.0] - 2026-09-12
 
 ### Added

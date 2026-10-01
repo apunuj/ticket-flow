@@ -15,6 +15,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Handlebars from 'handlebars';
 import matter from 'gray-matter';
+import { PKG_VERSION } from '../version.js';
 import { ARTIFACT_SENTINEL } from '../artifact.js';
 import { tools } from '../render/index.js';
 
@@ -60,6 +61,8 @@ function buildContext(config, backend, tool, rawMeta) {
     // ticket/project argument token, tool-specific (e.g. $1 vs ${input:ticket})
     arg: tool.argToken(rawMeta),
     artifact: { sentinel: ARTIFACT_SENTINEL },
+    feature: { schemaVersion: 1, helperVersion: PKG_VERSION,
+      helperCommand: 'npx --yes --package ticket-flow@' + PKG_VERSION + ' ticket-flow feature' },
     // example prefix for illustrative ticket ids in descriptions, hints, and sample output
     eg: { prefixUpper: egPrefix.toUpperCase(), prefixLower: egPrefix.toLowerCase() },
     // merge config.backend (type/project/states) with the adapter's public facts

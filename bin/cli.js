@@ -9,6 +9,7 @@ import { add, remove } from '../src/cli/tools.js';
 const HELP = `ticket-flow — portable ticket-driven workflow skills for Claude Code, Codex, Copilot, Cursor, and opencode
 
 Usage:
+  ticket-flow feature <command> --input -       Stateless record helpers: hash, pack-record, unpack-record, validate
   ticket-flow init [--force] [--defaults] [--all]  Set up ticket-flow.config.yaml (interactive; --defaults to skip prompts, --all to generate for every agent)
   ticket-flow build [--config <p>] [--out <dir>]   Generate the skills for your configured tools
   ticket-flow add <tool>...               Generate for another agent too (e.g. 'add codex') — updates the config and builds
@@ -45,6 +46,11 @@ const [cmd, ...rest] = process.argv.slice(2);
 const flags = parseFlags(rest);
 
 async function main() {
+  if (cmd === 'feature') {
+    const { runFeature } = await import('../src/cli/feature.js');
+    process.exitCode = await runFeature(rest);
+    return;
+  }
   if (flags.help || !cmd || cmd === 'help' || cmd === '--help' || cmd === '-h') {
     console.log(HELP);
   } else if (cmd === 'init') {

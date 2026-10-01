@@ -224,6 +224,29 @@ merge is held externally (rebasing and retargeting once it lands), and — under
 authority — still distinguishes flag-gated dormant changes from anything that alters live behavior,
 which always gets an explicit confirm.
 
+## Feature Record Helpers
+
+The outer-loop foundation provides four stateless commands:
+
+```text
+ticket-flow feature hash --input -
+ticket-flow feature pack-record --input -
+ticket-flow feature unpack-record --input -
+ticket-flow feature validate --input -
+```
+
+They accept typed JSON, preserve exact canonical content, and validate supplied evidence.
+Exit codes are 0 for valid, 2 for invalid, and 1 for unexpected failure. They neither
+contact trackers nor retain recovery state; local validation does not establish user
+approval, fresh reads, or delivery readiness. Feature conversation skills, publication,
+and action gates belong to later slices.
+
+Use the same package version as the generated pack. Generated guidance includes an exact
+version-pinned npm fallback; unreleased builds must use their local executable or tarball.
+Non-Node consumers need Node/npm but no repository package manifest. See the packaged
+[record contract and examples](schema/feature/README.md) for schemas, hashes, byte budgets,
+strict decoding, and the prepare/write/read-back/descriptor/pointer sequence.
+
 ## Configuration
 
 Project-specific settings live in `ticket-flow.config.yaml`. Generated skills do not hardcode your
