@@ -4,6 +4,8 @@ import { canonicalBody, canonicalJSON, hashBody, hashStructured } from '../featu
 import { assertRecord, schemaDiagnostics } from '../feature/validate.js';
 import { packRecord, unpackRecord } from '../feature/records.js';
 import { ContractError, invalid } from '../feature/errors.js';
+import { assertUnpackInputFits, MAX_INPUT_BYTES } from './feature-limits.js';
+export { MAX_INPUT_BYTES } from './feature-limits.js';
 
 const schema = JSON.parse(fs.readFileSync(new URL('../../schema/feature/helper.schema.json', import.meta.url), 'utf8'));
 const ajv = new Ajv({ allErrors: true, strict: true });
@@ -11,7 +13,6 @@ ajv.addSchema(schema);
 const commands = ['hash', 'pack-record', 'unpack-record', 'validate'];
 const validators = Object.fromEntries(commands.map(command =>
   [command, ajv.compile({ $ref: 'feature-helper-v1#/definitions/' + command })]));
-export const MAX_INPUT_BYTES = 16 * 1024 * 1024;
 const HELP = 'Usage: ticket-flow feature <hash|pack-record|unpack-record|validate> --input -\n' +
   'Typed JSON on stdin (schemaVersion: 1); one JSON result on stdout.\n' +
   'Exit 0: valid; 2: invalid input/record; 1: unexpected execution failure.\n' +
@@ -38,7 +39,11 @@ export function evaluateFeature(command, request) {
       ? { hash: hashBody(request.value), canonicalBody: canonicalBody(request.value) }
       : { hash: hashStructured(request.value) };
   }
-  if (command === 'pack-record') return packRecord(input);
+  if (command === 'pack-record') {
+    const packed = packRecord(input);
+    assertUnpackInputFits(packed, request.references);
+    return packed;
+  }
   if (command === 'unpack-record') return { record: unpackRecord(input) };
   assertRecord(request.record, request.references);
   return { recordType: request.record.recordType, recordId: request.record.recordId,

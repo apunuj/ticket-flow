@@ -37,7 +37,7 @@ test('packed helpers and schemas run without npm cache in a non-Node consumer', 
       { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
     const manifest = JSON.parse(output)[0];
     for (const file of ['src/feature/hash.js', 'src/feature/records.js', 'src/feature/validate.js',
-      'src/cli/feature.js', 'schema/feature/common.schema.json', 'schema/feature/record.schema.json',
+      'src/cli/feature.js', 'src/cli/feature-limits.js', 'schema/feature/common.schema.json', 'schema/feature/record.schema.json',
       'schema/feature/transport.schema.json', 'schema/feature/helper.schema.json', 'schema/feature/README.md']) {
       assert.ok(manifest.files.some(f => f.path === file), 'shipped ' + file);
     }

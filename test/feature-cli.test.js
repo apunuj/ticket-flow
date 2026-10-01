@@ -76,3 +76,89 @@ test('unexpected input execution failure exits 1 with structured diagnostics', a
   assert.equal(code, 1);
   assert.equal(JSON.parse(output).diagnostics[0].code, 'EXECUTION_FAILED');
 });
+
+const LARGE_IO = { maxBuffer: 64 * 1024 * 1024, timeout: 45000 };
+const INPUT_BYTES = 16 * 1024 * 1024;
+function assertUnpackLimit(result) {
+  assert.equal(result.code, 2);
+  const response = result.json();
+  assert.equal(response.valid, false);
+  assert.equal(Object.hasOwn(response, 'result'), false);
+  assert.equal(response.diagnostics[0].code, 'UNPACK_INPUT_LIMIT');
+  assert.equal(response.diagnostics[0].path, '/');
+  assert.match(response.diagnostics[0].message, /16777216/);
+}
+test('packing rejects the reported escape-heavy record before emitting parts', { timeout: 60000 }, () => {
+  const request = { schemaVersion: 1, record: revision('"'.repeat(2200000)) };
+  assert.ok(Buffer.byteLength(JSON.stringify(request)) < INPUT_BYTES);
+  const result = run('pack-record', request, undefined, LARGE_IO);
+  assertUnpackLimit(result);
+  assert.match(result.json().diagnostics[0].message, /at least/);
+});
+test('finalization rejects reference expansion after provisional preparation', { timeout: 60000 }, () => {
+  const record = revision('small record');
+  const prepared = run('pack-record', { schemaVersion: 1, record });
+  assert.equal(prepared.code, 0);
+  assert.equal(prepared.json().result.descriptor, null);
+  assert.equal(prepared.json().result.parts.length, 1);
+  const partRefs = [{ ...trackerRef('one'), url: 'https://example.test/' + 'a'.repeat(9 * 1024 * 1024) }];
+  const request = { schemaVersion: 1, record, partRefs };
+  assert.ok(Buffer.byteLength(JSON.stringify(request)) < INPUT_BYTES);
+  assertUnpackLimit(run('pack-record', request, undefined, LARGE_IO));
+  // Record validation still wins over the later transport-size check.
+  const invalid = run('pack-record', { ...request, record: { ...record, bodyHash: '0'.repeat(64) } }, undefined, LARGE_IO);
+  assert.equal(invalid.code, 2);
+  assert.equal(invalid.json().diagnostics[0].code, 'BODY_HASH_MISMATCH');
+});
+test('accepted escaped Unicode records and supplied evidence still round-trip', () => {
+  const source = revision('source café 😀\n', 'source-1');
+  const record = revision(('café 😀 "\\\\\n' + String.fromCharCode(96).repeat(7)).repeat(250));
+  record.sources = [{ artifactId: source.artifactId, revisionId: source.revisionId, bodyHash: source.bodyHash, snapshotRef: source.storageRef }];
+  const input = { schemaVersion: 1, record, references: [source], maxPartBytes: 750 };
+  const prepared = run('pack-record', input);
+  assert.equal(prepared.code, 0);
+  const partRefs = prepared.json().result.parts.map(p => ({ ...trackerRef(p.partId), url: 'https://example.test/café/😀' }));
+  const packed = run('pack-record', { ...input, partRefs });
+  assert.equal(packed.code, 0);
+  const result = packed.json().result;
+  assert.deepEqual(result.parts, prepared.json().result.parts);
+  assert.ok(result.parts.every(part => part.bytes <= 750));
+  const parts = result.parts.map((p, i) => ({ ref: partRefs[i], text: p.text }));
+  const unpacked = run('unpack-record', { schemaVersion: 1, descriptor: result.descriptor, parts, references: [source] });
+  assert.equal(unpacked.code, 0);
+  assert.deepEqual(unpacked.json().result.record, record);
+});
+test('unpack size guard accepts the exact UTF-8 boundary and counts supplied evidence', async () => {
+  const { assertUnpackInputFits } = await import('../src/cli/feature-limits.js');
+  const { packRecord } = await import('../src/feature/records.js');
+  const record = revision('😀 "\\\n'.repeat(12));
+  const prepared = packRecord({ record, maxPartBytes: 450 });
+  const partRefs = prepared.parts.map(p => ({ ...trackerRef(p.partId), url: 'https://example.test/café/😀' }));
+  const packed = packRecord({ record, maxPartBytes: 450, partRefs });
+  for (const references of [undefined, [], [revision('supplied evidence 😀', 'evidence-1')]]) {
+    const request = { schemaVersion: 1, descriptor: packed.descriptor,
+      parts: packed.parts.map((part, i) => ({ ref: partRefs[i], text: part.text })) };
+    if (references !== undefined) request.references = references;
+    const json = JSON.stringify(request), bytes = Buffer.byteLength(json);
+    assert.ok(bytes > json.length, 'fixture distinguishes UTF-8 bytes from JS string length');
+    assert.equal(assertUnpackInputFits(packed, references, bytes), bytes);
+    assert.throws(() => assertUnpackInputFits(packed, references, bytes - 1),
+      error => error.diagnostics[0].code === 'UNPACK_INPUT_LIMIT');
+    const lowerBound = assertUnpackInputFits(prepared, references, bytes);
+    assert.ok(lowerBound < bytes, 'unknown tracker locations only permit a lower bound');
+    assert.throws(() => assertUnpackInputFits(prepared, references, lowerBound - 1),
+      error => error.diagnostics[0].code === 'UNPACK_INPUT_LIMIT' && /at least/.test(error.message));
+  }
+  const omitted = assertUnpackInputFits(prepared);
+  assert.equal(assertUnpackInputFits(prepared, []) - omitted, Buffer.byteLength(',"references":[]'));
+});
+test('raw stdin retains the exact 16 MiB boundary and INPUT_LIMIT diagnostic', { timeout: 60000 }, () => {
+  const json = JSON.stringify({ schemaVersion: 1, kind: 'body', value: 'café 😀' });
+  const atLimit = json + ' '.repeat(INPUT_BYTES - Buffer.byteLength(json));
+  const accepted = run('hash', atLimit, undefined, LARGE_IO);
+  assert.equal(accepted.code, 0);
+  assert.equal(accepted.json().result.canonicalBody, 'café 😀');
+  const rejected = run('hash', atLimit + ' ', undefined, LARGE_IO);
+  assert.equal(rejected.code, 2);
+  assert.equal(rejected.json().diagnostics[0].code, 'INPUT_LIMIT');
+});
