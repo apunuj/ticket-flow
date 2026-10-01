@@ -5,7 +5,16 @@ import { ContractError, pointer } from './errors.js';
 
 const readSchema = name => JSON.parse(fs.readFileSync(new URL('../../schema/feature/' + name + '.schema.json', import.meta.url), 'utf8'));
 const ajv = new Ajv({ allErrors: true, strict: true });
-ajv.addFormat('date-time', value => /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?(?:Z|[+-]\d\d:\d\d)$/.test(value) && Number.isFinite(Date.parse(value)));
+ajv.addFormat('date-time', value => {
+  const m = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:Z|[+-](\d{2}):(\d{2}))$/);
+  if (!m) return false;
+  const [, year, month, day, hour, minute, second, zoneHour = '0', zoneMinute = '0'] = m.map((v, i) => i ? Number(v) : v);
+  const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  return month >= 1 && month <= 12 && day >= 1 && day <= days[month - 1] &&
+    hour <= 23 && minute <= 59 && second <= 59 && (Number.isNaN(zoneHour) || zoneHour <= 23) &&
+    (Number.isNaN(zoneMinute) || zoneMinute <= 59);
+});
 ajv.addSchema(readSchema('common'));
 const recordSchema = readSchema('record');
 ajv.addSchema(recordSchema);
@@ -16,8 +25,8 @@ export function schemaDiagnostics(validator, value, root) {
   if (validator(value)) return [];
   return validator.errors.map(e => ({
     code: 'SCHEMA_INVALID',
-    path: root + e.instancePath + (e.keyword === 'required' ? '/' + pointer(e.params.missingProperty)
-      : e.keyword === 'additionalProperties' ? '/' + pointer(e.params.additionalProperty) : ''),
+    path: (root + e.instancePath + (e.keyword === 'required' ? '/' + pointer(e.params.missingProperty)
+      : e.keyword === 'additionalProperties' ? '/' + pointer(e.params.additionalProperty) : '')) || '/',
     message: e.message,
   }));
 }
@@ -37,7 +46,7 @@ export function validateRecord(record, references = []) {
       add('UNSUPPORTED_SCHEMA', path + '/schemaVersion', 'Use a matching Ticket-Flow version; supported feature schema: 1');
       return false;
     }
-    if (!Object.hasOwn(validators, r.recordType)) {
+    if (typeof r.recordType !== 'string' || !Object.hasOwn(validators, r.recordType)) {
       add('UNSUPPORTED_RECORD', path + '/recordType', 'Unsupported record type; later domain contracts are not available');
       return false;
     }

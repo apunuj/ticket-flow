@@ -19,3 +19,5 @@ This project follows a ticket-driven workflow. **Recognize the user's intent fro
 - Verify after everything: when delegated work returns, the orchestrator re-runs the test gate on the exact pushed tip and reads each CI check's conclusion individually — a sub-agent's report or a watcher's exit code is never the gate.
 - Non-blocking review residuals accumulate in one numbered deferred-findings ticket per batch, referenced from PR bodies.
 - Work tickets in dependency order (Blocked-by first) and summarize progress to the user at each ticket boundary.
+
+{{> feature-helpers}}

@@ -72,3 +72,8 @@ test('canonical bodies and malformed reference evidence are rejected, not repair
   fails(approval(), 'BODY_HASH_MISMATCH', '/references/0/bodyHash', [{ ...revision(), body: 'tampered' }]);
   fails(revision(), 'SCHEMA_INVALID', '/references', {});
 });
+
+test('malformed record discriminators and impossible dates are validation failures', () => {
+  fails({ ...revision(), recordType: { toString: 'not callable' } }, 'UNSUPPORTED_RECORD', '/record/recordType');
+  fails({ ...revision(), createdAt: '2026-02-30T10:00:00Z' }, 'SCHEMA_INVALID', '/record/createdAt');
+});

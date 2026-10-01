@@ -101,3 +101,9 @@ test('approval round trips only with matching supplied snapshot evidence', () =>
   assert.deepEqual(unpackRecord({ descriptor: packed.descriptor, parts, references: [snapshot] }), record);
   expectCode(() => unpackRecord({ descriptor: packed.descriptor, parts }), 'REFERENCE_MISSING');
 });
+
+test('malformed codec root values always include an evidence path', () => {
+  for (const fn of [() => packRecord(null), () => unpackRecord(null)]) {
+    assert.throws(fn, e => e.diagnostics?.every(d => d.path.startsWith('/')));
+  }
+});
