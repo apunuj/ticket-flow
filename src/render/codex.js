@@ -52,7 +52,7 @@ export default {
     const fm = frontmatter({
       name: 'ticket-flow',
       description:
-        "Overview of this repo's ticket-driven workflow (next → describe → execute → review → merge) and how to drive it. Use when the user asks how the ticket workflow works, how to get started with tickets, what these skills do, or wants help using ticket-flow.",
+        "Overview of this repo's ticket-driven workflow (next → describe → review-plan → execute → review → merge) and how to drive it. Use when the user asks how the ticket workflow works, how to get started with tickets, what these skills do, or wants help using ticket-flow.",
     });
     return [
       {

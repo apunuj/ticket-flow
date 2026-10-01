@@ -27,9 +27,11 @@ const PARTIALS_DIR = path.join(SKILLS_DIR, 'partials');
 export const SKILLS = [
   'next-ticket',
   'describe-ticket',
+  'review-plan',
   'execute-ticket',
   'review-ticket',
-  'fix-ticket',
+  'plan-fix',
+  'execute-fix',
   'merge-ticket',
   'orchestrate-ticket',
 ];

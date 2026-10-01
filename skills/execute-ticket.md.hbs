@@ -4,7 +4,7 @@ description: Execute a {{backend.displayName}} ticket end to end — implement t
 argument-hint: "{{eg.prefixUpper}}-NNN"
 ---
 
-Execute ticket {{arg}}: build it, then take it up for review. This skill owns the whole span from a planned ticket to an attached PR in **{{state "inReview"}}**. Merging and closing are **not** this skill's job — that's `/merge-ticket` after review.
+Execute ticket {{arg}}: build it, then take it up for review. This skill owns the whole span from a planned ticket to an attached PR in **{{state "inReview"}}**. For an existing PR's planned review fixes, use `/execute-fix {{arg}}`. Merging and closing are **not** this skill's job — that's `/merge-ticket` after review.
 
 {{> arg-guard}}
 
@@ -17,6 +17,8 @@ Run the opening probe and branch on what you find:
 - `git status --short`, `git branch --show-current`, `git log origin/{{git.baseBranch}}..HEAD --oneline`.
 - Resolve any existing PR: {{op "getAttachedPR"}}. {{> preflight}}
 - {{> artifact-read}}
+
+Before implementing the original plan, resolve any blocked `Plan review` assessment or unconfirmed product decision. If relevant code changed after its review, refresh the affected assumptions and verification cases.
 
 Decide the entry point (idempotent — do the least work needed):
 

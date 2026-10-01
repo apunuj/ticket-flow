@@ -18,9 +18,10 @@ Merge the PR for ticket {{arg}} and close it — **only** after the review gate 
 Merging requires that a review happened **and** its findings are addressed.
 
 - **Infer first.** {{> artifact-read}} Read the `Review verdict`. Also scan the conversation and the ticket comments for a `/review-ticket {{arg}}` verdict.
+  - An unfinished fix plan or a verdict saying "fixes in progress" / "re-review needed" → **stop**. Complete the selected fix plan through `/execute-fix {{arg}}`, then require `/review-ticket {{arg}}` on the updated PR. An earlier ready verdict or a ready `Plan review` assessment cannot override this gate.
   - Clear `✅ Ready to merge` with nothing outstanding → state the inference and proceed.
-  - `🟡 Needs changes` with no evidence the findings were addressed → {{ask "these review findings aren't addressed yet — run /fix-ticket to fix them now, or stop?" context="the unaddressed blocking findings from the review verdict, listed out"}} On confirm, hand off to `/fix-ticket {{arg}}` and do **not** merge; otherwise **stop**.
-- **If inconclusive,** {{ask "has this PR been reviewed, and are all review comments addressed?"}} If no/unsure — **stop**; suggest `/review-ticket {{arg}}`, or `/fix-ticket {{arg}}` if comments are already on the PR.
+  - `🟡 Needs changes` with no evidence the findings were addressed → {{ask "these review findings aren't addressed yet — run /plan-fix to plan their fixes, or stop?" context="the unaddressed blocking findings from the review verdict, listed out"}} On confirm, hand off to `/plan-fix {{arg}}` and do **not** merge; otherwise **stop**.
+- **If inconclusive,** {{ask "has this PR been reviewed, and are all review comments addressed?"}} If no/unsure — **stop**; suggest `/review-ticket {{arg}}`, or `/plan-fix {{arg}}` if comments are already on the PR.
 
 Never merge on ambiguous evidence — when in doubt, ask.
 
@@ -28,9 +29,9 @@ Never merge on ambiguous evidence — when in doubt, ask.
 
 `gh pr view <PR#> --json state,mergeable,reviewDecision,statusCheckRollup,reviews` plus `gh pr checks <PR#>`:
 
-- Failing or pending required checks → {{ask "CI isn't green — run /fix-ticket to address the failures, or stop?" context="each failing or pending check by name"}} On confirm, hand off to `/fix-ticket {{arg}}`; otherwise stop.
-- Unresolved review threads or a `CHANGES_REQUESTED` decision → {{ask "unresolved threads / changes requested — run /fix-ticket to address them, or stop?" context="the unresolved review threads and any CHANGES_REQUESTED decision, listed"}} On confirm, hand off to `/fix-ticket {{arg}}`; otherwise stop.
-- `mergeable: CONFLICTING` → surface and stop; `/fix-ticket {{arg}}` can rebase and resolve, or offer to rebase here.
+- Failing or pending required checks → {{ask "CI isn't green — run /plan-fix to plan fixes for the failures, or stop?" context="each failing or pending check by name"}} On confirm, hand off to `/plan-fix {{arg}}`; otherwise stop.
+- Unresolved review threads or a `CHANGES_REQUESTED` decision → {{ask "unresolved threads / changes requested — run /plan-fix to plan their fixes, or stop?" context="the unresolved review threads and any CHANGES_REQUESTED decision, listed"}} On confirm, hand off to `/plan-fix {{arg}}`; otherwise stop.
+- `mergeable: CONFLICTING` → surface and stop; `/plan-fix {{arg}}` can plan conflict resolution, followed by `/review-plan {{arg}}` and `/execute-fix {{arg}}`.
 
 ## 4. Merge
 

@@ -12,7 +12,7 @@ export default {
 
   // No $1/$ARGUMENTS substitution in Cursor commands — a literal token would reach the agent
   // unexpanded. A descriptive placeholder reads correctly everywhere it appears (prose,
-  // `git log --grep="<ticket-id>"`, `/fix-ticket <ticket-id>`) and trips the argument guard's
+  // `git log --grep="<ticket-id>"`, `/plan-fix <ticket-id>`) and trips the argument guard's
   // recovery path, which reads the real id out of the invocation text.
   argToken(meta) {
     if (meta && meta.argMode === 'all') return '<ticket-ids>';

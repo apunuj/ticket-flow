@@ -54,7 +54,7 @@ Then {{> artifact-write}} — fill the `Review verdict` section with the verdict
 
 {{> checkpoint next="hand off or end the review" require="the verdict comment and the artifact's `Review verdict` update are receipted on the ticket"}}
 
-If the verdict is `🟡 Needs changes`, hand off: the findings are now on the PR, so suggest `/fix-ticket {{arg}}` to triage and address them (failing CI included), then re-review.
+If the verdict is `🟡 Needs changes`, hand off: the findings are now on the PR, so suggest `/plan-fix {{arg}}` to select findings (failing CI included) and prepare a fix plan, then `/review-plan {{arg}}` → `/execute-fix {{arg}}` → re-review.
 
 ## Output shape
 
