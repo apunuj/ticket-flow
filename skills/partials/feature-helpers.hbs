@@ -16,6 +16,12 @@ and 1 means an unexpected execution failure. Local validation does not establish
 fresh remote reads, user consent, or a successful write. Tracker read-back and
 approval remain the caller's responsibility.
 
+CLI input is limited to 16 MiB. Packing returns `UNPACK_INPUT_LIMIT` (exit 2,
+no result) if its compact unpack request cannot fit. Preparation is provisional;
+finalize with actual part references and the same revision evidence before
+publishing a descriptor. On failure, preserve the previous descriptor and pointer.
+Send unpack requests as compact UTF-8 JSON without extra whitespace.
+
 Feature conversation skills, domain-specific manifest/publication contracts, and
 action gates arrive in later slices; this foundation does not enable those phases.
 For an unreleased build, use its local installed executable or tarball rather than

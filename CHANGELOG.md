@@ -16,6 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   generated version-pinned invocation support non-Node consumer repositories.
   Tracker clients, feature conversations, publication and action gates remain later slices.
 
+### Fixed
+
+- **APU-1102: recoverable CLI packing.** Reject packed records whose escaped unpack
+  request exceeds the 16 MiB input limit. Preparation checks a lower bound and
+  finalization checks actual references and evidence before returning a descriptor.
+
 ## [0.6.0] - 2026-09-12
 
 ### Added

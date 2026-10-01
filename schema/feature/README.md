@@ -26,6 +26,12 @@ and emit one JSON result on stdout. `feature --help` prints ordinary usage text.
 Other flags, file arguments, commands, unknown fields, and schema versions fail
 explicitly. Do not send secrets in request payloads.
 
+The CLI also checks whether a packed record's compact unpack request fits within
+16 MiB. An oversized pack returns exit 2 with `UNPACK_INPUT_LIMIT` at `/` and no
+result, parts, or descriptor. Its message reports the encoded byte count and limit;
+a preparation estimate is labelled "at least". Raw stdin over the cap continues
+to return `INPUT_LIMIT`. These are CLI transport limits; the core codec is unchanged.
+
 ```json
 {"schemaVersion":1,"command":"hash","valid":true,"result":{"hash":"...","canonicalBody":"hello\n"},"diagnostics":[]}
 ```
@@ -118,15 +124,31 @@ optional root `hash`; this transport digest differs from a structured record has
 
 1. Call `pack-record` with a validated record. It produces immutable part texts
    and a draft descriptor; `descriptor` is null until storage references exist.
+   Preparation rejects a request whose unpack envelope cannot fit even with minimum
+   reference metadata. Success is provisional until actual tracker references exist.
 2. Write each text to its own tracker object. Persist/reconcile these writes using
    their stable record/revision/part identities. Read each object back exactly.
 3. Call `pack-record` with the same record and budget plus `partRefs` in part-index
    order. All references must identify distinct tracker objects. The resulting
-   descriptor binds those exact locations. Supplied references alone are not write
+   descriptor binds those exact locations. Finalization checks the exact unpack
+   request size, including both copies of each tracker reference and supplied
+   revision evidence. Large real references can therefore make finalization fail
+   after preparation succeeded. Supplied references alone are not write
    receipts and the helper does not claim remote durability.
 4. Call `unpack-record` on that descriptor and the actual fetched `{ref,text}`
    objects. Verify the returned record before writing/read-verifying the descriptor
    and advancing the tracker-held current pointer.
+
+Use compact UTF-8 JSON, as produced by `JSON.stringify(request)`, for unpack input.
+The check counts the full descriptor, escaped `{ref,text}` entries, and the same
+optional `references` array supplied while packing; omit it if it was omitted then.
+Extra formatting, a trailing newline, or optional Unicode escapes can exceed the
+raw input limit near the boundary. Preserve the exact decoded part text and refs.
+
+If finalization fails, keep the previous complete descriptor and current pointer.
+Do not publish a descriptor or advance the pointer for the rejected replacement.
+Already written provisional parts remain unpublished and can be reconciled by the
+caller; the helper performs no tracker writes or cleanup.
 
 Each part has record/revision IDs, a zero-based index, count, chunk hash, payload,
 and a deterministic content-derived part ID. Chunks split canonical JSON only at
