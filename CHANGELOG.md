@@ -7,8 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.8.0] - 2026-10-02
-
 ### Added
 
 - **APU-1102: portable feature records.** Four stateless JSON-stdin helpers provide
@@ -23,15 +21,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **APU-1102: recoverable CLI packing.** Reject packed records whose escaped unpack
   request exceeds the 16 MiB input limit. Preparation checks a lower bound and
   finalization checks actual references and evidence before returning a descriptor.
-
-### Changed
-
-- Reconcile the workflow skills already published in npm 0.7.0 into Git history:
-  `review-plan`, `plan-fix`, and `execute-fix`, their generated guidance, and upgrade coverage.
-- Pin portable feature helpers to 0.8.0. Published npm 0.7.0 contains the workflow
-  skills but does not contain these helpers and cannot be overwritten.
-- Use a tagged GitHub Release to validate and publish the matching package, with
-  a downloadable package archive and checksum attached to the release.
 
 ## [0.7.0] - 2026-09-30
 
@@ -310,9 +299,8 @@ Initial release.
 - Shared work artifact stored as a marked comment on the ticket so every tool
   can find and update the same plan, branch, PR, and review state.
 
-[Unreleased]: https://github.com/apunuj/ticket-flow/compare/v0.8.0...HEAD
-[0.8.0]: https://github.com/apunuj/ticket-flow/releases/tag/v0.8.0
-[0.7.0]: https://www.npmjs.com/package/ticket-flow/v/0.7.0
+[Unreleased]: https://github.com/apunuj/ticket-flow/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/apunuj/ticket-flow/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/apunuj/ticket-flow/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/apunuj/ticket-flow/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/apunuj/ticket-flow/compare/v0.4.0...v0.5.0
