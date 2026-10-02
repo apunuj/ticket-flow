@@ -1,0 +1,26 @@
+{
+  "version": "0.7.0",
+  "files": [
+    ".claude/skills/next-ticket/SKILL.md",
+    ".claude/skills/describe-ticket/SKILL.md",
+    ".claude/skills/review-plan/SKILL.md",
+    ".claude/skills/execute-ticket/SKILL.md",
+    ".claude/skills/review-ticket/SKILL.md",
+    ".claude/skills/plan-fix/SKILL.md",
+    ".claude/skills/execute-fix/SKILL.md",
+    ".claude/skills/merge-ticket/SKILL.md",
+    ".claude/skills/orchestrate-ticket/SKILL.md",
+    ".claude/skills/ticket-flow/SKILL.md",
+    ".agents/skills/next-ticket/SKILL.md",
+    ".agents/skills/describe-ticket/SKILL.md",
+    ".agents/skills/review-plan/SKILL.md",
+    ".agents/skills/execute-ticket/SKILL.md",
+    ".agents/skills/review-ticket/SKILL.md",
+    ".agents/skills/plan-fix/SKILL.md",
+    ".agents/skills/execute-fix/SKILL.md",
+    ".agents/skills/merge-ticket/SKILL.md",
+    ".agents/skills/orchestrate-ticket/SKILL.md",
+    ".agents/skills/ticket-flow/SKILL.md",
+    "TICKET-FLOW.md"
+  ]
+}
