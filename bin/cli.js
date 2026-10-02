@@ -21,8 +21,8 @@ Agents: claude, codex, copilot, cursor, opencode. Switching agents mid-project i
 'ticket-flow add <agent>'; set 'tools: all' in the config to generate for every agent always.
 
 Lifecycle the generated skills drive:
-  next-ticket → describe-ticket → execute-ticket → review-ticket → merge-ticket
-  (fix-ticket addresses review comments / failing CI; loops back from review or merge)
+  next-ticket → describe-ticket → review-plan → execute-ticket → review-ticket → merge-ticket
+  (PR findings / failing CI: plan-fix → review-plan → execute-fix → review-ticket)
   (orchestrate-ticket runs the whole lifecycle across one or more tickets with sub-agents)
 `;
 

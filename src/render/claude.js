@@ -39,14 +39,14 @@ export default {
     };
   },
 
-  // Claude auto-invokes the five skills from their description, so it needs no always-on
+  // Claude auto-invokes the phase skills from their description, so it needs no always-on
   // guide. But for DISCOVERY + EDUCATION it gets an overview skill: it shows in the `/`
   // menu as `/ticket-flow` and auto-invokes when someone asks how the workflow works.
   extras({ guide }) {
     const fm = frontmatter({
       name: 'ticket-flow',
       description:
-        "Overview of this repo's ticket-driven workflow (next → describe → execute → review → merge) and how to drive it. Use when the user asks how the ticket workflow works, how to get started with tickets, what these skills do, or wants help using ticket-flow.",
+        "Overview of this repo's ticket-driven workflow (next → describe → review-plan → execute → review → merge) and how to drive it. Use when the user asks how the ticket workflow works, how to get started with tickets, what these skills do, or wants help using ticket-flow.",
     });
     return [
       {

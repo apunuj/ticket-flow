@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-09-30
+
+### Added
+
+- **`review-plan`** deepens and revises Describe Ticket execution plans and PR fix plans
+  against current code, regression risks and edge cases, layer boundaries, and verification
+  depth, with concrete assertions and failure conditions to avoid false or shallow greens.
+
+- **`execute-fix`** implements a confirmed fix plan on the existing PR, with test-first
+  verification, scoped commits, resumable recording, and a mandatory code re-review handoff.
+  `execute-ticket` remains focused on initial ticket implementation and shipping.
+
+### Changed
+
+- **`plan-fix` replaces `fix-ticket`.** It asks which findings to address and records a
+  test-driven fix plan. `review-plan` revises it; the separate `execute-fix` implements it on the
+  existing PR, preserves deferrals, and invalidates the old code-review verdict.
+- Workflow guides and orchestration now include both plan-review handoffs. Work artifacts
+  retain fix scope, fix tasks, and plan assessments separately from the original plan and
+  PR review verdict. `ticket-flow upgrade` prunes the old generated skill from its manifest.
+
 ## [0.6.0] - 2026-09-12
 
 ### Added
@@ -263,7 +284,10 @@ Initial release.
 - Shared work artifact stored as a marked comment on the ticket so every tool
   can find and update the same plan, branch, PR, and review state.
 
-[Unreleased]: https://github.com/apunuj/ticket-flow/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/apunuj/ticket-flow/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/apunuj/ticket-flow/compare/v0.6.0...v0.7.0
+[0.6.0]: https://github.com/apunuj/ticket-flow/compare/v0.5.1...v0.6.0
+[0.5.1]: https://github.com/apunuj/ticket-flow/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/apunuj/ticket-flow/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/apunuj/ticket-flow/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/apunuj/ticket-flow/compare/v0.2.0...v0.3.0

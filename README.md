@@ -11,26 +11,31 @@ configuration, and writes a team-facing workflow guide into the repo.
 
 Supported backends: **Linear** and **Jira**.
 
-```
-next-ticket -> describe-ticket -> execute-ticket -> review-ticket -> merge-ticket
-                                                     ^                  |
-                                                     |---- fix-ticket <-|
-                                            (loops back on PR feedback / red CI)
+```text
+next-ticket → describe-ticket → review-plan → execute-ticket → review-ticket → merge-ticket
+                                                                  │     ↑
+                                                                  ↓     │
+                                                             plan-fix   │
+                                                                  ↓     │
+                                                            review-plan │
+                                                                  ↓     │
+                                                            execute-fix ┘
 ```
 
 ## What It Generates
 
-Ticket-Flow creates seven workflow skills that can be invoked directly or triggered conversationally:
-six lifecycle phases, plus an orchestrate mode that drives several tickets through those phases with
-sub-agents.
+Ticket-Flow creates nine workflow skills that can be invoked directly or triggered conversationally,
+including an orchestrate mode that drives tickets through the lifecycle with sub-agents.
 
 | Skill | Purpose |
 |---|---|
 | **next-ticket** | Surface the next priority backlog ticket, grouped by milestone or sprint. |
 | **describe-ticket** | Turn a ticket into user stories, acceptance criteria, and an execution plan; record the work artifact; create the ticket branch. |
+| **review-plan** | Revise an execution plan or fix plan against current code, regression risks, edge cases, architecture, and meaningful test coverage. |
 | **execute-ticket** | Implement the plan with an incremental test-and-commit loop, then push, open a PR, attach it to the ticket, and move the ticket to review. |
 | **review-ticket** | Review the PR at the requested depth and verify the diff satisfies every acceptance criterion. |
-| **fix-ticket** | Address open PR feedback, failing CI, review comments, or change requests, then update the PR. |
+| **plan-fix** | Triage PR findings and failing CI, ask which to fix, and record a test-driven fix plan without implementing it. |
+| **execute-fix** | Implement a confirmed fix plan on the existing PR branch, verify and push the fixes, then hand off for re-review. |
 | **merge-ticket** | Verify the review gate, merge, close the ticket, clean up branches, and surface the next priority. |
 | **orchestrate-ticket** | Drive one or more tickets through the whole lifecycle with a Planner/Implementer sub-agent split — see [Orchestrate Mode](#orchestrate-mode). |
 
@@ -167,8 +172,8 @@ the selected ticket backend.
 
 ## Usage
 
-You can run a phase explicitly with `/next-ticket`, `/describe-ticket`, `/execute-ticket`,
-`/review-ticket`, `/fix-ticket`, or `/merge-ticket` — or hand several tickets to
+You can run a phase explicitly with `/next-ticket`, `/describe-ticket`, `/review-plan`, `/execute-ticket`,
+`/review-ticket`, `/plan-fix`, `/execute-fix`, or `/merge-ticket` — or hand several tickets to
 `/orchestrate-ticket` at once.
 
 You can also ask naturally:
@@ -177,14 +182,26 @@ You can also ask naturally:
 |---|---|
 | "what should I work on next?" | **next-ticket** |
 | "plan PROJ-312" / "break this ticket down" | **describe-ticket** |
+| "review the plan" / "stress-test the fix plan" | **review-plan** |
 | "build it and open a PR" / "ship it" | **execute-ticket** |
+| "execute the fix plan" / "apply the reviewed fixes" | **execute-fix** |
 | "review the PR" / "is it ready?" | **review-ticket** |
-| "fix the review feedback" / "CI is failing" | **fix-ticket** |
+| "fix the review feedback" / "CI is failing" | **plan-fix** |
 | "merge it" / "close out the ticket" | **merge-ticket** |
 | "work PROJ-101 and PROJ-102 together" / "orchestrate these tickets" | **orchestrate-ticket** |
 
 The generated guidance maps natural language to the same lifecycle procedures as the slash
 commands.
+
+Use `/review-plan` after Describe Ticket or Plan Fix for a deeper pass. It reads current code
+and tests, incorporates supported corrections, and returns the full revised plan with concrete
+verification cases that can catch the defects and regressions at issue. Its assessment is separate
+from the PR review verdict.
+
+`/plan-fix` replaces `/fix-ticket`: first select the findings to address, then review the fix plan
+with `/review-plan` and implement it with `/execute-fix`. Execution updates the existing PR and
+requires a fresh `/review-ticket` pass. Run `ticket-flow upgrade` to regenerate installed skills
+and remove the old generated command using the previous build manifest.
 
 ## Orchestrate Mode
 

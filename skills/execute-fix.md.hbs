@@ -1,0 +1,67 @@
+---
+name: execute-fix
+description: Implement a confirmed fix plan for a {{backend.displayName}} ticket on its existing PR branch, verify the fixes, update that PR, and hand off for re-review. Use after plan-fix and review-plan when the user asks to execute the fix plan or apply the selected review fixes. Requires an existing open PR; initial ticket implementation belongs to execute-ticket.
+argument-hint: "{{eg.prefixUpper}}-NNN"
+---
+
+Execute the confirmed fix plan for ticket {{arg}} on its existing PR.
+
+{{> arg-guard}}
+
+{{> delegation}}
+
+## 1. Resolve the PR and confirmed fix plan
+
+- {{op "getAttachedPR"}}. {{> preflight}}
+- If no PR is found, ask for its number or URL. If none can be supplied, stop: this skill requires an existing PR. Use `/execute-ticket {{arg}}` for initial implementation and shipping.
+- {{> artifact-read}}
+- Read the `Fix plan`, its selected findings and source links, deferrals, tasks, verification cases, and `Plan review` assessment. If the fix plan or explicit scope selection cannot be recovered, hand off to `/plan-fix {{arg}}`; never infer permission to fix every open finding from the artifact fallback.
+- Resolve any blocked plan, blocked plan assessment, or unconfirmed product decision before implementation. Honor the already confirmed scope; new findings return to scope selection rather than silently expanding this run.
+- Inspect the PR's state, head branch/repository and head/base SHAs. If it is closed, merged, or belongs to another ticket, stop and resolve the target. Confirm it matches the fix plan; never create a replacement PR or branch.
+
+## 2. Check out and revalidate
+
+- Inspect `git status --short`, the current branch, and local commits. Safely check out the PR's actual head branch, preserving unrelated work. Do not derive a new branch name from the ticket or push directly to `{{git.baseBranch}}`.
+- Re-read current findings, checks, and relevant code/tests. Compare the head/base SHAs and relevant dirty changes with the plan's baseline. If they changed, verify the tasks still apply and refresh stale plan-review evidence; use `/review-plan {{arg}}` if design or verification assumptions no longer hold.
+- Skip an already addressed task only with current code/test evidence. If all fixes were already pushed, repair any missing recording steps below without duplicating commits, notes, or thread replies. A completed plan does not authorize another fix round or invalidate a newer successful code review.
+
+## 3. Apply the selected fixes
+
+Before changing code, set the `Fix plan` state to `executing`, retain `status: in-review`, and set `Review verdict` to "fixes in progress — re-review needed", preserving prior findings. {{> artifact-write}}
+
+{{> checkpoint next="write fix code or commit" require="the active fix scope and invalidated code-review verdict are receipted"}}
+
+- Work only unfinished `F-T-N` tasks, **test-first**: reproduce each defect, observe the failing assertion, implement the fix, then run its regression checks and `{{test.command}}`. Record actual red/green evidence; do not claim a test reproduced a defect unless it did.
+- For selected merge conflicts, integrate the latest `{{git.baseBranch}}` using the repo's policy and verify the result; do not rewrite shared history without authorization.
+- **Commit incrementally, scoped to {{arg}}.** Each commit references {{arg}} in the title and matches the repo's recent commit style (`git log -3 --format='%H%n%s%n%b'`). End the body with your agent's standard co-author footer. Stage only files attributable to the selected fixes; ask when attribution or commit-message intent is ambiguous.
+{{#if conventions}}- Honor the project conventions:
+{{#each conventions}}  - {{sentence this}}
+{{/each}}{{/if}}- After each meaningful step, tick the matching `F-T-N` tasks and record verification evidence in `Fix plan`, preserving the original implementation checklist, selected scope, and deferrals. {{> artifact-write}}
+
+## 4. Verify and update the existing PR
+
+- Run `{{test.command}}` as the final gate on the exact tip to be pushed. If it fails, report the failing output and stop before pushing or marking the fix plan complete. Never silently waive a failed gate.
+- Commit any remaining scoped changes using the conventions above, then push to the **existing PR's head branch and repository**. Verify the destination before pushing, especially for a fork PR; do not open a new PR.
+- Refresh the existing PR body with selected fixes mapped to findings, deferred items and reasons, verification results, and the updated work artifact. Preserve unrelated PR content.
+- Confirm CI is running on the pushed head and report its actual state; pending is not passing.
+
+## 5. Record and hand off for re-review
+
+- {{op "addComment"}}: a fix note mapping each addressed finding/check to its commit and verification evidence, including deliberate deferrals. Skip a note already recorded for the same fixes and commits.
+- Reply to or resolve only addressed PR threads, citing the fixing commit; an unresolved or deferred finding stays open. Avoid duplicate replies on resume.
+- Mark `Fix plan` as `completed` only when every selected task is done and the fixes are pushed. Retain `status: in-review` and set `Review verdict` to "fixes applied — re-review needed", preserving unresolved findings. On a recording-only resume after a newer review of the same pushed head, preserve that newer verdict. {{> artifact-write}}
+- Refresh the PR's work-artifact section with the final task state if it changed after the earlier body update.
+- {{> checkpoint next="declare the fix plan executed" require="the fix note and updated artifact are receipted on the ticket"}}
+
+End with the addressed and remaining findings, verification results, commit(s), CI state, PR URL, and ticket URL. Hand off to `/review-ticket {{arg}}`; do not merge or mark the ticket done. A plan assessment never substitutes for code review.
+{{~> final-message}}
+
+## Stop and ask
+
+- The PR target, file attribution, or ownership of local commits is ambiguous.
+- A fix needs an unconfirmed product decision or exceeds selected scope.
+- The test gate fails or the existing PR branch cannot be updated safely.
+
+## Resume / idempotency
+
+Re-read the artifact and live PR before resuming. Continue only unfinished selected tasks; if commits already exist locally, verify and push those rather than recreating them. If the fixes were pushed, complete missing receipts and thread updates, then re-review. Never redo completed tasks or reset the original implementation history.

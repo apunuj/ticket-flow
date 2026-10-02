@@ -116,7 +116,7 @@ test('build renders from --config to --out end to end', () => {
   try {
     const { code, out } = run(['build', '--config', EXAMPLE, '--out', dir]);
     assert.equal(code, 0);
-    assert.match(out, /Built 48 files/); // 7 skills × 5 tools + extras + MCP + wiring + doc + manifest
+    assert.match(out, /Built 58 files/); // 9 skills × 5 tools + extras + MCP + wiring + doc + manifest
     assert.match(out, /always-on guide/);
     assert.match(out, /Try it now/);
     assert.ok(fs.existsSync(path.join(dir, '.claude/skills/merge-ticket/SKILL.md')));
@@ -178,7 +178,7 @@ test('init --all writes `tools: all` so every agent is generated', () => {
 
     const { code, out } = run(['build'], { cwd: dir });
     assert.equal(code, 0);
-    assert.match(out, /Built 48 files/);
+    assert.match(out, /Built 58 files/);
     for (const rel of [
       '.claude/skills/next-ticket/SKILL.md',
       '.agents/skills/next-ticket/SKILL.md',

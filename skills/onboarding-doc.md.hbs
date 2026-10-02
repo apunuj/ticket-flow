@@ -2,11 +2,15 @@
 
 This repo uses **Ticket-Flow** — a ticket-driven workflow backed by **{{backend.displayName}}**, available in {{#each tools}}{{#unless @first}}, {{/unless}}**{{toolName this}}**{{/each}}. You drive it by talking to your AI assistant in normal language; slash commands are an optional shortcut.
 
-```
-next-ticket → describe-ticket → execute-ticket → review-ticket → merge-ticket
-                                                     ▲                  │
-                                                     └──── fix-ticket ◀─┘
-                                            (loops back on PR feedback / red CI)
+```text
+next-ticket → describe-ticket → review-plan → execute-ticket → review-ticket → merge-ticket
+                                                                  │     ↑
+                                                                  ↓     │
+                                                             plan-fix   │
+                                                                  ↓     │
+                                                            review-plan │
+                                                                  ↓     │
+                                                            execute-fix ┘
 ```
 
 ## What each phase does
@@ -15,9 +19,11 @@ next-ticket → describe-ticket → execute-ticket → review-ticket → merge-t
 |---|---|
 | **next-ticket** | Surfaces the next priority backlog tickets (grouped by {{backend.groupingNoun}}) and recommends one to pick up. |
 | **describe-ticket** | Turns a ticket into user stories + acceptance criteria + a **test-driven** execution plan, records it on the ticket, and cuts the branch. |
-| **execute-ticket** | Builds the plan test-first, then ships it: test gate → push → PR → move to **{{state "inReview"}}**. |
+| **review-plan** | Deeply reviews and revises either plan against current code, regressions/edge cases, layer boundaries, and verification depth. |
+| **execute-ticket** | Builds the initial implementation plan test-first, then ships it: test gate → push → PR → move to **{{state "inReview"}}**. |
 | **review-ticket** | Reviews the PR at a depth you choose, checks it delivers every acceptance criterion, and logs the full review on the ticket. |
-| **fix-ticket** | Triages a PR's review comments + failing CI, confirms the scope and a plan with you, then fixes and updates the PR. |
+| **plan-fix** | Triages PR findings + failing CI, asks which items to fix, and records an execution plan for review-plan and execute-fix. |
+| **execute-fix** | Implements selected fix tasks on the existing PR branch, verifies and pushes them, then hands off for re-review. |
 | **merge-ticket** | Gates on the review, merges, closes the ticket, cleans up branches, and surfaces the next priority. |
 | **orchestrate-ticket** | Runs the whole lifecycle across one or more tickets with sub-agents (Planner plans + reviews, Implementer builds), bubbling only mid-run product clarifications and review judgment calls to you (plus a model-split choice at kickoff unless pinned in config). |
 
@@ -29,17 +35,21 @@ Just say what you want — the matching phase runs (no slash command needed):
 |---|---|
 | "what should I work on next?" | next-ticket |
 | "plan {{eg.prefixUpper}}-123" / "break this ticket down" | describe-ticket |
+| "review the plan" / "stress-test the fix plan" | review-plan |
 | "build it and open a PR" / "ship it" | execute-ticket |
+| "execute the fix plan" / "apply the reviewed fixes" | execute-fix |
 | "review the PR" / "is it ready?" | review-ticket |
-| "fix the review comments" / "fix the failing CI" | fix-ticket |
+| "fix the review comments" / "fix the failing CI" | plan-fix |
 | "merge it" / "close out the ticket" | merge-ticket |
 | "work {{eg.prefixUpper}}-101 and {{eg.prefixUpper}}-102 together" | orchestrate-ticket |
 
-Prefer explicit control? Invoke a phase directly: {{skillRef "next-ticket"}}, {{skillRef "describe-ticket"}}, {{skillRef "execute-ticket"}}, {{skillRef "review-ticket"}}, {{skillRef "fix-ticket"}}, {{skillRef "merge-ticket"}}, {{skillRef "orchestrate-ticket"}} — the slash command runs the same procedure.
+Prefer explicit control? Invoke a phase directly: {{skillRef "next-ticket"}}, {{skillRef "describe-ticket"}}, {{skillRef "review-plan"}}, {{skillRef "execute-ticket"}}, {{skillRef "review-ticket"}}, {{skillRef "plan-fix"}}, {{skillRef "execute-fix"}}, {{skillRef "merge-ticket"}}, {{skillRef "orchestrate-ticket"}} — the slash command runs the same procedure.
+
+`plan-fix` replaces `fix-ticket`. It stops after scope selection and planning; use `review-plan` to deepen the plan, then `execute-fix` to apply it on the existing PR. Review Plan also works on Describe Ticket drafts before ratification or on recorded execution plans. It revises the plan and its verification cases without marking the PR ready to merge.
 
 ## Where the state lives
 
-All shared state — user stories, the plan (as checkboxes), the PR link, and the review verdict — lives in a single comment **on the ticket itself** (the "work artifact"). It's updated in place, so the workflow resumes seamlessly across sessions, machines, and even a different one of the supported tools. Nothing important lives in untracked local files.
+All shared state — user stories, the original plan (as checkboxes), the selected fix scope and fix plan, plan assessments, the PR link, and the code-review verdict — lives in a single comment **on the ticket itself** (the "work artifact"). It's updated in place, so the workflow resumes seamlessly across sessions, machines, and even a different one of the supported tools. Nothing important lives in untracked local files.
 
 ## One-time setup for contributors
 

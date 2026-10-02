@@ -137,7 +137,7 @@ test('describe-ticket gates branch checkout on the planning artifact', () => {
 });
 
 test('writing skills phrase their backend writes as checkpoints', () => {
-  for (const skill of ['describe-ticket', 'execute-ticket', 'review-ticket', 'fix-ticket', 'merge-ticket']) {
+  for (const skill of ['describe-ticket', 'review-plan', 'execute-ticket', 'review-ticket', 'plan-fix', 'execute-fix', 'merge-ticket']) {
     const out = renderSkill(skill, env('claude')).content;
     assert.match(out, /Checkpoint/, `${skill} carries a phase-gate checkpoint`);
   }
@@ -145,7 +145,7 @@ test('writing skills phrase their backend writes as checkpoints', () => {
 
 // APU-722: delegating a phase to a sub-agent must not drop the backend writes.
 test('phase skills carry the delegation contract', () => {
-  for (const skill of ['describe-ticket', 'execute-ticket', 'review-ticket', 'fix-ticket']) {
+  for (const skill of ['describe-ticket', 'review-plan', 'execute-ticket', 'review-ticket', 'plan-fix', 'execute-fix']) {
     const out = renderSkill(skill, env('claude')).content;
     assert.match(out, /Delegation contract/, `${skill} states the contract`);
     assert.match(out, /sub-agents return data/i, `${skill}: writes stay with the orchestrator`);
@@ -163,8 +163,8 @@ test('conventions render with single periods under their own lead-in', () => {
   const out = renderSkill('execute-ticket', env('claude')).content;
   assert.doesNotMatch(out, /\.\.(\s|$)/, 'no doubled periods from the conventions block (git ranges like a..b are fine)');
   assert.match(out, /project conventions/i, 'conventions have their own lead-in');
-  const fix = renderSkill('fix-ticket', env('claude')).content;
-  assert.doesNotMatch(fix, /\.\.(\s|$)/, 'fix-ticket too');
+  const fix = renderSkill('plan-fix', env('claude')).content;
+  assert.doesNotMatch(fix, /\.\.(\s|$)/, 'plan-fix too');
 });
 
 // APU-724: /orchestrate-ticket — multi-ticket, multi-model orchestration as a first-class skill.
@@ -263,7 +263,7 @@ for (const type of ['linear', 'jira']) {
 // at earlier, possibly-hidden text. Backend-neutral: asserted for both linear and jira renders.
 for (const type of ['linear', 'jira']) {
   test(`[${type}] every phase ends with the artifact render, never a bare receipt`, () => {
-    for (const skill of ['describe-ticket', 'execute-ticket', 'review-ticket', 'fix-ticket', 'merge-ticket']) {
+    for (const skill of ['describe-ticket', 'review-plan', 'execute-ticket', 'review-ticket', 'plan-fix', 'execute-fix', 'merge-ticket']) {
       const out = renderSkill(skill, envType(type)).content;
       assert.match(out, /bare receipt/i, `${skill} names the anti-pattern`);
       assert.match(out, /turn's final message/i, `${skill} requires ending on the final-message render`);
@@ -274,7 +274,7 @@ for (const type of ['linear', 'jira']) {
       .replace(/inlineArtifacts: true.*/, 'inlineArtifacts: false');
     const quiet = parseConfig(quietRaw);
     const blankRuns = (s) => [...s.matchAll(/\n{3,}/g)].length;
-    for (const skill of ['describe-ticket', 'execute-ticket', 'review-ticket', 'fix-ticket', 'merge-ticket']) {
+    for (const skill of ['describe-ticket', 'review-plan', 'execute-ticket', 'review-ticket', 'plan-fix', 'execute-fix', 'merge-ticket']) {
       const loudOut = renderSkill(skill, envType(type)).content;
       const quietOut = renderSkill(skill, {
         config: quiet, backend: getBackend(type), tool: getTool('claude'),
@@ -543,7 +543,7 @@ test('orchestrate config block is optional, validated, and rendered', () => {
 for (const type of ['linear', 'jira']) {
   test(`[${type}] {{ask}} context= renders the display mandate on every tool`, () => {
     for (const toolId of ['claude', 'copilot', 'opencode']) {
-      const out = renderSkill('fix-ticket', envType(type, toolId)).content;
+      const out = renderSkill('plan-fix', envType(type, toolId)).content;
       assert.match(
         out,
         /in the message body immediately before this question/i,
@@ -755,7 +755,7 @@ for (const type of ['linear', 'jira']) {
 
   test(`[${type}] changed skills leak no claude machinery to copilot/opencode`, () => {
     const changed = [
-      'fix-ticket', 'merge-ticket', 'execute-ticket', 'describe-ticket', 'review-ticket', 'orchestrate-ticket',
+      'plan-fix', 'execute-fix', 'review-plan', 'merge-ticket', 'execute-ticket', 'describe-ticket', 'review-ticket', 'orchestrate-ticket',
     ];
     for (const toolId of ['copilot', 'opencode']) {
       for (const skill of changed) {
@@ -1229,7 +1229,7 @@ for (const type of ['linear', 'jira']) {
     assert.match(row, /model-split/, 'row names the kickoff model-split choice');
   });
 
-  // Finding 4: the workflow is not literally five phases (fix-ticket + orchestrate-ticket
+  // Finding 4: the workflow is not literally five phases (plan-fix + orchestrate-ticket
   // exist), so neither the guide nor the onboarding doc claims a fixed phase count.
   test(`[${type}] neither the workflow guide nor the onboarding doc claims a fixed phase count`, () => {
     const guide = renderGuide(envType(type));
@@ -1239,12 +1239,12 @@ for (const type of ['linear', 'jira']) {
   });
 
   // Finding 9 (onboarding): the "invoke a phase directly" list must name every phase — it was
-  // missing fix-ticket and orchestrate-ticket.
-  test(`[${type}] onboarding invoke-directly list names fix-ticket and orchestrate-ticket`, () => {
+  // missing plan-fix and orchestrate-ticket.
+  test(`[${type}] onboarding invoke-directly list names plan-fix and orchestrate-ticket`, () => {
     const doc = renderDoc({ config: configFor(type), backend: getBackend(type) });
     const line = doc.split('\n').find((l) => /Invoke a phase directly/.test(l));
     assert.ok(line, 'the invoke-directly line renders');
-    assert.match(line, /\/fix-ticket/, 'invoke-directly list names fix-ticket');
+    assert.match(line, /\/plan-fix/, 'invoke-directly list names plan-fix');
     assert.match(line, /\/orchestrate-ticket/, 'invoke-directly list names orchestrate-ticket');
   });
 }
