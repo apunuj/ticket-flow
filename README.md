@@ -243,6 +243,10 @@ which always gets an explicit confirm.
 
 ## Feature Record Helpers
 
+These helpers are **unreleased** on `master` and are not included in npm 0.7.0.
+Use a package built from this checkout for development; publishing them requires
+a separately approved npm release.
+
 The outer-loop foundation provides four stateless commands:
 
 ```text
