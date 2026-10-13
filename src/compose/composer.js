@@ -163,6 +163,8 @@ function makeEnv(config, backend, tool, rawMeta) {
   hb.registerHelper('invoke', (name) =>
     new Handlebars.SafeString(tool.invoke ? tool.invoke(name) : `/${name}`),
   );
+  // {{shortcut}} -> what the guide calls a phase's direct-invocation shortcut in this tool.
+  hb.registerHelper('shortcut', () => new Handlebars.SafeString(tool.shortcut || 'slash command'));
 
   // partials may themselves use the helpers above + the shared context
   for (const file of fs.readdirSync(PARTIALS_DIR)) {
@@ -228,6 +230,10 @@ export function renderDoc({ config, backend }) {
   const tpl = fs.readFileSync(file, 'utf8');
   const hb = makeEnv(config, backend, DOC_TOOL, {});
   const ctx = buildContext(config, backend, DOC_TOOL, {});
+  // Codex starts a phase with `$name`, every other tool with `/name` — the doc shows each
+  // form only when a tool that uses it is configured.
+  const tools = config.tools || [];
+  ctx.docTools = { codex: tools.includes('codex'), commands: tools.some((t) => t !== 'codex') };
   return hb.compile(tpl, { noEscape: true })(ctx).trim() + '\n';
 }
 

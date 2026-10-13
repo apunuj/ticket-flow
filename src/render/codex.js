@@ -31,10 +31,13 @@ export default {
     return `$${name}`;
   },
 
-  // pointer used by the workflow guide: slash shortcut + the skill file with the full steps
+  // pointer used by the workflow guide: $-mention shortcut + the skill file with the full steps
   skillRef(name) {
-    return `\`/${name}\` (steps in \`.agents/skills/${name}/SKILL.md\`)`;
+    return `\`$${name}\` (steps in \`.agents/skills/${name}/SKILL.md\`)`;
   },
+
+  // what the workflow guide calls the direct-invocation shortcut (default: "slash command")
+  shortcut: '`$skill-name` mention (or `/skills` picker)',
 
   // Codex project MCP config: .codex/config.toml, TOML table `[mcp_servers.<name>]`, remote
   // server as a bare url. `format: 'toml'` tells build/doctor to append-merge instead of
