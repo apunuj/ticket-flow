@@ -126,6 +126,44 @@ test('build renders from --config to --out end to end', () => {
   }
 });
 
+// APU-1045: Codex has no slash commands for repo skills, so build's "Next steps" hint and its
+// overview note name each configured tool's own shortcut.
+test('build output names each configured tool\'s own shortcut', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tf-bin-'));
+  const buildWith = (tools) => {
+    const cfg = path.join(dir, `${tools.join('-')}.yaml`);
+    const yaml = fs.readFileSync(EXAMPLE, 'utf8').replace(/^tools:\n(?:\s+- \w+\n)+/m, `tools:\n${tools.map((t) => `  - ${t}\n`).join('')}`);
+    fs.writeFileSync(cfg, yaml);
+    const { code, out } = run(['build', '--config', cfg, '--out', path.join(dir, tools.join('-'))]);
+    assert.equal(code, 0, out);
+    return out;
+  };
+  try {
+    const codexOnly = buildWith(['codex']);
+    assert.match(codexOnly, /\$next-ticket in Codex/);
+    assert.doesNotMatch(codexOnly, /(?<![\w./-])\/next-ticket/, 'no slash command in a Codex-only build (paths aside)');
+    assert.match(codexOnly, /overview skill \(\$ticket-flow\)/);
+
+    const claudeOnly = buildWith(['claude']);
+    assert.match(claudeOnly, /\(or run \/next-ticket\)/, 'claude hint unchanged');
+    assert.doesNotMatch(claudeOnly, /\$next-ticket/);
+
+    const mixed = buildWith(['claude', 'codex']);
+    assert.match(mixed, /\/next-ticket/);
+    assert.match(mixed, /\$next-ticket in Codex/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('config templates name orchestrate-ticket without a slash command', () => {
+  for (const rel of ['templates/ticket-flow.config.yaml', 'examples/example.config.yaml']) {
+    const text = fs.readFileSync(path.join(ROOT, rel), 'utf8');
+    assert.match(text, /model split for orchestrate-ticket/, rel);
+    assert.doesNotMatch(text, /\/orchestrate-ticket/, rel);
+  }
+});
+
 test('doctor runs the preflight checklist against built output', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tf-bin-'));
   try {

@@ -155,6 +155,7 @@ test('upgrade migrates the config: missing orchestrate block appended, stamp ref
     const res = runUpgrade({ configPath: path.join(dir, 'ticket-flow.config.yaml'), out: dir, cwd: dir });
     const yaml = fs.readFileSync(path.join(dir, 'ticket-flow.config.yaml'), 'utf8');
     assert.match(yaml, /# orchestrate:/, 'orchestrate block appended as commented snippet');
+    assert.doesNotMatch(yaml, /\/orchestrate-ticket/, 'snippet names no slash command (Codex has none)');
     assert.match(yaml, new RegExp(`generated for Ticket-Flow ${PKG_VERSION.replace(/\./g, '\\.')}`), 'stamp refreshed');
     assert.ok(res.migrated.includes('orchestrate'), 'migration reported');
     // still parseable and idempotent

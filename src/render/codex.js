@@ -66,7 +66,7 @@ export default {
         kind: 'overview',
         path: '.agents/skills/ticket-flow/SKILL.md',
         content: fm + '\n' + guide,
-        note: 'overview skill (/ticket-flow)',
+        note: 'overview skill ($ticket-flow)',
       },
     ];
   },
