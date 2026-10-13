@@ -101,8 +101,14 @@ for (const backend of ['linear', 'jira']) {
     const cursorReview = files.find((f) => f.tool === 'cursor' && f.path.includes('review-ticket'));
     const codexReview = files.find((f) => f.tool === 'codex' && f.path.includes('review-ticket'));
     assert.match(cursorReview.content, /Cursor has no built-in code-review/, 'cursor inlines the checklist');
-    assert.match(codexReview.content, /built-in \*\*`\/review`\*\*/, 'codex delegates to its own /review');
-    assert.doesNotMatch(codexReview.content, /no built-in code-review/, 'codex does not inline the checklist');
+    // Codex's /review is a user-typed command the running skill cannot call, so the skill
+    // reviews the diff itself and must never mention /review at all.
+    assert.match(codexReview.content, /gh pr diff <PR#>/, 'codex reviews the PR diff directly');
+    assert.match(codexReview.content, /widen coverage at high\/max/, 'codex honours the chosen depth');
+    assert.match(codexReview.content, /pulls\/<PR#>\/comments/, 'codex keeps the inline-comment mandate');
+    assert.match(codexReview.content, /`Review verdict`/, 'codex keeps the ticket-artifact step');
+    assert.doesNotMatch(codexReview.content, /(?<![\w./-])\/review(?![\w-])/, 'codex never mentions /review');
+    assert.doesNotMatch(codexReview.content, /no built-in code-review/, 'codex does have /review — just not callable');
 
     // no tool but claude may point at the Claude-only code-review skill
     for (const f of files.filter((f) => f.tool !== 'claude')) {
