@@ -14,7 +14,7 @@ Review the PR attached to ticket {{arg}}. This skill works **only** on top of a 
 
 - {{op "getAttachedPR"}}. {{> preflight}}
 - If no PR is found, ask the user for the PR number or URL.
-- If none can be supplied — **hard stop**: "No PR found for {{arg}}. Run `/execute-ticket {{arg}}` first; review-ticket only works on top of a PR." Do not fall back to reviewing the working tree.
+- If none can be supplied — **hard stop**: "No PR found for {{arg}}. Run `{{invoke "execute-ticket"}} {{arg}}` first; review-ticket only works on top of a PR." Do not fall back to reviewing the working tree.
 
 ## 2. Ask for review depth — always
 
@@ -50,11 +50,11 @@ Record the **full review on the ticket** (not just in chat): {{op "addComment"}}
 
 The verdict must ALSO be recorded on the PR — post a PR comment with the verdict line (`gh pr comment <pr> --body "..."`, or append it to the PR description). This top-level verdict comment is in addition to the per-finding inline PR comments (always posted, per step 2).
 
-Then {{> artifact-write}} — fill the `Review verdict` section with the verdict **and the list of blocking findings / uncovered criteria**, so `/merge-ticket` can confirm they were addressed. `/merge-ticket` reads this verdict to decide whether review is done.
+Then {{> artifact-write}} — fill the `Review verdict` section with the verdict **and the list of blocking findings / uncovered criteria**, so `{{invoke "merge-ticket"}}` can confirm they were addressed. `{{invoke "merge-ticket"}}` reads this verdict to decide whether review is done.
 
 {{> checkpoint next="hand off or end the review" require="the verdict comment and the artifact's `Review verdict` update are receipted on the ticket"}}
 
-If the verdict is `🟡 Needs changes`, hand off: the findings are now on the PR, so suggest `/plan-fix {{arg}}` to select findings (failing CI included) and prepare a fix plan, then `/review-plan {{arg}}` → `/execute-fix {{arg}}` → re-review.
+If the verdict is `🟡 Needs changes`, hand off: the findings are now on the PR, so suggest `{{invoke "plan-fix"}} {{arg}}` to select findings (failing CI included) and prepare a fix plan, then `{{invoke "review-plan"}} {{arg}}` → `{{invoke "execute-fix"}} {{arg}}` → re-review.
 
 ## Output shape
 

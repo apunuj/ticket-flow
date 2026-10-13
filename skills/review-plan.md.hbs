@@ -14,7 +14,7 @@ Review the plan for ticket {{arg}} and incorporate the findings into a revised, 
 
 - {{op "getTicket"}}. {{> preflight}}
 - {{> artifact-read}}
-- Use the plan explicitly selected by the user (including a draft in chat or a supplied file); otherwise use the active, unfinished `Fix plan` when present, then the original `Plan`. If multiple candidates are plausible, ask which to review. If there is no plan, request one or hand off to `/describe-ticket {{arg}}`; do not pretend to have reviewed a missing plan.
+- Use the plan explicitly selected by the user (including a draft in chat or a supplied file); otherwise use the active, unfinished `Fix plan` when present, then the original `Plan`. If multiple candidates are plausible, ask which to review. If there is no plan, request one or hand off to `{{invoke "describe-ticket"}} {{arg}}`; do not pretend to have reviewed a missing plan.
 - Carry forward the user-ratified stories, acceptance criteria, constraints, and deferrals. For a fix plan, also read the source findings and the user's selected scope. Do not silently reintroduce deferred findings or enlarge product scope.
 
 ## 2. Ground the review in current code
@@ -43,7 +43,7 @@ For each meaningful test, specify: the criterion/finding and risk; concrete setu
 - A plan assessment is **not** a code-review verdict. Never clear PR blockers or set `Review verdict` to ready to merge. Do not implement, commit, push, resolve PR threads, or merge as part of this skill.
 - When an artifact is updated: {{> checkpoint next="hand off the revised plan" require="the revised plan and its assessment are receipted in the existing work artifact"}}
 
-End with the revised plan, material changes, baseline, verification coverage, unresolved decisions, and ticket URL. Suggest `/execute-ticket {{arg}}` for an initial plan or `/execute-fix {{arg}}` for a fix plan when the plan is ready and its scope confirmed; otherwise state the specific next decision. Reviewing a plan does not itself authorize execution.
+End with the revised plan, material changes, baseline, verification coverage, unresolved decisions, and ticket URL. Suggest `{{invoke "execute-ticket"}} {{arg}}` for an initial plan or `{{invoke "execute-fix"}} {{arg}}` for a fix plan when the plan is ready and its scope confirmed; otherwise state the specific next decision. Reviewing a plan does not itself authorize execution.
 {{~> final-message}}
 
 ## Resume / idempotency

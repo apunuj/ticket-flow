@@ -91,6 +91,28 @@ for (const backend of ['linear', 'jira']) {
     }
   });
 
+  test(`[${backend}] codex skills name phases as $skill-name; command tools keep /name`, () => {
+    const files = renderFor(backend);
+    // Codex registers no slash command for repo skills. A path like `.agents/skills/plan-fix/`
+    // is not an invocation, so a slash preceded by a word/path character doesn't count.
+    const slashPhase = new RegExp(`(?<![\\w./-])/(${[...SKILLS, 'ticket-flow'].join('|')})(?![\\w-])`);
+    for (const f of files.filter((f) => f.tool === 'codex' && f.kind === 'skill')) {
+      assert.doesNotMatch(f.content, slashPhase, `${f.path} advertises a slash command Codex lacks`);
+    }
+    const skill = (tool, name) => files.find((f) => f.tool === tool && f.kind === 'skill' && f.path.includes(name));
+    assert.match(skill('codex', 'describe-ticket').content, /> Usage: `\$describe-ticket </);
+    assert.match(skill('codex', 'describe-ticket').content, /`\$execute-ticket <ticket-id>`/);
+    assert.match(skill('codex', 'merge-ticket').content, /run plan-fix to plan their fixes/);
+
+    for (const [tool, arg] of [['claude', '$1'], ['copilot', '${input:ticket}'], ['cursor', '<ticket-id>'], ['opencode', '$1']]) {
+      assert.ok(skill(tool, 'describe-ticket').content.includes(`\`/execute-ticket ${arg}\``), `${tool} keeps /execute-ticket`);
+    }
+    for (const tool of ['copilot', 'cursor', 'opencode']) {
+      assert.match(skill(tool, 'describe-ticket').content, /> Usage: `\/describe-ticket </, `${tool} keeps its /usage line`);
+    }
+    assert.match(skill('copilot', 'review-ticket').content, /the `\/review` prompt/, 'copilot review unchanged');
+  });
+
   test(`[${backend}] code-review tail differs by tool`, () => {
     const files = renderFor(backend);
     const claudeReview = files.find((f) => f.tool === 'claude' && f.path.includes('review-ticket'));

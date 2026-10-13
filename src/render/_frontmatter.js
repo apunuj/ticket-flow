@@ -9,7 +9,8 @@ export function frontmatter(obj) {
 }
 
 // A "> Usage: `/name <hint>`" line for tools that have no argument-hint frontmatter field.
-export function usageLine(meta) {
+// `prefix` is how the tool starts a skill (Codex uses `$name`, not `/name`).
+export function usageLine(meta, prefix = '/') {
   const hint = meta['argument-hint'];
-  return hint ? `> Usage: \`/${meta.name} ${hint}\`\n\n` : '';
+  return hint ? `> Usage: \`${prefix}${meta.name} ${hint}\`\n\n` : '';
 }

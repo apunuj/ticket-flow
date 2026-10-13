@@ -4,7 +4,7 @@ description: Execute a {{backend.displayName}} ticket end to end — implement t
 argument-hint: "{{eg.prefixUpper}}-NNN"
 ---
 
-Execute ticket {{arg}}: build it, then take it up for review. This skill owns the whole span from a planned ticket to an attached PR in **{{state "inReview"}}**. For an existing PR's planned review fixes, use `/execute-fix {{arg}}`. Merging and closing are **not** this skill's job — that's `/merge-ticket` after review.
+Execute ticket {{arg}}: build it, then take it up for review. This skill owns the whole span from a planned ticket to an attached PR in **{{state "inReview"}}**. For an existing PR's planned review fixes, use `{{invoke "execute-fix"}} {{arg}}`. Merging and closing are **not** this skill's job — that's `{{invoke "merge-ticket"}}` after review.
 
 {{> arg-guard}}
 
@@ -26,7 +26,7 @@ Decide the entry point (idempotent — do the least work needed):
 - **Commits ahead of `{{git.baseBranch}}` exist and the build looks complete** → skip the build loop; go to step 3 (test gate + ship).
 - **Otherwise** → ensure you're on the ticket branch, then build (step 2).
 
-Ensure the branch (primary owner is `/describe-ticket`; this is the fallback). If not already on the ticket branch for {{arg}} (a branch whose name starts with the lowercased ticket id):
+Ensure the branch (primary owner is `{{invoke "describe-ticket"}}`; this is the fallback). If not already on the ticket branch for {{arg}} (a branch whose name starts with the lowercased ticket id):
 
 {{> branch-checkout}}
 
@@ -69,7 +69,7 @@ This repo uses a PR flow — feature PRs target **`{{git.baseBranch}}`**. Never 
 
 ## 5. Attach PR + move the ticket to {{state "inReview"}}
 
-Attaching the PR is an invariant — `/review-ticket` and `/merge-ticket` resolve the PR from here.
+Attaching the PR is an invariant — `{{invoke "review-ticket"}}` and `{{invoke "merge-ticket"}}` resolve the PR from here.
 
 - {{op "attachPR"}}.
 - {{op "addComment"}}: a short shipping note — PR link, what landed (mapped to acceptance criteria), what was deferred. Skip if a shipping note already exists for this PR (scan the ticket comments first); a resume posts no duplicate.
@@ -78,7 +78,7 @@ Attaching the PR is an invariant — `/review-ticket` and `/merge-ticket` resolv
 {{~> final-message}}
 
 
-Do **not** move the ticket to its done state — that's `/merge-ticket` after the review gate.
+Do **not** move the ticket to its done state — that's `{{invoke "merge-ticket"}}` after the review gate.
 
 ## Stop and ask
 

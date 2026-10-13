@@ -158,6 +158,11 @@ function makeEnv(config, backend, tool, rawMeta) {
   hb.registerHelper('skillRef', (name) =>
     new Handlebars.SafeString(tool.skillRef ? tool.skillRef(name) : `\`/${name}\``),
   );
+  // {{invoke "plan-fix"}} -> how a user starts that phase in this tool, for cross-phase handoffs
+  // (e.g. `/plan-fix` vs Codex's `$plan-fix`). Falls back to a slash command.
+  hb.registerHelper('invoke', (name) =>
+    new Handlebars.SafeString(tool.invoke ? tool.invoke(name) : `/${name}`),
+  );
 
   // partials may themselves use the helpers above + the shared context
   for (const file of fs.readdirSync(PARTIALS_DIR)) {

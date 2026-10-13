@@ -25,6 +25,12 @@ export default {
     return inlineReviewChecklist('Codex', 'Review the PR diff directly at the requested depth.');
   },
 
+  // Codex registers no slash command for repo skills — a skill is started by mentioning it
+  // as `$name` (or picking it from `/skills`), so cross-phase handoffs use that form.
+  invoke(name) {
+    return `$${name}`;
+  },
+
   // pointer used by the workflow guide: slash shortcut + the skill file with the full steps
   skillRef(name) {
     return `\`/${name}\` (steps in \`.agents/skills/${name}/SKILL.md\`)`;
@@ -71,7 +77,7 @@ export default {
     });
     return {
       path: `.agents/skills/${meta.name}/SKILL.md`,
-      content: fm + '\n' + usageLine(meta) + body,
+      content: fm + '\n' + usageLine(meta, '$') + body,
     };
   },
 };
