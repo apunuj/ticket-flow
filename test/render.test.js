@@ -91,6 +91,28 @@ for (const backend of ['linear', 'jira']) {
     }
   });
 
+  test(`[${backend}] codex skills name phases as $skill-name; command tools keep /name`, () => {
+    const files = renderFor(backend);
+    // Codex registers no slash command for repo skills. A path like `.agents/skills/plan-fix/`
+    // is not an invocation, so a slash preceded by a word/path character doesn't count.
+    const slashPhase = new RegExp(`(?<![\\w./-])/(${[...SKILLS, 'ticket-flow'].join('|')})(?![\\w-])`);
+    for (const f of files.filter((f) => f.tool === 'codex' && f.kind === 'skill')) {
+      assert.doesNotMatch(f.content, slashPhase, `${f.path} advertises a slash command Codex lacks`);
+    }
+    const skill = (tool, name) => files.find((f) => f.tool === tool && f.kind === 'skill' && f.path.includes(name));
+    assert.match(skill('codex', 'describe-ticket').content, /> Usage: `\$describe-ticket </);
+    assert.match(skill('codex', 'describe-ticket').content, /`\$execute-ticket <ticket-id>`/);
+    assert.match(skill('codex', 'merge-ticket').content, /run plan-fix to plan their fixes/);
+
+    for (const [tool, arg] of [['claude', '$1'], ['copilot', '${input:ticket}'], ['cursor', '<ticket-id>'], ['opencode', '$1']]) {
+      assert.ok(skill(tool, 'describe-ticket').content.includes(`\`/execute-ticket ${arg}\``), `${tool} keeps /execute-ticket`);
+    }
+    for (const tool of ['copilot', 'cursor', 'opencode']) {
+      assert.match(skill(tool, 'describe-ticket').content, /> Usage: `\/describe-ticket </, `${tool} keeps its /usage line`);
+    }
+    assert.match(skill('copilot', 'review-ticket').content, /the `\/review` prompt/, 'copilot review unchanged');
+  });
+
   test(`[${backend}] code-review tail differs by tool`, () => {
     const files = renderFor(backend);
     const claudeReview = files.find((f) => f.tool === 'claude' && f.path.includes('review-ticket'));
@@ -101,8 +123,14 @@ for (const backend of ['linear', 'jira']) {
     const cursorReview = files.find((f) => f.tool === 'cursor' && f.path.includes('review-ticket'));
     const codexReview = files.find((f) => f.tool === 'codex' && f.path.includes('review-ticket'));
     assert.match(cursorReview.content, /Cursor has no built-in code-review/, 'cursor inlines the checklist');
-    assert.match(codexReview.content, /built-in \*\*`\/review`\*\*/, 'codex delegates to its own /review');
-    assert.doesNotMatch(codexReview.content, /no built-in code-review/, 'codex does not inline the checklist');
+    // Codex's /review is a user-typed command the running skill cannot call, so the skill
+    // reviews the diff itself and must never mention /review at all.
+    assert.match(codexReview.content, /gh pr diff <PR#>/, 'codex reviews the PR diff directly');
+    assert.match(codexReview.content, /widen coverage at high\/max/, 'codex honours the chosen depth');
+    assert.match(codexReview.content, /pulls\/<PR#>\/comments/, 'codex keeps the inline-comment mandate');
+    assert.match(codexReview.content, /`Review verdict`/, 'codex keeps the ticket-artifact step');
+    assert.doesNotMatch(codexReview.content, /(?<![\w./-])\/review(?![\w-])/, 'codex never mentions /review');
+    assert.doesNotMatch(codexReview.content, /no built-in code-review/, 'codex does have /review — just not callable');
 
     // no tool but claude may point at the Claude-only code-review skill
     for (const f of files.filter((f) => f.tool !== 'claude')) {

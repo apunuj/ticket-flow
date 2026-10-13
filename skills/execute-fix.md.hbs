@@ -13,16 +13,16 @@ Execute the confirmed fix plan for ticket {{arg}} on its existing PR.
 ## 1. Resolve the PR and confirmed fix plan
 
 - {{op "getAttachedPR"}}. {{> preflight}}
-- If no PR is found, ask for its number or URL. If none can be supplied, stop: this skill requires an existing PR. Use `/execute-ticket {{arg}}` for initial implementation and shipping.
+- If no PR is found, ask for its number or URL. If none can be supplied, stop: this skill requires an existing PR. Use `{{invoke "execute-ticket"}} {{arg}}` for initial implementation and shipping.
 - {{> artifact-read}}
-- Read the `Fix plan`, its selected findings and source links, deferrals, tasks, verification cases, and `Plan review` assessment. If the fix plan or explicit scope selection cannot be recovered, hand off to `/plan-fix {{arg}}`; never infer permission to fix every open finding from the artifact fallback.
+- Read the `Fix plan`, its selected findings and source links, deferrals, tasks, verification cases, and `Plan review` assessment. If the fix plan or explicit scope selection cannot be recovered, hand off to `{{invoke "plan-fix"}} {{arg}}`; never infer permission to fix every open finding from the artifact fallback.
 - Resolve any blocked plan, blocked plan assessment, or unconfirmed product decision before implementation. Honor the already confirmed scope; new findings return to scope selection rather than silently expanding this run.
 - Inspect the PR's state, head branch/repository and head/base SHAs. If it is closed, merged, or belongs to another ticket, stop and resolve the target. Confirm it matches the fix plan; never create a replacement PR or branch.
 
 ## 2. Check out and revalidate
 
 - Inspect `git status --short`, the current branch, and local commits. Safely check out the PR's actual head branch, preserving unrelated work. Do not derive a new branch name from the ticket or push directly to `{{git.baseBranch}}`.
-- Re-read current findings, checks, and relevant code/tests. Compare the head/base SHAs and relevant dirty changes with the plan's baseline. If they changed, verify the tasks still apply and refresh stale plan-review evidence; use `/review-plan {{arg}}` if design or verification assumptions no longer hold.
+- Re-read current findings, checks, and relevant code/tests. Compare the head/base SHAs and relevant dirty changes with the plan's baseline. If they changed, verify the tasks still apply and refresh stale plan-review evidence; use `{{invoke "review-plan"}} {{arg}}` if design or verification assumptions no longer hold.
 - Skip an already addressed task only with current code/test evidence. If all fixes were already pushed, repair any missing recording steps below without duplicating commits, notes, or thread replies. A completed plan does not authorize another fix round or invalidate a newer successful code review.
 
 ## 3. Apply the selected fixes
@@ -53,7 +53,7 @@ Before changing code, set the `Fix plan` state to `executing`, retain `status: i
 - Refresh the PR's work-artifact section with the final task state if it changed after the earlier body update.
 - {{> checkpoint next="declare the fix plan executed" require="the fix note and updated artifact are receipted on the ticket"}}
 
-End with the addressed and remaining findings, verification results, commit(s), CI state, PR URL, and ticket URL. Hand off to `/review-ticket {{arg}}`; do not merge or mark the ticket done. A plan assessment never substitutes for code review.
+End with the addressed and remaining findings, verification results, commit(s), CI state, PR URL, and ticket URL. Hand off to `{{invoke "review-ticket"}} {{arg}}`; do not merge or mark the ticket done. A plan assessment never substitutes for code review.
 {{~> final-message}}
 
 ## Stop and ask

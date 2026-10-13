@@ -82,6 +82,39 @@ test('renderDoc shows tool display names, not bare ids', () => {
   assert.doesNotMatch(doc, /\*\*claude\*\*|\*\*copilot\*\*/, 'no bare tool ids rendered in bold');
 });
 
+// APU-1045: Codex registers no slash command for repo skills — its overview names phases as
+// `$name` and points at `/skills`; a slash preceded by a word/path character is a file path.
+const slashPhase = new RegExp(`(?<![\\w./-])/(${[...SKILLS, 'ticket-flow'].join('|')})(?![\\w-])`);
+
+test('codex overview names phases as $name and points at /skills', () => {
+  const codexGuide = renderGuide(env('codex'));
+  assert.ok(codexGuide.includes('`$next-ticket` (steps in `.agents/skills/next-ticket/SKILL.md`)'));
+  assert.match(codexGuide, /`\/skills`/, 'mentions the /skills picker');
+  assert.doesNotMatch(codexGuide, slashPhase, 'no slash command Codex lacks');
+  assert.doesNotMatch(codexGuide, /slash command/, 'never calls the shortcut a slash command');
+
+  const claudeGuide = renderGuide(env('claude'));
+  assert.match(claudeGuide, /do _not_ need to type the slash command/, 'claude wording unchanged');
+  assert.ok(claudeGuide.includes('`/next-ticket`'), 'claude keeps /next-ticket');
+});
+
+test('renderDoc gives Codex its own invocation line only when Codex is configured', () => {
+  const backend = getBackend(config.backend.type);
+  const mixed = renderDoc({ config, backend });
+  assert.ok(mixed.includes('`/next-ticket`'), 'command-based assistants keep /next-ticket');
+  assert.ok(mixed.includes('`$next-ticket`'), 'Codex gets $next-ticket');
+  assert.match(mixed, /In Codex[^\n]*`\/skills`/, 'Codex line points at /skills');
+
+  const claudeOnly = renderDoc({ config: { ...config, tools: ['claude'] }, backend });
+  assert.ok(claudeOnly.includes('`/next-ticket`'));
+  assert.doesNotMatch(claudeOnly, /\$next-ticket|In Codex/, 'no Codex line without Codex');
+
+  const codexOnly = renderDoc({ config: { ...config, tools: ['codex'] }, backend });
+  assert.ok(codexOnly.includes('`$next-ticket`'));
+  assert.doesNotMatch(codexOnly, slashPhase, 'no slash commands in a Codex-only repo');
+  assert.doesNotMatch(codexOnly, /slash command runs|no slash command needed/, 'no slash-command shortcut wording');
+});
+
 test('renderGuide maps every phase with a tool-specific pointer', () => {
   const guide = renderGuide(env('opencode'));
   for (const skill of SKILLS) assert.ok(guide.includes(skill), `guide names ${skill}`);

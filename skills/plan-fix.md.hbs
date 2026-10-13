@@ -4,7 +4,7 @@ description: Plan fixes for the open feedback on a {{backend.displayName}} ticke
 argument-hint: "{{eg.prefixUpper}}-NNN"
 ---
 
-Plan fixes for ticket {{arg}}'s PR feedback. This skill works **only** on top of a PR and ends with a scoped execution plan. Use `/review-plan` to deepen the plan and `/execute-fix` to implement it.
+Plan fixes for ticket {{arg}}'s PR feedback. This skill works **only** on top of a PR and ends with a scoped execution plan. Use `{{invoke "review-plan"}}` to deepen the plan and `{{invoke "execute-fix"}}` to implement it.
 
 {{> arg-guard}}
 
@@ -14,13 +14,13 @@ Plan fixes for ticket {{arg}}'s PR feedback. This skill works **only** on top of
 
 - {{op "getAttachedPR"}}. {{> preflight}}
 - If no PR is found, ask the user for the PR number or URL.
-- If none can be supplied — **hard stop**: "No PR found for {{arg}}. Run `/execute-ticket {{arg}}` first; plan-fix only works on top of a PR."
+- If none can be supplied — **hard stop**: "No PR found for {{arg}}. Run `{{invoke "execute-ticket"}} {{arg}}` first; plan-fix only works on top of a PR."
 
 ## 2. Gather everything that needs fixing — in parallel
 
 - **Failing / pending CI:** `gh pr checks <PR#>` — list each failing or pending check; for failures, pull enough detail to know the cause (`gh run view <run-id> --log-failed`, or the check's output).
 - **Review comments & threads:** `gh pr view <PR#> --json reviews,reviewDecision,comments,mergeable` plus the inline threads (`gh api repos/{owner}/{repo}/pulls/<PR#>/comments`). Note any `CHANGES_REQUESTED`. Fetch `reviewThreads` with their `isResolved` state through the GitHub GraphQL API (paginate all connections); REST inline comments alone do not establish which threads are unresolved.
-- **Recorded verdict:** {{> artifact-read}} Read the `Review verdict` (blocking findings / uncovered criteria) and scan the ticket comments for the latest `/review-ticket {{arg}}` verdict.
+- **Recorded verdict:** {{> artifact-read}} Read the `Review verdict` (blocking findings / uncovered criteria) and scan the ticket comments for the latest `{{invoke "review-ticket"}} {{arg}}` verdict.
 - **Merge state:** note `mergeable: CONFLICTING` — a rebase/merge of `{{git.baseBranch}}` will be needed.
 
 ## 3. Triage — tell me what can be fixed
@@ -53,7 +53,7 @@ Return the full plan together with the selected, skipped, and deferred items (an
 - Add/update `Fix plan` with a revision identifier, existing PR link/head/base SHAs, confirmed scope and finding IDs/source links, deferrals with reasons, ordered `F-T-N` tasks (new tasks unchecked; preserve completed tasks on resume), verification cases, and unresolved decisions. Set its own state to `planned` (or `blocked` for unresolved decisions). Keep the ticket's lifecycle status `in-review`; do not move it back to planning.
 - Retain the actual code-review verdict and its blockers. Invalidate any earlier `Plan review` assessment for a changed fix plan. {{> artifact-write}}
 - {{> checkpoint next="hand off the fix plan" require="the confirmed scope and fix plan are receipted in the ticket's work artifact"}}
-- End with the full fix plan and scope decisions plus the PR and ticket URLs. Suggest `/review-plan {{arg}}` for a deeper pass, then `/execute-fix {{arg}}` to implement the revised plan on the existing PR branch, followed by `/review-ticket {{arg}}`.
+- End with the full fix plan and scope decisions plus the PR and ticket URLs. Suggest `{{invoke "review-plan"}} {{arg}}` for a deeper pass, then `{{invoke "execute-fix"}} {{arg}}` to implement the revised plan on the existing PR branch, followed by `{{invoke "review-ticket"}} {{arg}}`.
 {{~> final-message}}
 
 ## Stop and ask

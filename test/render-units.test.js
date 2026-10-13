@@ -24,6 +24,7 @@ test('frontmatter preserves key insertion order', () => {
 test('usageLine renders only when an argument-hint exists', () => {
   assert.equal(usageLine({ name: 'next-ticket', 'argument-hint': '[project]' }), '> Usage: `/next-ticket [project]`\n\n');
   assert.equal(usageLine({ name: 'next-ticket' }), '');
+  assert.equal(usageLine({ name: 'next-ticket', 'argument-hint': '[project]' }, '$'), '> Usage: `$next-ticket [project]`\n\n');
 });
 
 const TOOL_IDS = ['claude', 'codex', 'copilot', 'cursor', 'opencode'];

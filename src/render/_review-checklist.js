@@ -1,9 +1,10 @@
-// The full review checklist, inlined for tools that have no built-in code-review command of
-// their own (opencode, Cursor). Tools that DO have one — Claude Code's code-review skill,
-// Copilot's reviewer, Codex's /review — delegate to it instead and never use this.
-export function inlineReviewChecklist(toolName) {
+// The full review checklist, inlined for tools whose running skill cannot call a code-review
+// command of its own (opencode, Cursor, Codex — whose /review only the user can type). Tools
+// that CAN — Claude Code's code-review skill, Copilot's reviewer — delegate to it instead.
+// `intro` replaces the opening sentence for a tool where "no built-in command" isn't true.
+export function inlineReviewChecklist(toolName, intro = `${toolName} has no built-in code-review command, so review the PR diff directly.`) {
   return [
-    `${toolName} has no built-in code-review command, so review the PR diff directly. Fetch it with \`gh pr diff <PR#>\` and assess:`,
+    `${intro} Fetch it with \`gh pr diff <PR#>\` and assess:`,
     '\n- **Correctness** — logic bugs, off-by-one, error handling, missed edge cases, race conditions.',
     '\n- **Security** — input validation, authorization, injection, secret handling.',
     '\n- **Performance** — redundant work, N+1 queries, allocations on hot paths.',

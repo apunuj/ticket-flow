@@ -22,6 +22,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   request exceeds the 16 MiB input limit. Preparation checks a lower bound and
   finalization checks actual references and evidence before returning a descriptor.
 
+- **APU-1045: directly executable Codex skills.** Codex `review-ticket` reviews the PR diff
+  itself instead of telling the agent to run `/review`, which only the user can type. Codex
+  usage lines, phase handoffs, and the overview skill name phases as `$skill-name` (or the
+  `/skills` picker), since Codex registers no slash commands for repo skills. `TICKET-FLOW.md`
+  adds a separate Codex line when Codex is configured, and `ticket-flow build` suggests each
+  tool's own shortcut. Other tools keep their `/name` commands; merge-ticket's questions now
+  say "run plan-fix".
+
 ## [0.7.0] - 2026-09-30
 
 ### Added

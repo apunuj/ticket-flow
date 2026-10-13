@@ -2,9 +2,10 @@
 // Frontmatter: name / description only. Codex reads repo-local skills from `.agents/skills/`
 // (there is no `.codex/skills/`), and its custom-prompt directory is user-global, so skills are
 // the only repo-committable form. No argument substitution, hence a `<ticket-id>` placeholder.
-// Codex has a built-in `/review` that diffs against a base branch, so review-ticket delegates.
+// Codex's built-in `/review` is typed by the user, not callable from a running skill, so
+// review-ticket inlines the shared checklist instead of delegating.
 import { frontmatter, usageLine } from './_frontmatter.js';
-import { postInlineComments } from './_review-checklist.js';
+import { inlineReviewChecklist } from './_review-checklist.js';
 
 export default {
   id: 'codex',
@@ -21,16 +22,22 @@ export default {
   },
 
   codeReview() {
-    return [
-      "Use Codex's built-in **`/review`** at the requested depth, comparing the ticket branch against the PR's base branch (`/review` reviews uncommitted changes or a base-branch diff — check out the PR branch first with `gh pr checkout <PR#>`).",
-      `Collect its findings and carry them into the scope check below. Then ${postInlineComments()}`,
-    ].join(' ');
+    return inlineReviewChecklist('Codex', 'Review the PR diff directly at the requested depth.');
   },
 
-  // pointer used by the workflow guide: slash shortcut + the skill file with the full steps
-  skillRef(name) {
-    return `\`/${name}\` (steps in \`.agents/skills/${name}/SKILL.md\`)`;
+  // Codex registers no slash command for repo skills — a skill is started by mentioning it
+  // as `$name` (or picking it from `/skills`), so cross-phase handoffs use that form.
+  invoke(name) {
+    return `$${name}`;
   },
+
+  // pointer used by the workflow guide: $-mention shortcut + the skill file with the full steps
+  skillRef(name) {
+    return `\`$${name}\` (steps in \`.agents/skills/${name}/SKILL.md\`)`;
+  },
+
+  // what the workflow guide calls the direct-invocation shortcut (default: "slash command")
+  shortcut: '`$skill-name` mention (or `/skills` picker)',
 
   // Codex project MCP config: .codex/config.toml, TOML table `[mcp_servers.<name>]`, remote
   // server as a bare url. `format: 'toml'` tells build/doctor to append-merge instead of
@@ -59,7 +66,7 @@ export default {
         kind: 'overview',
         path: '.agents/skills/ticket-flow/SKILL.md',
         content: fm + '\n' + guide,
-        note: 'overview skill (/ticket-flow)',
+        note: 'overview skill ($ticket-flow)',
       },
     ];
   },
@@ -73,7 +80,7 @@ export default {
     });
     return {
       path: `.agents/skills/${meta.name}/SKILL.md`,
-      content: fm + '\n' + usageLine(meta) + body,
+      content: fm + '\n' + usageLine(meta, '$') + body,
     };
   },
 };
